@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 3,
+  "bossKey": "buried_sentinel",
+  "displayName": "매장된 파수꾼",
+  "encounterIDs": [
+    3445
+  ],
+  "encounterNameFallbacks": [
+    "매장된 파수꾼"
+  ],
+  "difficultyIDs": [
+    5,
+    16
+  ],
+  "mechanics": {
+    "toxicGlobule": {
+      "spellIDs": [],
+      "evidenceLevel": "verified",
+      "note": "유독한 물방울은 섭취 대상. 물방울 자체 event ID는 아직 룰에 고정하지 않는다."
+    },
+    "toxicBlast": {
+      "spellIDs": [
+        1284452
+      ],
+      "evidenceLevel": "verified",
+      "meaning": "미섭취 물방울 1개당 공대 전체 맹독성 작렬 1회",
+      "idSource": "mythic_raw_fixture_2026-09-27"
+    },
+    "spiralToxin": {
+      "spellIDs": [
+        1284813,
+        1284590
+      ],
+      "canonicalSpellID": 1284813,
+      "evidenceLevel": "verified",
+      "idSource": "mythic_raw_fixture_2026-09-27"
+    },
+    "shiftingProtovenom": {
+      "spellIDs": [
+        1296878
+      ],
+      "evidenceLevel": "candidate",
+      "idSource": "wowhead/journal"
+    },
+    "protovenomEruption": {
+      "spellIDs": [
+        1296962
+      ],
+      "evidenceLevel": "verified",
+      "idSource": "mythic_raw_fixture_2026-09-27",
+      "meaning": "정규 기믹 피해 신호. 발생 자체만으로 변화하는 원시맹독 오처리를 뜻하지 않음",
+      "idEvidenceLevel": "verified",
+      "failureMeaningEvidenceLevel": "rejected_direct_failure",
+      "occurrenceRole": "regular_mechanic_signal",
+      "semanticEvidenceSource": "mythic_kill_fixture_2026-09-27_try006"
+    },
+    "unstableMiasma": {
+      "spellIDs": [
+        1288260,
+        1288282
+      ],
+      "debuffSpellIDs": [
+        1288260
+      ],
+      "damageSpellIDs": [
+        1288282
+      ],
+      "evidenceLevel": "verified",
+      "idEvidenceLevel": "verified",
+      "failureMeaningEvidenceLevel": "verified",
+      "meaning": "8초 후 주변 플레이어가 피해를 나누는 분담 기믹. 같은 풀의 이전 분담 최소치보다 적은 인원으로 맞고 실제 참여자가 즉시 사망할 때만 분담 실패로 판정.",
+      "idSource": "mythic_raw_fixtures_2026-09-27_try003_try004_try005_kill006",
+      "semanticEvidenceSource": "try005 under-share 5명+직접사망 2명 vs kill006 정상 8명 분담+사망 1명"
+    },
+    "cultivatedBurst": {
+      "spellIDs": [
+        1284941
+      ],
+      "evidenceLevel": "verified",
+      "idSource": "mythic_raw_fixture_2026-09-27",
+      "meaning": "정규 인터미션 피해 신호. 발생 자체만으로 나선 독소 해결 실패를 뜻하지 않음",
+      "idEvidenceLevel": "verified",
+      "failureMeaningEvidenceLevel": "rejected_direct_failure",
+      "occurrenceRole": "regular_mechanic_signal",
+      "semanticEvidenceSource": "mythic_kill_fixture_2026-09-27_try006"
+    }
+  },
+  "sourceNotes": [
+    "1284452 Toxic Blast and 1284813 Spiral Toxin are verified from supplied Mythic raw fixtures dated 2026-09-27.",
+    "B37.1.1: Protovenom Eruption 1296962 and Cultivated Burst 1284941 are verified as spell IDs, but a supplied Mythic kill (try006) also contains both signals. Their occurrence alone is therefore NOT a direct failure signal.",
+    "Failure meaning is tracked separately from ID existence: verified ID does not imply verified failure semantics.",
+    "B37.4.26: missed Toxic Globules (1284452 Toxic Blast pulse count) are preserved as every verified failure episode. B31 linkage is exact: either the B31 root itself is Toxic Blast at the same time, or the observed collapse cluster is Toxic-Blast dominated. A later Toxic Blast mention inside an earlier Cultivated Burst chain is no longer enough by itself. Kill occurrences remain recovered execution mistakes.",
+    "B37.5.0.4: Unstable Miasma actual raw IDs verified as debuff 1288260 and split impact 1288282. Try005 has 5-way under-share with 2 direct deaths after prior 7/9/8 splits; Mythic kill006 has a normal 8-way split with a death, proving death alone is not failure semantics."
+  ]
+}

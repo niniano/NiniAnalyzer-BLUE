@@ -1,0 +1,18 @@
+# 비밀값 · 개인 기록 · 빌드 결과는 올리지 않음
+.env
+*.env
+data/live_sessions/
+data/archive*/
+data/*.log
+backups/
+logs/
+__pycache__/
+*.pyc
+build/
+dist/
+release/
+*.exe
+*.zip
+*.7z
+Thumbs.db
+.DS_Store

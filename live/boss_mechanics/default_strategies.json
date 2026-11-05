@@ -1,0 +1,608 @@
+{
+  "coiled_altar": {
+    "breathGoals": {
+      "wave1_breath1": {
+        "label": "1차 브레스",
+        "min": 6,
+        "max": 7,
+        "judgmentMode": "observe",
+        "note": "홀수 브레스. 7~8중도 생존 가능하므로 제거 수 자체는 관측만 하고 실패로 승격하지 않음."
+      },
+      "wave1_breath2": {
+        "label": "2차 브레스",
+        "min": 3,
+        "max": 4,
+        "note": "짝수 브레스 뒤 단두대. 계획 3~4를 넘은 5~6개는 위험/관측, 7개 이상만 직접 실패로 승격. 단두대 잔존은 별도 직접 사망/붕괴 연결 전까지 관측값.",
+        "judgmentMode": "judge"
+      },
+      "wave2_breath1": {
+        "label": "2바닥 이후 1차 브레스",
+        "min": 6,
+        "max": 8,
+        "judgmentMode": "observe",
+        "note": "홀수 브레스. 7~8중도 생존 가능하므로 제거 수 자체는 관측만 하고 실패로 승격하지 않음."
+      },
+      "wave2_breath2": {
+        "label": "2바닥 이후 2차 브레스",
+        "min": 4,
+        "max": 6,
+        "note": "짝수 브레스 뒤 단두대. 계획 4~6을 벗어나도 7개 미만은 위험/관측, 7개 이상만 직접 실패로 승격. 단두대 잔존은 별도 직접 사망/붕괴 연결 전까지 관측값.",
+        "judgmentMode": "judge"
+      }
+    },
+    "assignmentBasis": "two_breaths_before_guillotine_1_and_2",
+    "countBasis": "coalesced_plus_mutation",
+    "countBasisLabel": "응결된 맹독 + 악성 돌연변이 포함",
+    "cleanupBeforeGuillotine": {
+      "remainingOrbsGoal": 0,
+      "note": "단두대 진입 전 해당 전략 웨이브 구슬 0개 목표"
+    },
+    "referenceTimeline": {
+      "source": "3_reference_mythic_kills_plus_raid_nsrt",
+      "breathSecs": [
+        23,
+        40,
+        60,
+        77,
+        108,
+        125,
+        145,
+        162
+      ],
+      "guillotineSecs": [
+        43,
+        128
+      ],
+      "deliveryWarningSec": 88,
+      "note": "진행 구간/참고 타이밍용. 실제 이벤트가 있으면 실제 시각을 우선하며 성공·실패 판정에는 직접 사용하지 않음.",
+      "fourHealNsrtPlan": {
+        "source": "raid_nsrt_2026-10-06",
+        "judgmentUse": "plan_only",
+        "phase1": [
+          {
+            "time": 22,
+            "text": "다이아 브레스"
+          },
+          {
+            "time": 39,
+            "text": "엑스 브레스"
+          },
+          {
+            "time": 44,
+            "text": "1번 단두대"
+          },
+          {
+            "time": 59,
+            "text": "다이아 브레스"
+          },
+          {
+            "time": 76,
+            "text": "엑스 브레스"
+          },
+          {
+            "time": 88,
+            "text": "구슬 배달준비(위험)"
+          },
+          {
+            "time": 107,
+            "text": "다이아 브레스"
+          },
+          {
+            "time": 124,
+            "text": "엑스 브레스 딜컷준비"
+          },
+          {
+            "time": 129,
+            "text": "2번 단두대"
+          },
+          {
+            "time": 144,
+            "text": "남은구슬 브레스"
+          },
+          {
+            "time": 161,
+            "text": "허공 브레스"
+          },
+          {
+            "time": 170,
+            "text": "다이아 모이세요"
+          }
+        ],
+        "phase2": [
+          {
+            "time": 5,
+            "text": "정배대상자"
+          },
+          {
+            "time": 42,
+            "text": "정배대상자"
+          },
+          {
+            "time": 65,
+            "text": "2분쿨기 보호막"
+          },
+          {
+            "time": 91,
+            "text": "정배대상자"
+          },
+          {
+            "time": 129,
+            "text": "정배대상자"
+          },
+          {
+            "time": 147,
+            "text": "보호막 버스트 준비"
+          },
+          {
+            "time": 203,
+            "text": "넴드밀고 제발 쫄 쳐다봐"
+          }
+        ],
+        "note": "실제 이벤트 우선. 계획 대비 편차/도달 여부 관측용이며 단독 실패 판정에 사용하지 않음."
+      }
+    },
+    "raidPlan": {
+      "guillotineMarker": "skull_fixed_1_and_2",
+      "breathMarkers": {
+        "diamond": "odd",
+        "cross": "even"
+      },
+      "mutationOrbs": {
+        "display": "보라색 구슬",
+        "expectedPerWave": 5,
+        "preferredPerBreathSideMin": 2,
+        "preferredPerBreathSideMax": 3,
+        "evidence": "raid_instruction_and_reference_kills"
+      },
+      "coalescedOrbs": {
+        "display": "초록색 구슬",
+        "priority": "징표 쪽 구슬부터 정리하여 보라색 구슬 담당자 배치 공간 확보",
+        "evidence": "raid_instruction"
+      },
+      "notes": [
+        "보라색 구슬은 웨이브당 5개 고정으로 운용.",
+        "다이아/엑스 어느 쪽이든 보라색 구슬은 2~3개 정도만 있으면 됨.",
+        "초록색 구슬은 해당 브레스 징표 쪽부터 우선 정리.",
+        "공대 전략 숫자는 응결된 맹독 + 악성 돌연변이 합산 총 구슬 기준.",
+        "전원 무지성 구슬 배달 금지. 4힐 기준 힐러는 힐 집중, 필요 시 엑스 쪽 홀수 초록 구슬만 보조.",
+        "홀수 브레스 7~8중은 생존 가능하므로 제거 수 자체를 실패로 보지 않음.",
+        "짝수 브레스 뒤에는 단두대가 오므로 높은 중첩/잔존 구슬을 위험으로 봄.",
+        "짝수 브레스/1차 단두대 실패가 발생하면 직전 홀수 브레스 처리량을 실패가 아닌 선행 맥락으로 함께 표시."
+      ],
+      "phase2": {
+        "entryPosition": "P2 진입 즉시 관문 이동 후 해골 징표 집결",
+        "mindControl": "공포의 행진 대상 처리",
+        "gloombombAssignments": "근딜 2 + 원딜 2",
+        "wailInterrupt": "원한에 찬 영혼살무사의 공포의 통곡 차단",
+        "manifestVisibility": "공포의 통곡 차단 시 두려움의 현신이 일시적으로 보임",
+        "manifestCleanup": "보이는 현신을 말라크라스 영혼 절단 전방 브레스로 제거",
+        "soulcoilerVulnerability": "원한에 찬 영혼살무사는 암영 폭탄 적중 전까지 받는 피해 99% 감소",
+        "gloombombPersonal": "암영 폭탄은 혼자 맞고 영혼 3개를 15초 안에 획득",
+        "interruptAssignments": {
+          "unmarked": [],
+          "marked": [],
+          "note": "차단 순번은 사용자 raidPlan override에 이름 순서 입력 시 판정. 기본 패키지는 누락/실패만 판정."
+        },
+        "evidence": "raid_instruction_plus_inven_guide_plus_3_reference_kills",
+        "manifestCollision": "두려움의 현신끼리 접촉 금지. Malevolent Resonance 발생 시 즉시 치명적 실패 신호.",
+        "tankPlayers": [],
+        "tankPlayersNote": "공대별 탱커 이름을 입력하면 Soul Sever 1286620 비탱커 피격을 verified 개인 실수로 판정.",
+        "shieldWindows": [
+          {
+            "index": 1,
+            "targetOffsetSec": 70,
+            "scheduleToleranceSec": 5,
+            "blood": null,
+            "potion": null,
+            "assignedCooldowns": []
+          },
+          {
+            "index": 2,
+            "targetOffsetSec": 155,
+            "scheduleToleranceSec": 5,
+            "blood": null,
+            "potion": null,
+            "assignedCooldowns": []
+          }
+        ],
+        "cooldownDefaults": {
+          "toleranceBeforeSec": 3,
+          "toleranceAfterSec": 5,
+          "bloodlustSpellIDs": [
+            2825,
+            32182,
+            80353,
+            90355,
+            160452,
+            178207,
+            264667,
+            390386
+          ],
+          "combatPotionSpellIDs": [
+            1236616,
+            1236994
+          ],
+          "note": "B36.5.2: 수동 raidPlan 블러드/물약/개별 쿨기 + 자동 전문화 카탈로그를 병행. 자동 항목은 entryPolicies의 judge만 원인 A에 합류."
+        },
+        "autoSpecCooldowns": {
+          "enabled": true,
+          "judgmentMode": "observe",
+          "minimumReferenceSamples": 2,
+          "minimumHitRate": 0.67,
+          "toleranceBeforeSec": 5,
+          "toleranceAfterSec": 5,
+          "lateSearchSec": 18,
+          "note": "B36.5.2: 자동 카탈로그는 후보층. raidPlan entryPolicies가 spec+shield+spell 단위로 judge/observe를 결정하며, 명시 judge만 보호막 실패 원인 A에 합류. 미명시 항목은 defaultMode(기본 observe).",
+          "defaultMode": "observe",
+          "entryPolicies": [
+            {
+              "specID": 71,
+              "shieldIndex": 1,
+              "spellID": 107574,
+              "label": "투신",
+              "mode": "judge",
+              "expectedOffsetSec": 5.004,
+              "toleranceBeforeSec": 5.0,
+              "toleranceAfterSec": 5.0,
+              "source": "promoted_from_reference_3kills",
+              "note": "3/3 반복 사용 · 개인 공격 쿨기"
+            },
+            {
+              "specID": 71,
+              "shieldIndex": 3,
+              "spellID": 107574,
+              "label": "투신",
+              "mode": "judge",
+              "expectedOffsetSec": 0.178,
+              "toleranceBeforeSec": 5.0,
+              "toleranceAfterSec": 5.0,
+              "source": "promoted_from_reference_3kills",
+              "note": "3/3 반복 사용 · 개인 공격 쿨기"
+            },
+            {
+              "specID": 254,
+              "shieldIndex": 1,
+              "spellID": 288613,
+              "label": "정조준",
+              "mode": "judge",
+              "expectedOffsetSec": -0.613,
+              "toleranceBeforeSec": 5.0,
+              "toleranceAfterSec": 5.0,
+              "source": "promoted_from_reference_3kills",
+              "note": "6/6 반복 사용 · 개인 공격 쿨기"
+            },
+            {
+              "specID": 254,
+              "shieldIndex": 4,
+              "spellID": 288613,
+              "label": "정조준",
+              "mode": "observe",
+              "expectedOffsetSec": -4.711,
+              "toleranceBeforeSec": 5.0,
+              "toleranceAfterSec": 5.0,
+              "source": "reference_pattern",
+              "note": "5/6(83.3%) 반복 · 의무 사용으로 승격하지 않음"
+            },
+            {
+              "specID": 256,
+              "shieldIndex": 1,
+              "spellID": 10060,
+              "label": "마력 주입",
+              "mode": "observe",
+              "expectedOffsetSec": 0.826,
+              "toleranceBeforeSec": 5.0,
+              "toleranceAfterSec": 5.0,
+              "source": "reference_pattern",
+              "role": "external_targeted",
+              "targetAssignmentRequired": true,
+              "note": "시전자 사용은 관측. 대상자 계획 없이는 judge하지 않음"
+            },
+            {
+              "specID": 257,
+              "shieldIndex": 1,
+              "spellID": 10060,
+              "label": "마력 주입",
+              "mode": "observe",
+              "expectedOffsetSec": -1.743,
+              "toleranceBeforeSec": 5.0,
+              "toleranceAfterSec": 5.0,
+              "source": "reference_pattern",
+              "role": "external_targeted",
+              "targetAssignmentRequired": true,
+              "note": "시전자 사용은 관측. 대상자 계획 없이는 judge하지 않음"
+            },
+            {
+              "specID": 259,
+              "shieldIndex": 1,
+              "spellID": 1856,
+              "label": "소멸",
+              "mode": "observe",
+              "expectedOffsetSec": 2.141,
+              "toleranceBeforeSec": 5.0,
+              "toleranceAfterSec": 5.0,
+              "source": "reference_pattern",
+              "note": "3/3 반복이나 회전/자원 성격이 강해 관측 유지"
+            },
+            {
+              "specID": 259,
+              "shieldIndex": 1,
+              "spellID": 360194,
+              "label": "죽음표식",
+              "mode": "judge",
+              "expectedOffsetSec": -0.128,
+              "toleranceBeforeSec": 5.0,
+              "toleranceAfterSec": 5.0,
+              "source": "promoted_from_reference_3kills",
+              "note": "3/3 반복 사용 · 보호막 주력 쿨기"
+            },
+            {
+              "specID": 259,
+              "shieldIndex": 1,
+              "spellID": 385627,
+              "label": "왕의 파멸",
+              "mode": "judge",
+              "expectedOffsetSec": 0.86,
+              "toleranceBeforeSec": 5.0,
+              "toleranceAfterSec": 5.0,
+              "source": "promoted_from_reference_3kills",
+              "note": "3/3 반복 사용 · 보호막 주력 쿨기"
+            },
+            {
+              "specID": 259,
+              "shieldIndex": 3,
+              "spellID": 385627,
+              "label": "왕의 파멸",
+              "mode": "judge",
+              "expectedOffsetSec": -2.235,
+              "toleranceBeforeSec": 5.0,
+              "toleranceAfterSec": 5.0,
+              "source": "promoted_from_reference_3kills",
+              "note": "3/3 반복 사용 · 보호막 주력 쿨기"
+            },
+            {
+              "specID": 265,
+              "shieldIndex": 1,
+              "spellID": 205180,
+              "label": "암흑시선 소환",
+              "mode": "judge",
+              "expectedOffsetSec": -0.448,
+              "toleranceBeforeSec": 5.0,
+              "toleranceAfterSec": 5.0,
+              "source": "promoted_from_reference_3kills",
+              "note": "5/5 반복 사용 · 개인 공격 쿨기"
+            },
+            {
+              "specID": 577,
+              "shieldIndex": 3,
+              "spellID": 370965,
+              "label": "사냥",
+              "mode": "judge",
+              "expectedOffsetSec": 0.224,
+              "toleranceBeforeSec": 5.0,
+              "toleranceAfterSec": 5.0,
+              "source": "promoted_from_reference_3kills",
+              "note": "3/3 반복 사용 · 개인 공격 쿨기"
+            },
+            {
+              "specID": 1473,
+              "shieldIndex": 1,
+              "spellID": 370553,
+              "label": "비늘사령관의 지배",
+              "mode": "observe",
+              "expectedOffsetSec": 2.297,
+              "toleranceBeforeSec": 5.0,
+              "toleranceAfterSec": 5.0,
+              "source": "reference_pattern",
+              "note": "2/2 표본 · 공대 지원 성격 때문에 관측 유지"
+            },
+            {
+              "specID": 1473,
+              "shieldIndex": 3,
+              "spellID": 370553,
+              "label": "비늘사령관의 지배",
+              "mode": "observe",
+              "expectedOffsetSec": -3.443,
+              "toleranceBeforeSec": 6.564,
+              "toleranceAfterSec": 6.564,
+              "source": "reference_pattern",
+              "note": "2/2 표본 · 공대 지원 성격 때문에 관측 유지"
+            }
+          ]
+        },
+        "gloombombFirstInterruptOrderRequired": true,
+        "gloombombTiming": "공포의 통곡 1차단 확인 후 바로 암영폭탄을 영혼살무사에 적중",
+        "gloombombTimingNote": "현재 실제 Try20/22는 1차단 후 폭탄 폭발 순서를 충족. 바로의 최대 허용 지연시간은 추가 표본 전까지 하드코딩하지 않음.",
+        "shieldObservationNote": "보호막 #1/#2는 P2+70/+155초 NSRT 예상 시각을 관측 슬롯으로 유지. 도달 전에는 실패 판정하지 않고 실제 도달 시 흡수량·파괴시간·영원한 일몰 시전/차단·일정 편차를 기록."
+      },
+      "orbHandoff": {
+        "enabled": true,
+        "role": "tank_handoff",
+        "tankHandoffMax": null,
+        "graceSec": 2.0,
+        "cleanupClusterGapSec": 0.15,
+        "note": "2차 단두대 이후 잔존은 P2 진입 전 정리 정보값. role=tank_handoff는 기존 plan 의미 호환용이며 실제 처리 담당자는 로그만으로 단정하지 않음. tankHandoffMax를 설정한 경우에만 상한 초과를 경고."
+      }
+    },
+    "orbAccounting": {
+      "countWindowSec": 1.0,
+      "minConsensusTargets": 4,
+      "highBurstMin": 7,
+      "zeroBreathCritical": true,
+      "countSignal": "Venom Rupture 1299838 apply/apply-stack per-player consensus",
+      "note": "refreshdebuff 제외. 완전한 WCL/raw 스트림에서 브레스 후 1초 내 적용/중첩 0건은 제거 0개로 판정.",
+      "excludeAfterCollapse": true,
+      "excludeBelowAliveFraction": 0.5,
+      "minRaidSizeForAliveGuard": 10,
+      "judgmentExclusionNote": "1초 내 4명 이상 사망한 의미 있는 붕괴 이후 또는 생존 인원이 절반 미만이면 원시 구슬 수는 보존하되 전략/원인 집계에서 제외."
+    },
+    "phase1Transition": {
+      "targetMinSec": 165,
+      "targetMaxSec": 170,
+      "healthCheckpointSec": 165,
+      "note": "P1 딜조절 목표: 2:45~2:50 사이 P2 진입. CombatLog/WCL 시각의 0.1초 이내 경계 오차는 목표 구간으로 처리. 2:45 시점 줄잔 체력을 함께 표시해 딜 부족과 기믹 대기를 구분.",
+      "boundaryToleranceSec": 0.1
+    },
+    "phase2Analysis": {
+      "expectedMindControlTargets": 4,
+      "expectedSoulcoilersPerCycle": 2,
+      "expectedGloombombTargets": 4,
+      "graveboundDeadlineSec": 15.0,
+      "manifestFixationRemovalWindowSec": 0.25,
+      "priorAddOverlapGraceSec": 0.05,
+      "notes": [
+        "B36.4 종합판정은 먼저 promoted verified 신호(암영폭탄 뎀감 해제/추가피격, 통곡 실패, 현신 접촉, Soul Sever 비탱 피격, 이전 쫄 중첩)만 사용.",
+        "정배와 영혼 3개는 신호를 계속 수집하되 성공/실패 계약 재검증 전까지 확인 불가로 표시하고 첫 실수/붕괴 원인 판정에는 사용하지 않음.",
+        "Malevolent Resonance 1310744/1312132 = 현신 접촉 verified. 접촉 자체는 실패로 기록하고, resonance 피해 직후 사망이 있으면 치명적 인과 신호로 승격.",
+        "Wail 1286399 플레이어 debuff = 차단 실패 verified.",
+        "Gloombomb 대상 4명인데 피해 고유 대상이 4명을 넘으면 추가 피격으로 판정.",
+        "이전 차단쫄이 다음 쫄 소환 이후에도 Wail을 시작하면 이전 웨이브 생존/중첩으로 판정.",
+        "차단 성공 → 현신 일시 노출은 공략 명시. WCL Interrupts stream이 있으면 차단자/순서도 기록.",
+        "Soul Sever 직후 fixation 제거 수는 현신 정리 보조 후보이며 정확한 처치 수로 등치하지 않음.",
+        "로컬 raw 또는 B36 WCL Soulcoiler DamageTaken stream이 충분할 때, 폭발 직후 1~2초 내 99% 피해감소 비율 해제 전환으로 각 Soulcoiler의 암영폭탄 성공을 verified 판정. 직접 1310883 add-hit 0건만으로 실패를 만들지 않음.",
+        "Soul Sever 1286620 플레이어 피격을 기록. raidPlan.phase2.tankPlayers가 설정된 경우 비탱커 피격을 verified로 판정.",
+        "암영폭탄→영혼살무사 성공은 폭발 전 2초/후 2초의 합산 damage÷unmitigatedAmount 비율이 약 1%→정상으로 전환될 때만 verified. 단일 공격값이 아니라 합계를 사용.",
+        "현신 접촉 spatial은 local raw에서 candidate로 계산: 접촉 전 이동/거리 + 같은 와이프의 집착 활성·Resonance 비발생 구간을 정상 비교군으로 사용. 플레이어 좌표는 유령 proxy이므로 hard 안전거리/개인 책임은 확정하지 않음.",
+        "첫 실수=시간상 가장 먼저 난 promoted verified 실패. 붕괴 직결=1초 내 4명 이상 사망 군집과 직접 피해/사망 연결 근거가 있을 때만 승격; 단순 선후관계는 화살표로 연결하지 않음.",
+        "1차단→암영폭탄 간격은 각 P2 사이클의 원시 deltaSec로 누적하고, 충분한 표본 전에는 최대 허용 지연시간을 하드코딩하지 않음.",
+        "보호막/영원한 일몰은 P2+70/+155초 NSRT 예상 시각을 사전 관측 슬롯으로 유지하며, 첫 실도달 시 기존 B36.5 보호막 분석기로 흡수량·파괴시간·시전시간·차단·편차를 자동 채움."
+      ],
+      "manifestCollisionDeathLinkWindowSec": 0.75,
+      "soulcoilerVulnerabilityPreWindowSec": 2.0,
+      "soulcoilerVulnerabilityPostWindowSec": 2.0,
+      "soulcoilerVulnerabilityMinSamples": 2,
+      "manifestCollisionTraceWindowSec": 5.0,
+      "manifestSafeSampleStepSec": 0.5,
+      "manifestSafeCollisionExclusionSec": 1.0,
+      "mindControlJudgmentEnabled": false,
+      "graveboundJudgmentEnabled": false,
+      "collapseDirectMaxLookbackSec": 6.0,
+      "collapsePrecedingMaxLookbackSec": 3.0
+    }
+  },
+  "twin_fangs": {
+    "raidPlan": {
+      "eternalVenomDeathAt": 10,
+      "eternalVenomWarningAt": 9,
+      "ravenousFeastMinTargets": 4,
+      "rouseBroodExpectedCount": 10,
+      "interruptAssignments": {
+        "visceralBurst": [],
+        "barbedBulwark": []
+      },
+      "notes": [
+        "영원의 맹독은 10중첩 도달 순간 즉사. 9중첩은 즉사 직전 경고, 10중첩은 verified 실패로 판정.",
+        "신화 걸신들린 탐식은 최소 4명 적중 기준(2026-09 Blizzard hotfix).",
+        "새끼 깨우기는 현재 신화에서 새끼 10마리 소환 기준(2026-09 Blizzard hotfix).",
+        "내장 파열은 차단되면 새끼가 후퇴. 오염된 폭발은 직접 관측 시 verified 실패.",
+        "가시 보루는 차단 시 파괴. 시작/차단 이벤트만으로 미차단 실패를 억지 판정하지 않음."
+      ]
+    },
+    "judgment": {
+      "visceralInterruptGraceSec": 0.25,
+      "taintedBurstDirect": true,
+      "ravenousImpactClusterGapSec": 0.35,
+      "broodSummonWindowSec": 8.0,
+      "notes": [
+        "첫 실수는 verified 실패만 승격: 영원의 맹독 10중첩 즉사, 내장 파열 효과 발생, 오염된 폭발, 적중 대상 수가 직접 관측된 탐식 미달.",
+        "가시 보루 차단 수와 새끼 소환 수는 관측 정보. 스트림 누락 가능성이 있어 부족만으로 실패를 만들지 않음.",
+        "B37.0.1: 탐식은 각 시전 완료(없으면 시작) 기준 4초 안의 첫 직접 적중 묶음만 판정. refresh/periodic 제외, WCL 불완전 스트림은 미달이어도 ?.",
+        "B37.5.0.2: 영원의 맹독은 10중첩 즉사로 확정. 실제 raw/WCL/archive의 9중첩은 verified 경고, 10중첩 도달은 verified 실패로 승격."
+      ],
+      "ravenousImpactWindowSec": 4.0
+    }
+  },
+  "nekzali": {
+    "raidPlan": {
+      "drownedEchoTeams": {
+        "teamSize": 4,
+        "recommendedDps": 3,
+        "recommendedHealers": 1,
+        "mode": "observe"
+      },
+      "curseInterruptRequired": true,
+      "notes": [
+        "Mythic Grasping Depths spawns a Drowned Echo twice in P1, twice in intermission, twice in P2 according to current guide material.",
+        "Soulcoiler's Curse must be interrupted. B37.1 only marks failure when a real-pull cast completion/effect is observed; missing casts alone never means success.",
+        "Soul Exhaustion is expected after leaving the well and is observation-only until raid-specific assignments are configured.",
+        "Soulcoil Rite is observation-only because Phase 2 Invoke intentionally triggers it as well as failures reaching the well."
+      ]
+    },
+    "judgment": {
+      "curseInterruptGraceSec": 0.5,
+      "notes": [
+        "Candidate IDs from journal/web do not become verified in synthetic tests.",
+        "Real raw/WCL observation promotes only the observed signal provenance; it does not prove absence-based success when streams may be incomplete."
+      ]
+    }
+  },
+  "lost_explorers": {
+    "raidPlan": {
+      "finalAscensionHardFail": true,
+      "crateTimeoutSec": 25.0,
+      "elementalDebuffCarryIsFailure": true,
+      "mightyThudJudgmentEnabled": false,
+      "notes": [
+        "물고기 전달 후 Fishy Feedback는 Final Ascension 리셋 성공 신호로 관측.",
+        "Relic Rupture와 Elemental Explosion은 직접 실패 신호 후보.",
+        "Mighty Thud 빈 소크는 실제 Mythic raw event-shape 검증 전까지 observe-only."
+      ]
+    },
+    "judgment": {
+      "raidWideClusterGapSec": 0.45,
+      "finalAscensionResetWindowSec": 8.0,
+      "activeElementalAuraLookbackSec": 60.0,
+      "notes": [
+        "synthetic fixture는 로직만 검증하고 provenance를 verified로 승격하지 않음.",
+        "실제 raw/WCL에서 직접 실패 ID가 관측될 때만 verified 첫 실수 후보로 승격."
+      ]
+    }
+  },
+  "vashnik": {
+    "raidPlan": {
+      "explodingInfectionStaggered": true,
+      "catalyticBileSoakRequired": true,
+      "malignantBurstAvoided": true,
+      "malignanceInterruptOrKillTotem": true,
+      "notes": [
+        "Exploding Infection 단일 폭발은 정상 처리일 수 있으므로 발생 자체를 실패로 보지 않음.",
+        "Catalytic Bile 미흡수 공대피해와 Malignant Burst는 실제 Mythic Kill/Wipe 대조로 verified 직접 실패로 사용.",
+        "Plague Wave 플레이어 피격과 Mythic Malignance는 문맥 신호로 유지하며 단독으로 첫 실수/붕괴 원인을 확정하지 않음."
+      ]
+    },
+    "judgment": {
+      "raidWidePulseGapSec": 0.35,
+      "explodingInfectionOverlapWindowSec": 1.0,
+      "explodingInfectionWarningPulses": 2,
+      "causticSurgeOverlapWindowSec": 3.0,
+      "causticSurgeWarningPulses": 2,
+      "notes": [
+        "raid-wide damage 한 번이 플레이어 수만큼 행으로 기록되므로 같은 대상의 반복 피격 최대값으로 pulse 수를 계산.",
+        "absence-based success는 만들지 않음. 직접 신호 미관측은 unknown."
+      ]
+    }
+  },
+  "sszorak": {
+    "raidPlan": {
+      "mythicMutilateUnsafeAtOrBelow": 4,
+      "notes": [
+        "Mutilate는 직접 적중/Gash 수로 소크 인원을 센다. 신화 5명 미만(<=4)은 verified 실패, 5명 이상은 인원 기준 통과.",
+        "Viscous Cyst 한 번 폭발은 정상 처리일 수 있다. 1초 안 2개 이상 초기 폭발 pulse만 verified 연쇄 폭발 실패.",
+        "Crosswinds는 Turbulent Gusts 활성 중 사망만으로 실패를 부르지 않는다. 9.5초 이상 장기 잔류만 pair-miss candidate.",
+        "Serpent's Fury 100 rage의 Unbound Ferocity는 verified 실패."
+      ]
+    },
+    "judgment": {
+      "mutilateImpactWindowSec": 4.0,
+      "mutilateClusterGapSec": 0.45,
+      "cystChainWindowSec": 1.0,
+      "cystChainWarningPulses": 2,
+      "cystDeathLinkWindowSec": 3.0,
+      "crosswindLongDurationSec": 9.5,
+      "crosswindMaxAuraSec": 10.5,
+      "notes": [
+        "1287205 periodic tick는 Cyst 폭발 개수 계산에서 제외하고 초기 direct damage만 사용.",
+        "신호 부재만으로 성공 판정을 만들지 않음."
+      ]
+    }
+  }
+}

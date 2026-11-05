@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "bossKey": "nymrissa",
+  "displayName": "님리사 웨이브콜러",
+  "encounterIDs": [3379],
+  "encounterNameFallbacks": ["님리사 웨이브콜러", "Nymrissa Wavecaller"],
+  "difficultyIDs": [15, 16, 233],
+  "actors": {
+    "boss": {
+      "npcIDs": [252959],
+      "idSource": "bigwigs/local-observation",
+      "idEvidenceLevel": "verified"
+    },
+    "bubblefinBerserker": {
+      "npcIDs": [253180],
+      "idSource": "local-2026-10-04-mythic",
+      "idEvidenceLevel": "verified"
+    },
+    "bubblefinFrostscale": {
+      "npcIDs": [257892],
+      "idSource": "local-2026-10-04-mythic",
+      "idEvidenceLevel": "verified"
+    }
+  },
+  "mechanics": {
+    "berserkerLeak": {
+      "summonSpellIDs": [1258186],
+      "berserkerNpcIDs": [253180],
+      "pulsingTidesSpellIDs": [1258894, 1271380],
+      "idSource": "local-2026-10-04-mythic/guide",
+      "meaning": "Bubblefin 멀록이 Alluring Bubble에 도달하면 Bubblefin Berserker가 생성되고 Pulsing Tides로 공대 피해를 준다. 실제 신화 Wipe는 4마리 생성 뒤 1271380이 B31 직접 사망 18명의 원인이었고, Kill은 1마리 생성 후 회복했다.",
+      "idEvidenceLevel": "verified",
+      "failureMeaningEvidenceLevel": "verified"
+    },
+    "frostOrbShatter": {
+      "spellIDs": [1313456],
+      "idSource": "guide/web",
+      "meaning": "Frost Orb 미처리 시 Shatter 공대 피해가 발생한다. 현재 로컬 표본에서는 Shatter 발생이 없으므로 발생 시 실패로 판정하고, 미관측만으로는 성공을 확정하지 않는다.",
+      "idEvidenceLevel": "candidate",
+      "failureMeaningEvidenceLevel": "verified"
+    },
+    "swirlingWhirlpools": {
+      "castSpellIDs": [1258673, 1258668],
+      "hitSpellIDs": [1258677],
+      "idSource": "local-2026-10-04-mythic/local-2026-10-08-heroic/bigwigs",
+      "meaning": "Swirling Whirlpools 직접 피격은 회피 가능한 개인 실행 실수다. 동일 타격의 DAMAGE/ABSORBED 중복 행은 한 번으로 정규화한다.",
+      "idEvidenceLevel": "verified",
+      "failureMeaningEvidenceLevel": "verified",
+      "successMeaningEvidenceLevel": "verified"
+    },
+    "raidCycle": {
+      "abyssalRainSpellIDs": [1260837],
+      "chillingFrostSpellIDs": [1313393],
+      "frostOrbSpellIDs": [1313448],
+      "idSource": "bigwigs/nsrt/local-observation",
+      "idEvidenceLevel": "verified"
+    },
+    "frostBurst": {
+      "spellIDs": [1313450],
+      "idSource": "local-2026-10-04-mythic",
+      "meaning": "Mythic Frost Orb 정상 처리에도 발생하는 공대 피해 신호. 발생 자체는 실패가 아니며 연쇄/간격 실패 기준은 아직 확정하지 않는다.",
+      "idEvidenceLevel": "verified",
+      "failureMeaningEvidenceLevel": "candidate",
+      "mythicOnly": true
+    },
+    "waterJet": {
+      "castSpellIDs": [1281951],
+      "targetDebuffSpellIDs": [1258901, 1260637],
+      "idSource": "local-2026-10-04-mythic/bigwigs/nsrt",
+      "meaning": "Mythic tank mechanic. 현재 capsule에서는 실제 Lingering Frost 제거 개수를 직접 판정하지 않고 시전/디버프만 관측한다.",
+      "idEvidenceLevel": "verified",
+      "mythicOnly": true
+    },
+    "waterfogShield": {
+      "selfAuraSpellIDs": [1273091],
+      "allyAuraSpellIDs": [1273150],
+      "idSource": "local-2026-10-04-mythic",
+      "meaning": "Bubblefin Frostscale의 Waterfog Shield. 등장/보호막 자체는 정상 기믹이므로 관측 전용이다.",
+      "idEvidenceLevel": "verified",
+      "mythicOnly": true
+    }
+  },
+  "sourceNotes": [
+    "B37.4.36.2: Nymrissa(3379) BossMechanic 최초 정식 구현.",
+    "2026-10-04 d233 Wipe/Kill 실제 compact capsule을 기준으로 Bubblefin Berserker 1258186/253180과 Pulsing Tides 1271380을 verified 실행 실패로 잠근다.",
+    "Swirling Whirlpools 실제 피격 1258677은 회피 가능한 개인 실수로 verified. 동일 이벤트의 DAMAGE/ABSORBED 중복은 한 피격으로 정규화한다.",
+    "Shatter 1313456은 실패 의미는 확정하되 현재 로컬 캡슐에서 실제 발생을 보지 못했으므로 ID evidence는 candidate로 유지한다.",
+    "Mythic Frost Burst 1313450, Water Jet, Waterfog Shield는 현재 관측 전용이며 발생 자체를 실패로 승격하지 않는다."
+  ]
+}

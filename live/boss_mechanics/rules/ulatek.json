@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "bossKey": "ulatek",
+  "displayName": "울라텍",
+  "encounterIDs": [
+    3492
+  ],
+  "encounterNameFallbacks": [
+    "울라텍",
+    "Ula'tek",
+    "Ulatek"
+  ],
+  "difficultyIDs": [
+    15,
+    16
+  ],
+  "actors": {
+    "venomousHeart": {
+      "npcIDs": [
+        267460
+      ],
+      "evidenceLevel": "verified",
+      "idSource": "actual heroic raw 2026-10-02/03"
+    }
+  },
+  "mechanics": {
+    "venomousHeart": {
+      "auraSpellIDs": [
+        1299526
+      ],
+      "heartNpcIDs": [
+        267460
+      ],
+      "windowDurationSec": 20.0,
+      "evidenceLevel": "verified",
+      "meaning": "구속된 자의 격노 중 노출되는 맹독의 심장 딜 증폭 구간"
+    },
+    "uncheckedRage": {
+      "castSpellIDs": [
+        1301007
+      ],
+      "evidenceLevel": "verified",
+      "meaning": "울라텍이 근접 공격 대상을 잃었을 때 발생하는 공대 벌점 시전. 신화 공개 표본 2 Wipe에서 완료, 2 Kill에서는 0회."
+    },
+    "anguishedCry": {
+      "castSpellIDs": [
+        1305650
+      ],
+      "evidenceLevel": "verified",
+      "meaning": "약화된 파멸비늘의 차단 가능한 고통스러운 절규. 신화 공개 표본에서 완료 cast는 차단 누락으로 잠금."
+    },
+    "calcifiedCorpse": {
+      "debuffSpellIDs": [
+        1306119
+      ],
+      "evidenceLevel": "verified",
+      "meaning": "뱀의 물어뜯기 맹독이 만료될 때 발생하는 석회화 실패 결과. 선행 사망 뒤 적용된 경우에는 firstMistake에서 제외.",
+      "failureMeaningEvidenceLevel": "verified",
+      "firstMistakePolicy": "raw/archive에서 대상 선행 사망이 없을 때만 eligible"
+    }
+  },
+  "localCalibration": {
+    "heroic": {
+      "sampleDateRange": "2026-10-02..2026-10-03",
+      "killSampleN": 3,
+      "twoHeartKillN": 2,
+      "threeHeartKillN": 1,
+      "twoHeartPostHeart1HpPctMax": 50.8,
+      "threeHeartPostHeart1HpPctMin": 54.5,
+      "twoHeartPostHeart2HpPctMax": 32.2,
+      "threeHeartPostHeart2HpPctMin": 38.7,
+      "note": "사용자 저장 영웅 킬 3회 실측. 보편 임계값이 아니라 로컬 진도표."
+    },
+    "mythicPublic": {
+      "source": "Warcraft Logs public reference · velocity progression",
+      "sampleDateRange": "2026-09-19..2026-09-30",
+      "selectedPullN": 10,
+      "killSampleN": 2,
+      "wipeSampleN": 8,
+      "observedKillHeartCount": 3,
+      "uncheckedRageWipePullN": 2,
+      "uncheckedRageKillPullN": 0,
+      "anguishedCryCompletedWipePullN": 1,
+      "anguishedCryCompletedKillPullN": 0,
+      "note": "선별 공개 신화 10풀의 실제 이벤트 기반 의미 잠금. HP 성능 임계값으로 일반화하지 않음."
+    }
+  },
+  "sourceNotes": [
+    "실제 영웅 캡슐에서 1299526 맹독의 심장 노출이 1/2심장에 약 20초씩, 느린 킬에서는 3심장까지 반복 관측됨.",
+    "2026-10-02 Kill: 2심장 종료 약 29.9%, 2심장 킬. 2026-10-03 Kill: 32.2%, 2심장 킬. 같은 날 느린 Kill: 38.7%, 3심장 진입 후 킬.",
+    "심장 딜 진도는 전멸 원인과 분리된 정보성 지표로만 표시한다.",
+    "B37.4.33 공개 신화 10풀(2 Kill/8 Wipe) 실측: 1299526은 WCL normalized applybuff/removebuff로 관측되며 두 Kill 모두 3심장 노출.",
+    "1301007 Unchecked Rage는 선별 Wipe 2개에서 cast 완료, 두 Kill에서 0회. verified 실행 실패로 잠금.",
+    "1305650 Anguished Cry는 09/22 Wipe에서 완료 cast 3회, 두 Kill에서 완료 0회(시작 cast는 정상적으로 반복). 완료만 차단 누락 verified 실패로 잠금.",
+    "1306119 Calcified Corpse는 Serpent's Bite 만료 시 발생하는 verified 미흡수 결과로 잠금. 공개 신화 표본의 사망 후 적용 사례는 후속 실패로 표시하고 firstMistake에서는 제외."
+  ]
+}

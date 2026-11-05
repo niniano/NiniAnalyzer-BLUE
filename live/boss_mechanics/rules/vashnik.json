@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 1,
+  "bossKey": "vashnik",
+  "displayName": "악성의 바쉬니크",
+  "encounterIDs": [
+    3455
+  ],
+  "encounterNameFallbacks": [
+    "악성의 바쉬니크",
+    "Vashnik the Malignant"
+  ],
+  "difficultyIDs": [
+    5,
+    16
+  ],
+  "actors": {
+    "boss": {
+      "npcIDs": [
+        266403
+      ],
+      "idSource": "wowhead/journal",
+      "idEvidenceLevel": "candidate"
+    },
+    "burningVenom": {
+      "npcIDs": [
+        260905
+      ],
+      "idSource": "wowhead/journal",
+      "idEvidenceLevel": "candidate"
+    },
+    "clottingVenom": {
+      "npcIDs": [
+        261679
+      ],
+      "idSource": "wowhead/journal",
+      "idEvidenceLevel": "candidate"
+    },
+    "malignantTotem": {
+      "npcIDs": [
+        269430
+      ],
+      "idSource": "journal/web",
+      "idEvidenceLevel": "candidate"
+    }
+  },
+  "mechanics": {
+    "malignantBurst": {
+      "castSpellIDs": [
+        1286872
+      ],
+      "damageSpellIDs": [
+        1280189
+      ],
+      "areaSpellIDs": [
+        1280199
+      ],
+      "idSource": "wowhead/journal",
+      "meaning": "살아 있는 맹독 쫄이 중앙의 Malignant Cavity에 도달했을 때 발생하는 공대 피해/지속 피해 신호.",
+      "idEvidenceLevel": "verified",
+      "failureMeaningEvidenceLevel": "verified"
+    },
+    "catalyticBile": {
+      "launchSpellIDs": [
+        1282601
+      ],
+      "impactSpellIDs": [
+        1282602
+      ],
+      "missRaidDamageSpellIDs": [
+        1282616
+      ],
+      "idSource": "wowhead/journal",
+      "meaning": "Catalytic Bile가 플레이어에게 흡수되지 않았을 때 발생하는 공대 피해 신호.",
+      "idEvidenceLevel": "verified",
+      "failureMeaningEvidenceLevel": "verified"
+    },
+    "plagueWave": {
+      "frothSpellIDs": [
+        1281907,
+        1281908,
+        1281910,
+        1281913,
+        1281925
+      ],
+      "waveSpellIDs": [
+        1295798,
+        1295796
+      ],
+      "idSource": "wowhead/journal/local-observation",
+      "meaning": "Plague Froth가 만든 Plague Wave의 플레이어 직접 피격 신호.",
+      "idEvidenceLevel": "candidate",
+      "failureMeaningEvidenceLevel": "candidate"
+    },
+    "malignance": {
+      "summonSpellIDs": [
+        1306820
+      ],
+      "damageSpellIDs": [
+        1304459
+      ],
+      "idSource": "wowhead/journal/local-observation",
+      "meaning": "신화 Malignant Totem의 Malignance 완료/피해 신호.",
+      "idEvidenceLevel": "candidate",
+      "failureMeaningEvidenceLevel": "candidate",
+      "mythicOnly": true
+    },
+    "explodingInfection": {
+      "debuffSpellIDs": [
+        1295173,
+        1299949
+      ],
+      "explosionSpellIDs": [
+        1295209
+      ],
+      "idSource": "wowhead/journal/local-observation",
+      "meaning": "Exploding Infection 해제/만료 폭발. 단일 폭발은 정상 처리일 수 있으며 짧은 시간 다중 폭발만 위험 후보로 본다.",
+      "idEvidenceLevel": "candidate",
+      "failureMeaningEvidenceLevel": "candidate"
+    },
+    "stygianInfection": {
+      "debuffSpellIDs": [
+        1294994
+      ],
+      "burstSpellIDs": [
+        1302489
+      ],
+      "idSource": "journal/local-observation",
+      "idEvidenceLevel": "candidate"
+    },
+    "siphoningInfection": {
+      "debuffSpellIDs": [
+        1299941
+      ],
+      "burstSpellIDs": [
+        1295229
+      ],
+      "idSource": "journal/web",
+      "idEvidenceLevel": "candidate"
+    },
+    "causticSurge": {
+      "spellIDs": [
+        1285979
+      ],
+      "idSource": "wowhead/local-observation",
+      "meaning": "Burning Venom 처치 시 발생하는 폭발/짧은 지속 피해. 단일 발생은 정상 처리일 수 있음.",
+      "idEvidenceLevel": "candidate",
+      "failureMeaningEvidenceLevel": "candidate"
+    },
+    "malignantCatalyst": {
+      "castSpellIDs": [
+        1282516
+      ],
+      "damageSpellIDs": [
+        1282525
+      ],
+      "idSource": "wowhead/journal",
+      "idEvidenceLevel": "candidate"
+    }
+  },
+  "sourceNotes": [
+    "B37.4.4은 악의 파열(1280189)과 촉매성 담즙 미흡수(1282616)의 ID/event-shape와 실패 의미를 verified로 잠근다.",
+    "완전한 local raw/archive 스트림에서는 이 두 직접 실패 신호가 0회인 경우 해당 항목을 verified success로 판정한다.",
+    "Plague Wave 직접 피격과 Mythic Malignance는 발생 문맥만으로 개인 실패/붕괴 원인을 단정하지 않아 candidate를 유지한다.",
+    "Exploding Infection과 Caustic Surge는 반복 pulse를 한 사고 묶음으로 정규화하며 단일 발생을 실패로 판정하지 않는다."
+  ]
+}

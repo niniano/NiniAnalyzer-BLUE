@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 2,
+  "bossKey": "sszorak",
+  "displayName": "스조라크",
+  "encounterIDs": [
+    3420
+  ],
+  "encounterNameFallbacks": [
+    "스조라크",
+    "Sszorak"
+  ],
+  "difficultyIDs": [
+    5,
+    15,
+    16
+  ],
+  "actors": {
+    "boss": {
+      "npcIDs": [
+        257347
+      ],
+      "idSource": "wowhead/journal",
+      "idEvidenceLevel": "verified"
+    }
+  },
+  "mechanics": {
+    "mutilate": {
+      "castSpellIDs": [
+        1277027
+      ],
+      "impactSpellIDs": [
+        1277027
+      ],
+      "gashSpellIDs": [
+        1277051
+      ],
+      "parentSpellIDs": [
+        1277025,
+        1277002
+      ],
+      "idSource": "wowhead/journal/bigwigs/nsrt",
+      "meaning": "Mutilate 전방 분담. 신화에서 5명 미만이 맞으면 치명 피해가 발생한다. 실제 신화 Kill 표본은 모든 관측 소크가 7명 이상이었고, Wipe 표본에서 1명 소크가 확인됐다.",
+      "idEvidenceLevel": "verified",
+      "failureMeaningEvidenceLevel": "verified",
+      "successMeaningEvidenceLevel": "verified",
+      "mythicOnlyJudgment": true
+    },
+    "viscousCyst": {
+      "burstSpellIDs": [
+        1287205
+      ],
+      "venomousSurgeCastSpellIDs": [
+        1305959
+      ],
+      "venomousSurgeDebuffSpellIDs": [
+        1305963
+      ],
+      "idSource": "wowhead/journal/bigwigs",
+      "meaning": "Viscous Cyst 단일 폭발은 인터미션 정상 처리에 사용된다. 1초 안에 2개 이상 초기 폭발 pulse가 겹치면 잘못된 접촉/연쇄 폭발 실행 실수로 판정한다. 실제 신화 Try 4에서 2중 폭발 직후 B31 붕괴 13명 중 10명이 끈적거리는 낭종으로 직접 사망했다.",
+      "idEvidenceLevel": "verified",
+      "failureMeaningEvidenceLevel": "verified"
+    },
+    "ragingCrosswinds": {
+      "spellIDs": [
+        1285419,
+        1285443,
+        1285425
+      ],
+      "turbulentGustSpellIDs": [
+        1285447
+      ],
+      "idSource": "wowhead/journal/bigwigs",
+      "meaning": "Turbulent Gusts는 다른 Gust 대상과 접촉하면 사라진다. 단순히 오라 활성 중 사망했다는 사실만으로 짝 충돌 실패를 단정하지 않는다. 자연 만료에 가까운 장기 잔류만 후보로 유지한다.",
+      "idEvidenceLevel": "verified",
+      "failureMeaningEvidenceLevel": "candidate"
+    },
+    "serpentsFury": {
+      "spellIDs": [
+        1297367,
+        1305621
+      ],
+      "toTheSlaughterSpellIDs": [
+        1297414,
+        1299592
+      ],
+      "unboundFerocitySpellIDs": [
+        1296898
+      ],
+      "idSource": "wowhead/journal/bigwigs/nsrt",
+      "meaning": "신화 Serpent's Fury에서 지정 인원이 모이면 To the Slaughter가 발동해 분노를 소모한다. 100 rage 도달 시 Unbound Ferocity가 적용되어 500% 공격력/50% 공격속도 광폭 상태가 된다. 실제 Kill에서는 반복 성공 사이클이 관측되고 Unbound Ferocity는 0회, Wipe 표본에서는 Unbound Ferocity가 붕괴 직전에 관측됐다.",
+      "idEvidenceLevel": "verified",
+      "failureMeaningEvidenceLevel": "verified",
+      "mythicOnly": true,
+      "successMeaningEvidenceLevel": "verified"
+    }
+  },
+  "sourceNotes": [
+    "B37.4.29는 실제 2026-10-04 신화 Kill/Wipe 캡슐과 Dungeon Journal/guide 의미를 대조해 스조라크 판정 경계를 잠근다.",
+    "Mutilate는 신화 5명 미만을 verified 실패로 판정한다. 정확히 5명은 실패로 부르지 않는다.",
+    "Viscous Cyst 단일 폭발은 정상 인터미션 처리일 수 있으므로 실패가 아니다. 1초 안 2개 이상 초기 직접 pulse만 verified 연쇄 폭발 실패로 본다.",
+    "Turbulent Gusts 활성 중 사망은 Kill에서도 관측되어 단독 실패 근거에서 제외한다. 자연 만료에 가까운 장기 잔류만 candidate.",
+    "Serpent's Fury 실제 raw에서 1305621, To the Slaughter 피해 1299592, Unbound Ferocity 1296898을 확인했다. Unbound Ferocity 발생은 verified 실패."
+  ]
+}

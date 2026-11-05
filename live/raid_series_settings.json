@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "maxDays": 14,
+  "maxTries": 30,
+  "note": "0 or null means unlimited. Scope is applied after encounterID+difficulty matching and duplicate removal."
+}

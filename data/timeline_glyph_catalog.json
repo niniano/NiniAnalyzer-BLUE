@@ -1,0 +1,235 @@
+{
+  "schemaVersion": 1,
+  "note": "B37.5 presentation catalog. icon values are WoW icon basenames; engine verdict semantics are unchanged.",
+  "byGlyphKey": {
+    "breath": {
+      "spellID": 1299684,
+      "icon": "ability_criticalstrike"
+    },
+    "guillotine": {
+      "spellID": 1283489,
+      "icon": "warrior_talent_icon_mastercleaver"
+    },
+    "orb_wave": {
+      "spellID": 1299781,
+      "icon": "inv_ability_poison_orb"
+    },
+    "axegrinder": {
+      "spellID": 1285017,
+      "icon": "ability_warrior_bladestorm"
+    },
+    "dreadmarch": {
+      "spellID": 1285643,
+      "icon": "spell_nzinsanity_fearofdeath"
+    },
+    "spiritcackle": {
+      "spellID": 1286441,
+      "icon": "spell_shadow_deathsembrace"
+    },
+    "gloombomb": {
+      "spellID": 1286895,
+      "icon": "spell_shadow_shadowfury"
+    },
+    "wail": {
+      "spellID": 1286399,
+      "icon": "spell_shadow_coneofsilence"
+    },
+    "soul_sever": {
+      "spellID": 1286620,
+      "icon": "ability_demonhunter_soulcleave2"
+    },
+    "nightfall": {
+      "spellID": 1286918,
+      "icon": "spell_shadow_twilight"
+    },
+    "shield": {
+      "spellID": 1286912,
+      "icon": "spell_fire_twilightfireward"
+    },
+    "bloodlust": {
+      "spellID": 80353,
+      "icon": "ability_mage_timewarp"
+    },
+    "mutilate": {
+      "spellID": 1277027,
+      "icon": "inv_ability_poison_missile"
+    },
+    "crosswinds": {
+      "spellID": 1285419,
+      "icon": "ability_skyreach_wind"
+    },
+    "whirlpool_hit": {
+      "spellID": 1258673,
+      "icon": "inv_elemental_primal_air"
+    },
+    "frost_orb_shatter": {
+      "spellID": 1313456,
+      "icon": "spell_fire_blueimmolation"
+    },
+    "berserker_leak": {
+      "spellID": 1258186,
+      "icon": "inv_elemental_primal_water"
+    },
+    "final_ascension": {
+      "spellID": 1292779,
+      "icon": "spell_animarevendreth_nova"
+    },
+    "relic_rupture": {
+      "spellID": 1310027,
+      "icon": "inv_artifact_relics_01"
+    },
+    "icebound_flames": {
+      "spellID": 1286922,
+      "icon": "spell_frost_frostfire"
+    },
+    "elemental_explosion": {
+      "spellID": 1295952,
+      "icon": "spell_fire_blueflamebreath"
+    },
+    "soulcoilers_curse": {
+      "spellID": 1300238,
+      "icon": "spell_shadow_soulleech_2"
+    },
+    "eternal_venom": {
+      "spellID": 1290336,
+      "icon": "ability_creature_poison_06"
+    },
+    "caustic_deluge": {
+      "spellID": 1289192,
+      "icon": "inv_ability_poison_beam"
+    },
+    "caustic_globule": {
+      "spellID": 1289993,
+      "icon": "inv_ability_poison_orb"
+    },
+    "venomous_emergence": {
+      "spellID": 1291404,
+      "icon": "spell_nature_poisoncleansingtotem"
+    },
+    "corrosive_spit": {
+      "spellID": 1291478,
+      "icon": "ability_creature_poison_01"
+    },
+    "stir_the_depths": {
+      "spellID": 1290956,
+      "icon": "inv_ability_poison_wave"
+    },
+    "vile_flood": {
+      "spellID": 1293749,
+      "icon": "ability_rogue_deviouspoisons"
+    },
+    "rouse_brood": {
+      "spellID": 1308356,
+      "icon": "inv_giantsnake_black"
+    },
+    "visceral_burst": {
+      "spellID": 1308385,
+      "icon": "ability_warrior_bloodnova"
+    },
+    "ravenous_feast": {
+      "spellID": 1290516,
+      "icon": "ability_warrior_bloodnova"
+    },
+    "stone_breaker": {
+      "spellID": 1288538,
+      "icon": "ability_smash"
+    },
+    "sanguine_storm": {
+      "spellID": 1306872,
+      "icon": "inv_artifact_bloodoftheassassinated"
+    },
+    "toxic_globule": {
+      "spellID": 1284452,
+      "icon": "inv_ability_poison_orb"
+    },
+    "protovenom_eruption": {
+      "spellID": 1296962,
+      "icon": "spell_deathvortex"
+    },
+    "cultivated_burst": {
+      "spellID": 1284941,
+      "icon": "ability_deathwing_bloodcorruption_death"
+    },
+    "venomous_heart": {
+      "spellID": 1299526,
+      "icon": "inv_121_trinket_raid_ulatek_heart"
+    },
+    "unchecked_rage": {
+      "spellID": 1301007,
+      "icon": "inv_121_raid_achievement_ulatek"
+    },
+    "anguished_cry": {
+      "spellID": 1305650,
+      "icon": "spell_shadow_screamofthepast"
+    },
+    "calcified_corpse": {
+      "spellID": 1306119,
+      "icon": "spell_shadow_raisedead"
+    },
+    "malignant_burst": {
+      "spellID": 1286872,
+      "icon": "inv_ability_poison_groundstate"
+    },
+    "catalytic_bile": {
+      "spellID": 1282601,
+      "icon": "spell_nature_acid_01"
+    },
+    "plague_wave": {
+      "spellID": 1295798,
+      "icon": "inv_ability_poison_wave"
+    },
+    "malignance": {
+      "spellID": 1306820,
+      "icon": "spell_shadow_plaguecloud"
+    },
+    "exploding_infection": {
+      "spellID": 1295173,
+      "icon": "ability_creature_disease_05"
+    },
+    "caustic_surge": {
+      "spellID": 1285979,
+      "icon": "ability_creature_poison_06"
+    },
+    "caustic_waves": {
+      "spellID": 1311807,
+      "icon": "inv_ability_poison_wave"
+    },
+    "call_of_the_serpent": {
+      "spellID": 1304012,
+      "icon": "8125100"
+    },
+    "spectral_coils": {
+      "spellID": 1308927,
+      "icon": "spell_animamaldraxxus_nova"
+    },
+    "mephitic_thrash": {
+      "spellID": 1296301,
+      "icon": "ability_creature_poison_04"
+    },
+    "mothers_wrath": {
+      "spellID": 1298367,
+      "icon": "inv_misc_monsterfang_02"
+    },
+    "rage_of_the_shackled": {
+      "spellID": 1286860,
+      "icon": "inv_121_raid_achievement_ulatek"
+    },
+    "shadow_molt": {
+      "spellID": 1301213,
+      "icon": "spell_warlock_demonsoul"
+    },
+    "writhing_gestation": {
+      "spellID": 1302950,
+      "icon": "rogue_leeching_poison"
+    },
+    "grasping_fangs": {
+      "spellID": 1301117,
+      "icon": "inv_121_trinket_raid_ulatek_ulatekclaw"
+    },
+    "defect_weakened": {
+      "spellID": 1303410,
+      "icon": "ability_deathknight_heartstopaura"
+    }
+  },
+  "bySpellID": {}
+}

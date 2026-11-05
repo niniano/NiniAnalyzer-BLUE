@@ -1,0 +1,211 @@
+{
+  "schemaVersion": 1,
+  "encounterID": 3492,
+  "encounterName": "Ulratek",
+  "tankSpecIDs": [
+    66,
+    73,
+    104,
+    250,
+    268,
+    581
+  ],
+  "rules": [
+    {
+      "code": "ULATEK_BITE_UNSOAKED",
+      "type": "mass_death",
+      "title": "뱀의 물어뜯기 흡수 실패 → 석회화한 시체 연쇄",
+      "category": "mechanic",
+      "confidence": "high",
+      "severity": 5,
+      "deathSpellIDs": [
+        1318329
+      ],
+      "simultaneousSpellIDs": [
+        1318329
+      ],
+      "minDeaths": 3,
+      "minPlayers": 4,
+      "interpretation": "뱀의 물어뜯기가 끝까지 흡수되지 않아 시체가 생겼고, 이후 광역 피해가 연쇄 사망을 만들었습니다.",
+      "action": "물어뜯기 대상별 흡수 인원을 고정하고 원이 완전히 사라질 때까지 이탈하지 말기. 흡수 완료 직후 불안정한 정화 대상은 즉시 산개.",
+      "expectedSpellNames": {
+        "1318329": "석회화한 시체"
+      }
+    },
+    {
+      "code": "ULATEK_MOTHERS_WRATH_RAID",
+      "type": "mass_death",
+      "title": "어미의 분노가 공대에 확산",
+      "category": "tank",
+      "confidence": "high",
+      "severity": 5,
+      "deathSpellIDs": [
+        1301122,
+        1298369
+      ],
+      "simultaneousSpellIDs": [
+        1301122
+      ],
+      "minDeaths": 3,
+      "minPlayers": 4,
+      "tankUpstream": true,
+      "tankRecentDeathWindowSec": 15.0,
+      "interpretation": "원래 탱커 처리 기술이 공대 다수에게 들어갔습니다. 탱커 생존/인계 상태를 먼저 확인한 뒤 위치·근접 공백을 원인 후보로 봅니다.",
+      "action": "분노 직전 탱커 생존과 보스 근접 인계를 먼저 확인. 탱커가 살아 있었다면 넉백/이동 직후 보스 근접 범위를 비우지 않도록 복귀 동선과 교대 타이밍을 고정.",
+      "expectedSpellNames": {
+        "1301122": "어미의 분노",
+        "1298369": "어미의 분노"
+      }
+    },
+    {
+      "code": "ULATEK_UNCHECKED_RAGE",
+      "type": "mass_death",
+      "title": "막을 수 없는 분노 발생: 보스 근접 탱킹 공백",
+      "category": "tank",
+      "confidence": "high",
+      "severity": 5,
+      "deathSpellIDs": [
+        1301007
+      ],
+      "simultaneousSpellIDs": [
+        1301007
+      ],
+      "minDeaths": 2,
+      "minPlayers": 4,
+      "tankUpstream": true,
+      "tankRecentDeathWindowSec": 15.0,
+      "interpretation": "울라텍이 근접 공격할 대상을 잃은 뒤 공대 벌점 기술이 발생한 패턴입니다. 탱커 선행 사망이 있으면 그 사망 원인을 한 단계 위 원인으로 올립니다.",
+      "action": "보스 탱커가 이동/사망/교대할 때 근접 공백이 생기지 않게 인계 타이밍을 고정하고, 탱 사망 시 즉시 오프탱이 보스부터 붙기.",
+      "expectedSpellNames": {
+        "1301007": "막을 수 없는 분노"
+      }
+    },
+    {
+      "code": "ULATEK_RAVENOUS_DOOMSCALE",
+      "type": "target_or_death",
+      "title": "대형 알 처리 실패 → 게걸스러운 파멸비늘 등장",
+      "category": "mechanic",
+      "confidence": "high",
+      "severity": 5,
+      "targetNpcIDs": [
+        263900
+      ],
+      "deathSpellIDs": [
+        1305775
+      ],
+      "minDeaths": 2,
+      "interpretation": "2페이즈의 파멸비늘 알/가마솥 처리가 늦거나 순서가 꼬여 강화 개체가 나온 패턴입니다.",
+      "action": "양쪽 모두 작은 알을 먼저 정리한 뒤 대형 알 담당자가 마지막에 집고 즉시 가마솥 투입. 대형 알 담당/백업을 이름으로 고정.",
+      "expectedSpellNames": {
+        "1305775": "공포의 포효"
+      }
+    },
+    {
+      "code": "ULATEK_ANGUISHED_CRY_MISSED",
+      "type": "enemy_cast_success",
+      "title": "고통스러운 절규 차단 누락",
+      "category": "interrupt",
+      "confidence": "high",
+      "severity": 4,
+      "castSpellIDs": [
+        1305650
+      ],
+      "minCount": 1,
+      "interpretation": "약화된 파멸비늘의 차단 가능한 광역 스턴/공대 피해가 실제로 성공했습니다.",
+      "action": "약화된 파멸비늘 등장 즉시 전담 차단 순번을 고정하고, 첫 담당 실패 시 백업이 즉시 이어받기.",
+      "expectedSpellNames": {
+        "1305650": "고통스러운 절규"
+      }
+    },
+    {
+      "code": "ULATEK_CIRCLING_PREY_DEATHS",
+      "type": "mass_death",
+      "title": "사냥감 포위 플랫폼 이탈 지연",
+      "category": "movement",
+      "confidence": "high",
+      "severity": 4,
+      "deathSpellIDs": [
+        1301510
+      ],
+      "minDeaths": 2,
+      "interpretation": "플랫폼 파괴 시점에 이탈이 늦어 직접 사망자가 발생했습니다.",
+      "action": "사냥감 포위 캐스팅 시작을 이동 신호로 잡고, 딜 한두 GCD보다 플랫폼 이탈을 우선. 다음 플랫폼 집결 지점을 사전에 고정.",
+      "expectedSpellNames": {
+        "1301510": "사냥감 포위"
+      }
+    },
+    {
+      "code": "ULATEK_CAUSTIC_WAVE_DEATHS",
+      "type": "mass_death",
+      "title": "부식의 파도 회피 실패",
+      "category": "movement",
+      "confidence": "high",
+      "severity": 3,
+      "deathSpellIDs": [
+        1292403
+      ],
+      "minDeaths": 1,
+      "primaryCandidateMinDeaths": 2,
+      "interpretation": "부식의 파도로 사망자가 발생했습니다. 한 번이면 보조 문제로 남기고, 다수 사망이면 공대 이동 실패 후보로 승격합니다.",
+      "action": "날개 방향 확인 → 첫 안전지대 선이동 → 꼬리 파도까지 본 뒤 딜 복귀 순서로 통일. 파도 중에는 딜보다 생존 우선.",
+      "expectedSpellNames": {
+        "1292403": "부식의 파도"
+      }
+    },
+    {
+      "code": "ULATEK_UNSTABLE_PURIFICATION_DEATHS",
+      "type": "mass_death",
+      "title": "불안정한 정화 산개 구간 사망",
+      "category": "spread",
+      "confidence": "medium",
+      "severity": 3,
+      "deathSpellIDs": [
+        1305878,
+        1316357
+      ],
+      "minDeaths": 1,
+      "primaryCandidateMinDeaths": 2,
+      "interpretation": "불안정한 정화 구간에서 사망자가 발생했습니다. 단일 사망은 보조 문제로 기록하고, 여러 명이 죽으면 산개/선행 피해가 무너진 원인 후보로 올립니다.",
+      "action": "정화 대상 간 간격을 확보하고, 물어뜯기/파도 직후 저체력 상태에서 정화가 겹치지 않도록 이동과 개인 생존기를 우선.",
+      "expectedSpellNames": {
+        "1305878": "불안정한 정화",
+        "1316357": "불안정한 정화"
+      }
+    },
+    {
+      "code": "ULATEK_ACID_DISCHARGE_DEATHS",
+      "type": "mass_death",
+      "title": "산성 배출 사망",
+      "category": "add",
+      "confidence": "medium",
+      "severity": 2,
+      "deathSpellIDs": [
+        1313531
+      ],
+      "minDeaths": 1,
+      "primaryCandidateMinDeaths": 3,
+      "interpretation": "역병비늘 비명꾼의 산성 배출로 사망자가 발생했습니다. 단발이면 보조 손실, 반복되면 쫄 처리/생존 안정성 문제로 봅니다.",
+      "action": "비명꾼 활성 구간의 우선 딜과 공대 생존기를 재확인하고, 저체력 상태로 배출을 맞지 않도록 선행 기믹 손실부터 줄이기.",
+      "expectedSpellNames": {
+        "1313531": "산성 배출"
+      }
+    },
+    {
+      "code": "ULATEK_COIL_SOAK_UNSTABLE",
+      "type": "mass_death",
+      "title": "유령의 똬리 흡수 구간에서 다수 사망",
+      "category": "soak",
+      "confidence": "medium",
+      "severity": 3,
+      "deathSpellIDs": [
+        1287265
+      ],
+      "minDeaths": 3,
+      "interpretation": "정상적으로 맞는 기술이라 단순 피격만으로 실패를 단정할 수는 없지만, 같은 흡수 구간에서 다수 사망이 발생했습니다.",
+      "action": "흡수조 인원/교대 디버프를 다시 확인하고, 흡수 직전 공대 HP와 개인 생존기를 안정화. 해당 구간의 선행 피해와 함께 재확인.",
+      "expectedSpellNames": {
+        "1287265": "유령의 똬리"
+      }
+    }
+  ]
+}

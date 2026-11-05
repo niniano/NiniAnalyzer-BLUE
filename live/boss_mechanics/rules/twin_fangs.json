@@ -1,0 +1,259 @@
+{
+  "schemaVersion": 2,
+  "bossKey": "twin_fangs",
+  "displayName": "쌍둥이 송곳니",
+  "encounterIDs": [
+    3421
+  ],
+  "encounterNameFallbacks": [
+    "쌍둥이 송곳니",
+    "The Twin Fangs",
+    "Twin Fangs"
+  ],
+  "difficultyIDs": [
+    5,
+    16
+  ],
+  "actors": {
+    "vexhul": {
+      "npcIDs": [
+        257361
+      ],
+      "evidenceLevel": "candidate",
+      "idSource": "journal/web"
+    },
+    "ithraz": {
+      "npcIDs": [
+        257368
+      ],
+      "evidenceLevel": "candidate",
+      "idSource": "journal/web"
+    },
+    "spawnOfVexhul": {
+      "npcIDs": [
+        264023
+      ],
+      "evidenceLevel": "candidate",
+      "note": "기존 WCL 정밀 Add 표본에서 관측"
+    },
+    "broodlingOfIthraz": {
+      "npcIDs": [
+        270898
+      ],
+      "evidenceLevel": "candidate",
+      "idSource": "journal/web"
+    },
+    "barbedBulwark": {
+      "npcIDs": [
+        269194
+      ],
+      "evidenceLevel": "candidate",
+      "idSource": "journal/web"
+    }
+  },
+  "mechanics": {
+    "eternalVenom": {
+      "spellIDs": [
+        1290336
+      ],
+      "evidenceLevel": "candidate",
+      "meaning": "중첩형 영원의 맹독",
+      "idSource": "journal/web"
+    },
+    "causticDeluge": {
+      "spellIDs": [
+        1289192
+      ],
+      "evidenceLevel": "candidate",
+      "idSource": "journal/web"
+    },
+    "causticGlobule": {
+      "spellIDs": [
+        1289993
+      ],
+      "evidenceLevel": "candidate",
+      "idSource": "wowhead/journal",
+      "soakDamageSpellIDs": [
+        1289201
+      ],
+      "ruptureDamageSpellIDs": [
+        1290338
+      ],
+      "launchDamageSpellIDs": [
+        1289994
+      ],
+      "meaning": "Caustic Globule가 10초 안에 흡수되지 않아 파열되면 1290338로 공대 전체에 피해와 Eternal Venom을 적용.",
+      "idEvidenceLevel": "candidate",
+      "failureMeaningEvidenceLevel": "verified"
+    },
+    "venomousEmergence": {
+      "spellIDs": [
+        1291404
+      ],
+      "evidenceLevel": "candidate",
+      "idSource": "journal/web"
+    },
+    "corrosiveSpit": {
+      "spellIDs": [
+        1291478
+      ],
+      "evidenceLevel": "candidate",
+      "idSource": "wowhead/journal",
+      "impactSpellIDs": [
+        1293295
+      ],
+      "meaning": "Spawn of Vexhul의 Corrosive Spit 직선 피격. 한 명을 향해 발사되므로 동일 타격에 2명 이상 맞으면 추가 피격 후보.",
+      "idEvidenceLevel": "candidate",
+      "failureMeaningEvidenceLevel": "verified",
+      "successMeaningEvidenceLevel": "verified"
+    },
+    "stirTheDepths": {
+      "spellIDs": [
+        1290956
+      ],
+      "evidenceLevel": "candidate",
+      "idSource": "wowhead/journal",
+      "impactSpellIDs": [
+        1295457,
+        1292807
+      ],
+      "raidPulseSpellIDs": [
+        1292806
+      ],
+      "meaning": "Stir the Depths의 파도 직접 피격 신호. 1292806 공대 주기 피해는 정상 압박이므로 실패에서 제외.",
+      "idEvidenceLevel": "candidate",
+      "failureMeaningEvidenceLevel": "verified"
+    },
+    "vileFlood": {
+      "spellIDs": [
+        1293749,
+        1294293
+      ],
+      "evidenceLevel": "candidate",
+      "idSource": "wowhead/journal",
+      "impactSpellIDs": [
+        1294605
+      ],
+      "idEvidenceLevel": "candidate"
+    },
+    "bloodTorrent": {
+      "spellIDs": [
+        1303230
+      ],
+      "evidenceLevel": "candidate",
+      "idSource": "journal/web"
+    },
+    "barbedBulwark": {
+      "spellIDs": [
+        1303378
+      ],
+      "evidenceLevel": "candidate",
+      "meaning": "차단 시 보루 파괴",
+      "idSource": "journal/web"
+    },
+    "rouseTheBrood": {
+      "spellIDs": [
+        1308356,
+        1308355,
+        1308481
+      ],
+      "canonicalSpellID": 1308356,
+      "evidenceLevel": "candidate",
+      "idSource": "journal/web"
+    },
+    "visceralBurstCast": {
+      "spellIDs": [
+        1308385
+      ],
+      "evidenceLevel": "candidate",
+      "meaning": "차단 대상 시전",
+      "idSource": "journal/web"
+    },
+    "visceralBurstEffect": {
+      "spellIDs": [
+        1308386
+      ],
+      "evidenceLevel": "candidate",
+      "meaning": "미차단 시 공대 피해/도트",
+      "idSource": "journal/web"
+    },
+    "ravenousFeast": {
+      "spellIDs": [
+        1290516
+      ],
+      "impactSpellIDs": [
+        1290505,
+        1290654
+      ],
+      "evidenceLevel": "candidate",
+      "idSource": "journal/web",
+      "directDamageSpellIDs": [
+        1290662
+      ],
+      "raidwideFailureMinTargets": 15,
+      "raidwideFailureMinDeaths": 4,
+      "raidwideFailureDeathWindowSec": 0.5,
+      "raidwideFailureMeaningEvidenceLevel": "verified"
+    },
+    "taintedBlood": {
+      "spellIDs": [
+        1310099,
+        1310104
+      ],
+      "evidenceLevel": "candidate",
+      "idSource": "journal/web"
+    },
+    "taintedBurst": {
+      "spellIDs": [
+        1310105
+      ],
+      "evidenceLevel": "candidate",
+      "meaning": "오염된 피 웅덩이 처리 실패 공대 폭발",
+      "idSource": "journal/web"
+    },
+    "stoneBreaker": {
+      "spellIDs": [
+        1288538
+      ],
+      "evidenceLevel": "candidate",
+      "idSource": "wowhead/journal",
+      "reverbSpellIDs": [
+        1289153
+      ],
+      "meaning": "Stone Breaker 충격 지점에 아무도 맞지 않으면 플랫폼 반향 1289153이 공대 전체에 발생.",
+      "idEvidenceLevel": "candidate",
+      "failureMeaningEvidenceLevel": "verified"
+    },
+    "sanguineStorm": {
+      "spellIDs": [
+        1306872
+      ],
+      "evidenceLevel": "candidate",
+      "idSource": "journal/web"
+    },
+    "submerge": {
+      "spellIDs": [
+        1308556
+      ],
+      "evidenceLevel": "candidate",
+      "idSource": "journal/web"
+    }
+  },
+  "sourceNotes": [
+    "B37.0.1: Dungeon Journal/Wowhead-derived Twin Fangs IDs remain candidate until the same ID is observed in a real Mythic raw/WCL pull.",
+    "Runtime evidence may be promoted to verified only for real raw/WCL observations; synthetic fixtures never promote ID provenance.",
+    "Current Mythic Eternal Venom threshold and Ravenous Feast minimum targets follow Blizzard September 2026 hotfixes.",
+    "B37.3.1은 쌍둥이 송곳니의 직접 실패 후보를 추가한다: Caustic Globule 파열(1290338), Stone Breaker 반향(1289153), Stir the Depths 파도 피격(1295457/1292807), Corrosive Spit 다중 피격(1293295).",
+    "공대 기본 주기 피해(예: Stir the Depths 1292806)는 실패로 세지 않는다. Corrosive Spit은 한 명을 향하는 기술이므로 단일 피격 자체를 실패로 단정하지 않고 같은 타격의 2명 이상 피격만 후보로 올린다.",
+    "실제 raw/WCL 관측은 ID/event-shape만 verified로 승격하며, B37.3.1 신규 실패 의미는 kill/wipe 대조 전까지 candidate다.",
+    "B37.3.7 실제 신화 2026-09-28 Kill/Wipe 캡슐 대조: Caustic Globule 파열과 Stone Breaker 반향은 장기 와이프들에서 반복 관측되고 Kill에서는 미관측되어 실패 의미를 verified로 승격.",
+    "B37.3.7 Corrosive Spit은 실제 Kill에서 모든 관측 묶음이 단일 대상이었고, 일부 Wipe에서만 2명 이상 동시 피격이 관측되었으며 공략 문구도 추가 피격 회피를 명시하므로 다중 피격 의미를 verified 경고로 승격.",
+    "B37.3.7 Stir the Depths 파도 직접 피격은 Kill에서도 관측되므로 wipe root가 아니라 verified avoidable-hit 경고로만 표시. 발생 자체를 실패/붕괴 원인으로 승격하지 않음.",
+    "B37.3.7 당시 Eternal Venom 9/10/11 임계값은 candidate였으나, 이 메모는 B37.5.0.2 실제 신화 검증으로 대체됨: 9중첩은 verified 경고, 10중첩 도달은 verified 즉사 실패.",
+    "B37.3.9.16 실제 2026-10-04 신화 11트 캡슐 대조: 동일 풀 안의 모든 Caustic Globule 파열과 Stone Breaker 반향을 개별 verified 실패로 보존하고, B31 실제 붕괴 클러스터의 spell/시각과 정확히 겹치는 실패만 majorIncident/collapseDirect로 연결한다. firstMistake는 가장 이른 verified 실패를 유지하며, attrition처럼 정확한 기믹 겹침이 없으면 collapseDirect를 비워 둔다.",
+    "B37.4.20 실제 신화 대조: 1290662 걸신들린 탐식 직접 피해는 두 Kill에서 한 묶음 최대 8명으로 분산됐지만 2026-10-05 Try 5에서 20명 동시 피격 후 17명이 0.1초 내 사망했다. 15명 이상 동시 피격 + 0.5초 내 4명 이상 사망의 직접 붕괴 형태만 verified 실패로 승격하며, 인원 배정 실패 원인은 추정하지 않는다.",
+    "B37.4.21 실제 신화 대조: 2026-10-05 Kill의 4:00.584 Stone Breaker 1289153은 20명 공대 피해로 실제 관측되어 미소크 의미를 유지하되, 처치 성공으로 회복된 실수로 분류한다. 2026-10-04 Try 16의 동일 신호는 B31 붕괴의 직접 사망 4명과 연결되어 붕괴 직결로 분리한다.",
+    "B37.4.25 실제 2026-10-04 신화 Try 11/12 재검증: Try 11은 0:47.510 내장 파열 미차단 1마리(공대 효과 20명)가 B31 붕괴의 내장 파열 직접 사망 4명과 연결되어 붕괴 직결. Try 12는 0:42.531 내장 파열 2마리 완료(공대 효과 20명)가 붕괴 직결이고, 이후 0:56.162/0:59.944 Caustic Globule 파열과 후속 내장 파열은 추가 verified 실패로 보존한다. 모든 내장 파열 실패 에피소드를 episode[0]만이 아니라 전부 보존한다.",
+    "B37.5.0.2: 영원의 맹독은 10중첩 도달 순간 즉사로 확정. 실제 raw/WCL/archive에서 9중첩은 verified 경고, 10중첩은 verified 실패로 판정한다."
+  ]
+}

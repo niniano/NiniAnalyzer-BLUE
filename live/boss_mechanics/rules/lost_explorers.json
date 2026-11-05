@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "bossKey": "lost_explorers",
+  "displayName": "길 잃은 탐험가",
+  "encounterIDs": [
+    3497
+  ],
+  "encounterNameFallbacks": [
+    "길 잃은 탐험가",
+    "The Lost Explorers",
+    "Lost Explorers"
+  ],
+  "difficultyIDs": [
+    5,
+    16
+  ],
+  "mechanics": {
+    "finalAscension": {
+      "castSpellIDs": [
+        1292779
+      ],
+      "damageSpellIDs": [
+        1292780
+      ],
+      "idSource": "wowhead/journal",
+      "meaning": "모르자히의 약 60초 충전(1297075)과 최후의 승천 시전/채널 피해(1292779/1292778/1292780)를 묶어 물고기 전달 타이밍을 관측한다. 시전 완료/피해 자체는 성공 킬에서도 생존 가능하므로 단독 실패가 아니다.",
+      "idEvidenceLevel": "verified",
+      "chargeAuraSpellIDs": [
+        1297075
+      ],
+      "channelAuraSpellIDs": [
+        1292778
+      ]
+    },
+    "fishyFeedback": {
+      "spellIDs": [
+        1296535
+      ],
+      "fishUseSpellIDs": [
+        1296535
+      ],
+      "fishSummonSpellIDs": [
+        1306122
+      ],
+      "fishAuraSpellIDs": [
+        1292490
+      ],
+      "idSource": "Historical Mythic 77-pull corpus (2026-09-01~2026-10-04)",
+      "meaning": "플레이어가 역겨운 물고기(1296535)를 지배 중 탐험가에게 전달해 모르자히의 집중을 끊고 지배 대상을 재설정하는 성공 사이클 신호. 전달 시각·대상·최후의 승천 노출을 관측하되, 늦은 전달 자체는 실패로 단정하지 않는다.",
+      "idEvidenceLevel": "verified",
+      "successMeaningEvidenceLevel": "verified",
+      "commandSpellIDs": [
+        1297022,
+        1296975,
+        1297024
+      ],
+      "feedbackSpellIDs": [
+        1313303
+      ]
+    },
+    "relicRupture": {
+      "spellIDs": [
+        1310027
+      ],
+      "idSource": "Historical Mythic 77-pull corpus (2026-09-01~2026-10-04) + direct-death comparison",
+      "meaning": "신화 77표본에서 13킬은 0회, 64와이프 중 12회에서만 발생. 발생 표본은 최대 20명 동시 피격과 다수 즉시 사망으로 이어져 검증된 직접 실패 신호.",
+      "idEvidenceLevel": "verified",
+      "failureMeaningEvidenceLevel": "verified"
+    },
+    "iceboundFlames": {
+      "castSpellIDs": [
+        1286922
+      ],
+      "idSource": "Historical Mythic 77-pull corpus (2026-09-01~2026-10-04)",
+      "meaning": "두루마리현자 이쿠의 차단 대상 시전. 77표본에서 627회 시작/564회 차단/27회 완료가 관측됨. 완료는 차단 실패로 기록하되, 킬에서도 2회 생존했으므로 전멸 원인 승격은 B31 연결 근거가 있을 때만 수행.",
+      "idEvidenceLevel": "verified",
+      "failureMeaningEvidenceLevel": "verified",
+      "successMeaningEvidenceLevel": "verified"
+    },
+    "frostfireVolley": {
+      "targetSpellIDs": [
+        1295886,
+        1295935
+      ],
+      "fireImpactSpellIDs": [
+        1295893
+      ],
+      "frostImpactSpellIDs": [
+        1295985
+      ],
+      "burningFlamesSpellIDs": [
+        1295928
+      ],
+      "piercingFrostSpellIDs": [
+        1295954
+      ],
+      "idSource": "wowhead/journal",
+      "idEvidenceLevel": "candidate"
+    },
+    "elementalExplosion": {
+      "spellIDs": [
+        1295952
+      ],
+      "idSource": "Historical Mythic 77-pull corpus (2026-09-01~2026-10-04) + Encounter Journal",
+      "meaning": "서리/화염 효과 충돌로 발생하는 공대 전체 피해. 신화 77표본에서 13킬 0회, 64와이프 중 3회에서만 발생했고 각 표본은 16/20/20명 피격 및 즉시 다수 사망으로 이어짐. ID/event-shape와 실패 의미 모두 verified.",
+      "idEvidenceLevel": "verified",
+      "failureMeaningEvidenceLevel": "verified"
+    },
+    "mightyThud": {
+      "targetSpellIDs": [
+        1296092
+      ],
+      "impactSpellIDs": [
+        1296133,
+        1300237,
+        1311871
+      ],
+      "idSource": "wowhead/journal",
+      "meaning": "빈 착지 시 공대 전체 피해가 발생하지만 현재 실제 raw event-shape 미검증이라 관측 전용.",
+      "idEvidenceLevel": "candidate",
+      "failureMeaningEvidenceLevel": "candidate"
+    },
+    "unitedDefense": {
+      "spellIDs": [
+        1297645,
+        1297646
+      ],
+      "idSource": "wowhead/journal",
+      "meaning": "세 탐험가가 30yd 안에 모이면 99% 피해 감소. 지속/위치 문맥 없이는 관측 전용.",
+      "idEvidenceLevel": "candidate",
+      "failureMeaningEvidenceLevel": "candidate"
+    },
+    "spreadingFlames": {
+      "spellIDs": [
+        1314061
+      ],
+      "idSource": "Historical Mythic 77-pull corpus + Encounter Journal",
+      "meaning": "무역상 게보의 지면 화염 피해. 77표본에서 킬 0회, 와이프 7회 관측됐지만 발생/피격 자체와 근본 실패 조건을 아직 분리하지 못했으므로 후보 관측만 유지.",
+      "idEvidenceLevel": "verified",
+      "failureMeaningEvidenceLevel": "candidate"
+    }
+  },
+  "sourceNotes": [
+    "B37.4.10 Historical Mythic corpus: 77 pulls total = 13 kills + 64 wipes across 2026-09-01~2026-10-04.",
+    "Relic Rupture 1310027 appeared in 0/13 kills and 12/64 wipes; wipe episodes hit 1~20 players and commonly caused immediate mass deaths.",
+    "Elemental Explosion 1295952 appeared in 0/13 kills and 3/64 wipes. The three episodes hit 16, 20, and 20 players; immediate deaths within 0.25 sec were 6, 11, and 13 respectively. ID/event-shape and failure meaning are verified.",
+    "Icebound Flames 1286922: 627 cast starts, 564 interrupts, 27 completed casts across the corpus. Completed casts occurred in both wipes and 2 kills, so they remain verified mechanic failures but are not automatically promoted to wipe root without downstream/B31 linkage.",
+    "Disgusting Fish 1296535 delivery was observed in all 13 kills and 50/64 wipes; it remains normal cycle/progress context.",
+    "Spreading Flames 1314061 was wipe-only in this corpus (7 wipe pulls, 0 kills), but the causal failure boundary is not yet proven; keep as candidate observation rather than firstMistake.",
+    "B37.5.0.3 actual Mythic samples: 1297075 marks the ~60 sec Final Ascension charge cycle; fish use 1296535 targets Iku/Nama/Gebbo and is followed by Mor'zahi command 1297022/1296975/1297024. Successful kills can survive 1292780 ticks before command resolves, so lateness is observation-only unless B31 directly links 1292780 deaths to collapse."
+  ]
+}

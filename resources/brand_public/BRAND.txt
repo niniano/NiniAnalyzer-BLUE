@@ -1,0 +1,3 @@
+NiniAnalyzer BLUE
+Icon navy #13161B, N #2F80ED, white tile #FFFFFF
+Wordmark Nini #2F80ED, Analyzer #E9EDF2

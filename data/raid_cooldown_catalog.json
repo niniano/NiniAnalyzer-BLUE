@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 2,
+  "updatedAt": "2026-10-01T20:16:04",
+  "source": "WCL reference 3 kills",
+  "specIDContract": "wow_global_specialization_id",
+  "learningContract": {
+    "minReferenceSamples": 2,
+    "minHitRate": 0.67,
+    "windowBeforeSec": 12.0,
+    "windowAfterSec": 10.0,
+    "excludedSpellIDs": [80353, 1297761],
+    "note": "외부/성공 표본에서 같은 전문화가 같은 보호막에 반복 사용한 주요 쿨기만 자동 카탈로그로 승격. 기본 판정 모드는 observe이며 raidPlan이 judge로 올리기 전에는 원인 A에 사용하지 않음."
+  },
+  "specCatalogs": {
+    "71": {"specID": 71, "entries": [
+      {"spellID":107574,"name":"투신","shieldIndex":1,"expectedOffsetSec":5.004,"toleranceBeforeSec":5.0,"toleranceAfterSec":5.0,"evidence":{"referenceSampleCount":3,"opportunityCount":3,"hitCount":3,"hitRate":1.0,"source":"WCL reference 3 kills"}},
+      {"spellID":107574,"name":"투신","shieldIndex":3,"expectedOffsetSec":0.178,"toleranceBeforeSec":5.0,"toleranceAfterSec":5.0,"evidence":{"referenceSampleCount":3,"opportunityCount":3,"hitCount":3,"hitRate":1.0,"source":"WCL reference 3 kills"}}
+    ]},
+    "254": {"specID":254,"entries":[
+      {"spellID":288613,"name":"정조준","shieldIndex":1,"expectedOffsetSec":-0.613,"toleranceBeforeSec":5.0,"toleranceAfterSec":5.0,"evidence":{"referenceSampleCount":3,"opportunityCount":6,"hitCount":6,"hitRate":1.0,"source":"WCL reference 3 kills"}},
+      {"spellID":288613,"name":"정조준","shieldIndex":4,"expectedOffsetSec":-4.711,"toleranceBeforeSec":5.0,"toleranceAfterSec":5.0,"evidence":{"referenceSampleCount":3,"opportunityCount":6,"hitCount":5,"hitRate":0.8333,"source":"WCL reference 3 kills"}}
+    ]},
+    "256": {"specID":256,"entries":[
+      {"spellID":10060,"name":"마력 주입","shieldIndex":1,"expectedOffsetSec":0.826,"toleranceBeforeSec":5.0,"toleranceAfterSec":5.0,"evidence":{"referenceSampleCount":3,"opportunityCount":3,"hitCount":3,"hitRate":1.0,"source":"WCL reference 3 kills"}}
+    ]},
+    "257": {"specID":257,"entries":[
+      {"spellID":10060,"name":"마력 주입","shieldIndex":1,"expectedOffsetSec":-1.743,"toleranceBeforeSec":5.0,"toleranceAfterSec":5.0,"evidence":{"referenceSampleCount":2,"opportunityCount":2,"hitCount":2,"hitRate":1.0,"source":"WCL reference 3 kills"}}
+    ]},
+    "259": {"specID":259,"entries":[
+      {"spellID":1856,"name":"소멸","shieldIndex":1,"expectedOffsetSec":2.141,"toleranceBeforeSec":5.0,"toleranceAfterSec":5.0,"evidence":{"referenceSampleCount":3,"opportunityCount":3,"hitCount":3,"hitRate":1.0,"source":"WCL reference 3 kills"}},
+      {"spellID":360194,"name":"죽음표식","shieldIndex":1,"expectedOffsetSec":-0.128,"toleranceBeforeSec":5.0,"toleranceAfterSec":5.0,"evidence":{"referenceSampleCount":3,"opportunityCount":3,"hitCount":3,"hitRate":1.0,"source":"WCL reference 3 kills"}},
+      {"spellID":385627,"name":"왕의 파멸","shieldIndex":1,"expectedOffsetSec":0.86,"toleranceBeforeSec":5.0,"toleranceAfterSec":5.0,"evidence":{"referenceSampleCount":3,"opportunityCount":3,"hitCount":3,"hitRate":1.0,"source":"WCL reference 3 kills"}},
+      {"spellID":385627,"name":"왕의 파멸","shieldIndex":3,"expectedOffsetSec":-2.235,"toleranceBeforeSec":5.0,"toleranceAfterSec":5.0,"evidence":{"referenceSampleCount":3,"opportunityCount":3,"hitCount":3,"hitRate":1.0,"source":"WCL reference 3 kills"}}
+    ]},
+    "265": {"specID":265,"entries":[
+      {"spellID":205180,"name":"암흑시선 소환","shieldIndex":1,"expectedOffsetSec":-0.448,"toleranceBeforeSec":5.0,"toleranceAfterSec":5.0,"evidence":{"referenceSampleCount":3,"opportunityCount":5,"hitCount":5,"hitRate":1.0,"source":"WCL reference 3 kills"}}
+    ]},
+    "577": {"specID":577,"entries":[
+      {"spellID":370965,"name":"사냥","shieldIndex":3,"expectedOffsetSec":0.224,"toleranceBeforeSec":5.0,"toleranceAfterSec":5.0,"evidence":{"referenceSampleCount":3,"opportunityCount":3,"hitCount":3,"hitRate":1.0,"source":"WCL reference 3 kills"}}
+    ]},
+    "1473": {"specID":1473,"entries":[
+      {"spellID":370553,"name":"비늘사령관의 지배","shieldIndex":1,"expectedOffsetSec":2.297,"toleranceBeforeSec":5.0,"toleranceAfterSec":5.0,"evidence":{"referenceSampleCount":2,"opportunityCount":2,"hitCount":2,"hitRate":1.0,"source":"WCL reference 3 kills"}},
+      {"spellID":370553,"name":"비늘사령관의 지배","shieldIndex":3,"expectedOffsetSec":-3.443,"toleranceBeforeSec":6.564,"toleranceAfterSec":6.564,"evidence":{"referenceSampleCount":2,"opportunityCount":2,"hitCount":2,"hitRate":1.0,"source":"WCL reference 3 kills"}}
+    ]}
+  }
+}

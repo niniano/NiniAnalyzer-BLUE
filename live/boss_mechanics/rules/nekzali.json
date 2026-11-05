@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 3,
+  "bossKey": "nekzali",
+  "displayName": "영혼살무사 네크잘리",
+  "encounterIDs": [
+    3470
+  ],
+  "encounterNameFallbacks": [
+    "영혼살무사 네크잘리",
+    "Nek'zali the Soulcoiler",
+    "Nekzali the Soulcoiler"
+  ],
+  "difficultyIDs": [
+    5,
+    16
+  ],
+  "actors": {
+    "drownedEcho": {
+      "npcIDs": [
+        268204
+      ],
+      "evidenceLevel": "verified",
+      "idSource": "mythic_raw_2026-10-04",
+      "idEvidenceLevel": "verified"
+    }
+  },
+  "mechanics": {
+    "graspingDepths": {
+      "spellIDs": [
+        1293212
+      ],
+      "evidenceLevel": "verified",
+      "idSource": "mythic_raw_2026-10-04",
+      "meaning": "신화 Drowned Echo 활성화",
+      "idEvidenceLevel": "verified"
+    },
+    "soulcoilersCurse": {
+      "spellIDs": [
+        1300238
+      ],
+      "evidenceLevel": "verified",
+      "idSource": "mythic_raw_2026-10-04",
+      "meaning": "Drowned Echo 차단 대상 10초 시전. 완료는 미차단 실행 실패, interrupt는 성공 처리",
+      "idEvidenceLevel": "verified",
+      "failureMeaningEvidenceLevel": "verified",
+      "successMeaningEvidenceLevel": "verified"
+    },
+    "immortalCoil": {
+      "spellIDs": [
+        1299988
+      ],
+      "evidenceLevel": "candidate",
+      "idSource": "wowhead/journal"
+    },
+    "soulExhaustion": {
+      "spellIDs": [
+        1300235
+      ],
+      "evidenceLevel": "verified",
+      "idSource": "mythic_raw_2026-10-04",
+      "idEvidenceLevel": "verified"
+    },
+    "invoke": {
+      "spellIDs": [
+        1299673
+      ],
+      "evidenceLevel": "verified",
+      "idSource": "mythic_raw_2026-10-04",
+      "meaning": "P2 Invoke; 신화에서 시전 중 플레이어를 3초 침묵",
+      "idEvidenceLevel": "verified"
+    },
+    "soulcoilRite": {
+      "spellIDs": [
+        1288772
+      ],
+      "evidenceLevel": "verified",
+      "idSource": "mythic_raw_2026-10-04",
+      "meaningEvidenceLevel": "candidate",
+      "meaning": "전투 전반에 반복되는 영혼똬리 의식 피해. 정상 킬에도 반복되므로 발생 자체는 실패가 아님"
+    },
+    "vesselOfAwakening": {
+      "spellIDs": [
+        1295263
+      ],
+      "evidenceLevel": "candidate",
+      "idSource": "wowhead/journal"
+    },
+    "corpseBlight": {
+      "spellIDs": [
+        1294729
+      ],
+      "evidenceLevel": "verified",
+      "idSource": "mythic_raw_2026-10-04",
+      "idEvidenceLevel": "verified"
+    },
+    "ritualBurn": {
+      "spellIDs": [
+        1297624
+      ],
+      "evidenceLevel": "verified",
+      "idSource": "mythic_raw_2026-10-04",
+      "meaningEvidenceLevel": "candidate",
+      "meaning": "영혼똬리 의식과 함께 관측되는 의식 연소"
+    },
+    "hauntedSalvoCast": {
+      "spellIDs": [
+        1284103
+      ],
+      "evidenceLevel": "verified",
+      "idSource": "mythic_raw_2026-10-04 + heroic_kill_2026-10-03",
+      "meaningEvidenceLevel": "verified",
+      "meaning": "귀신 들린 포화 6초 시전/대상 오라 시작. 정상 킬에도 존재하므로 발생 자체는 실패가 아님"
+    },
+    "hauntedSalvo": {
+      "spellIDs": [
+        1292034
+      ],
+      "evidenceLevel": "verified",
+      "idSource": "mythic_raw_2026-10-04",
+      "meaningEvidenceLevel": "candidate",
+      "meaning": "귀신 들린 포화 공대 피해. 단독 발생은 실패 판정하지 않음"
+    },
+    "voidStrike": {
+      "spellIDs": [
+        1284109
+      ],
+      "evidenceLevel": "verified",
+      "idSource": "mythic_raw_2026-10-04",
+      "meaningEvidenceLevel": "candidate",
+      "meaning": "공허한 일격 관측 신호"
+    },
+    "essenceShatter": {
+      "spellIDs": [
+        1287427,
+        1287434
+      ],
+      "evidenceLevel": "verified",
+      "idSource": "mythic_raw_2026-10-04",
+      "meaningEvidenceLevel": "candidate",
+      "meaning": "정수 분쇄 오라/피해 신호"
+    }
+  },
+  "sourceNotes": [
+    "B37.4.27: 2026-10-04 Mythic Try2 Kill observed Soulcoiler's Curse 4 starts / 4 interrupts / 0 completions; actual success baseline.",
+    "B37.4.27: 2026-10-04 Mythic Try4 Kill observed 7 starts / 5 interrupts / 1 completion / 1 unresolved. The 3:26.132 completion is a verified execution mistake recovered on a kill, not a wipe cause.",
+    "The same Mythic samples verify Drowned Echo 268204, Grasping Depths 1293212, Soul Exhaustion 1300235, Invoke 1299673 and Corpse Blight 1294729 ID/event provenance.",
+    "Immortal Coil 1299988 and Vessel of Awakening 1295263 were not observed in the secured Mythic capsules and remain candidate.",
+    "Soulcoil Rite 1288772 and Haunted Salvo occur on successful kills; occurrence alone is not a player failure.",
+    "When B31 collapse evidence shows Haunted Salvo directly killed >=60% of a >=4-player collapse cluster (minimum 3 deaths), expose the collapse mechanism as verified but do not invent firstMistake or player blame."
+  ]
+}

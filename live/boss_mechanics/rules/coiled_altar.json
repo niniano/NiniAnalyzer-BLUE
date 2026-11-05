@@ -1,0 +1,436 @@
+{
+  "schemaVersion": 11,
+  "bossKey": "coiled_altar",
+  "displayName": "똬리의 제단",
+  "encounterIDs": [
+    3429
+  ],
+  "encounterNameFallbacks": [
+    "똬리의 제단",
+    "The Coiled Altar"
+  ],
+  "difficultyIDs": [
+    5,
+    16
+  ],
+  "actors": {
+    "boss": {
+      "npcIDs": [
+        257911
+      ],
+      "evidenceLevel": "verified",
+      "note": "3개 신화 킬 report masterData에서 교차 확인",
+      "idEvidenceLevel": "verified"
+    },
+    "condensedVenomTracker": {
+      "npcIDs": [
+        268042
+      ],
+      "evidenceLevel": "verified",
+      "idEvidenceLevel": "verified"
+    },
+    "malacrass": {
+      "npcIDs": [
+        259854
+      ],
+      "evidenceLevel": "verified",
+      "idEvidenceLevel": "verified"
+    },
+    "virulentMutation": {
+      "npcIDs": [
+        271982
+      ],
+      "evidenceLevel": "verified",
+      "idEvidenceLevel": "verified"
+    },
+    "axegrinder": {
+      "npcIDs": [
+        260474
+      ],
+      "evidenceLevel": "verified",
+      "idEvidenceLevel": "verified"
+    },
+    "manifestationOfDread": {
+      "npcIDs": [
+        261218
+      ],
+      "evidenceLevel": "verified",
+      "idEvidenceLevel": "verified"
+    },
+    "spitefulSoulcoiler": {
+      "npcIDs": [
+        261521
+      ],
+      "evidenceLevel": "verified",
+      "note": "3개 신화 킬 P2 15개 사이클에서 사이클당 2마리 소환 교차 확인.",
+      "idEvidenceLevel": "verified"
+    }
+  },
+  "mechanics": {
+    "cleaveBreath": {
+      "spellIDs": [
+        1299680,
+        1299684
+      ],
+      "sourceType": "NPC",
+      "castEvent": "completed",
+      "evidenceLevel": "verified",
+      "note": "boss NPC 257911 source 필요. raw cast 1299684/1299680 또는 WCL fight-scoped Sever aura marker 1301690을 동일 브레스로 coalesce. 비탱커 직접 피해는 P1 탱 브레스 오피격으로 verified 판정.",
+      "auraMarkerSpellIDs": [
+        1301690
+      ],
+      "idEvidenceLevel": "verified",
+      "meaningEvidenceLevel": "verified",
+      "meaningEvidenceSource": "10/6 실제 신화 Try21·23에서 1299684 비탱커 직접 피격 직후 사망을 확인하고 로스터 spec으로 탱커를 분리 검증."
+    },
+    "guillotine": {
+      "spellIDs": [
+        1283489
+      ],
+      "markerSpellIDs": [
+        1283485
+      ],
+      "effectSpellIDs": [
+        1307425
+      ],
+      "evidenceLevel": "verified",
+      "note": "3개 신화 킬 fight-scoped에서 marker 1283485가 약 43s/128s로 2회 반복. 1307425는 약 5s 뒤 대상군 효과로 반복 관측.",
+      "idEvidenceLevel": "verified",
+      "meaningEvidenceLevel": "unavailable",
+      "meaningEvidenceSource": "전투 진행 앵커. 3개 상위 신화 킬의 반복 시각으로 ID/형태만 교차 확인."
+    },
+    "toxicRupture": {
+      "spellIDs": [
+        1299838
+      ],
+      "evidenceLevel": "verified",
+      "note": "Venom Rupture 1299838. 브레스 후 1초 내 applydebuff + applydebuffstack(로컬 raw는 SPELL_AURA_APPLIED + DOSE)을 플레이어별로 세고 공통값일 때 제거 구슬 수와 1:1로 사용. refresh는 제외. 사용자 제공 신화 37트에서 반복 검증.",
+      "orbCountSignal": {
+        "windowSec": 1.0,
+        "minConsensusTargets": 4,
+        "requireAllObservedPlayersSame": true,
+        "excludeRefresh": true,
+        "zeroWhenNoEventsOnCompleteStream": true,
+        "evidenceLevel": "verified"
+      },
+      "idEvidenceLevel": "verified",
+      "meaningEvidenceLevel": "verified",
+      "meaningEvidenceSource": "사용자 신화 다수 트라이의 브레스 직후 공통 stack 신호와 공대 전략의 제거 구슬 수를 교차 검증."
+    },
+    "toxicDeluge": {
+      "spellIDs": [
+        1299960
+      ],
+      "evidenceLevel": "verified",
+      "note": "3개 신화 킬 hostile Casts에서 줄잔 NPC 257911 source로 8회씩 관측.",
+      "idEvidenceLevel": "verified",
+      "meaningEvidenceLevel": "unavailable",
+      "meaningEvidenceSource": "정상 반복 기술 식별용. 발생 자체를 실패로 사용하지 않음."
+    },
+    "coalescedVenomSummon": {
+      "spellIDs": [
+        1299781
+      ],
+      "npcIDs": [
+        268042
+      ],
+      "evidenceLevel": "verified",
+      "note": "3개 신화 킬 hostile Summons에서 공통 관측. 전략 개수는 변이 구슬 포함 총량 기준.",
+      "idEvidenceLevel": "verified",
+      "meaningEvidenceLevel": "unavailable",
+      "meaningEvidenceSource": "구슬 웨이브 구성 식별용. 3개 상위 신화 킬 교차 확인."
+    },
+    "virulentMutationSummon": {
+      "spellIDs": [
+        1310544
+      ],
+      "npcIDs": [
+        271982
+      ],
+      "evidenceLevel": "verified",
+      "note": "3개 신화 킬 hostile Summons에서 공통 관측. 첫 전략 웨이브는 응결5+변이5=총10.",
+      "idEvidenceLevel": "verified",
+      "meaningEvidenceLevel": "unavailable",
+      "meaningEvidenceSource": "구슬 웨이브 구성 식별용. 3개 상위 신화 킬 교차 확인."
+    },
+    "eternalNightfall": {
+      "castSpellIDs": [
+        1286918
+      ],
+      "auraSpellIDs": [
+        1310752
+      ],
+      "shieldAuraSpellIDs": [
+        1286912
+      ],
+      "sourceNpcIDs": [
+        259854
+      ],
+      "evidenceLevel": "verified",
+      "note": "B36.5 local advanced CombatLog에서 황혼의 장막 1286912 absorb pool, 영원한 일몰 1286918 CAST_START/INTERRUPT, 1310752 aura를 교차 확인. 보호막 파괴와 실제 차단을 함께 성공 조건으로 사용.",
+      "idEvidenceLevel": "verified",
+      "meaningEvidenceLevel": "verified",
+      "meaningEvidenceSource": "공략/Encounter Journal 의미 + 로컬 advanced CombatLog의 보호막/시전/차단 계약으로 검증."
+    },
+    "marchOfTheDamned": {
+      "spellIDs": [
+        1316728
+      ],
+      "evidenceLevel": "candidate",
+      "idEvidenceLevel": "candidate",
+      "meaningEvidenceLevel": "candidate",
+      "meaningEvidenceSource": "ID 후보만 수집. 실패 의미 미검증."
+    },
+    "gravebound": {
+      "spellIDs": [
+        1286837,
+        1297906,
+        1308330
+      ],
+      "debuffSpellIDs": [
+        1286837
+      ],
+      "damageSpellIDs": [
+        1308330
+      ],
+      "soulFragmentSpellIDs": [
+        1286839
+      ],
+      "deadlineSec": 15.0,
+      "evidenceLevel": "candidate",
+      "note": "1286837/1286839/1308330 신호는 계속 수집. B36.4에서는 이 변화를 곧바로 영혼 3개/15초 성공·실패로 등치하지 않고 확인 불가로 유지.",
+      "idEvidenceLevel": "candidate",
+      "meaningEvidenceLevel": "candidate",
+      "meaningEvidenceSource": "ID/event-shape 후보만 수집. 영혼 3개/15초 성공·실패 의미는 미검증."
+    },
+    "grimGuillotine": {
+      "spellIDs": [
+        1299267,
+        1299266,
+        1299296,
+        1307652
+      ],
+      "evidenceLevel": "verified",
+      "idEvidenceLevel": "verified",
+      "meaningEvidenceLevel": "candidate",
+      "meaningEvidenceSource": "ID는 관측됐으나 독립 실패 의미를 신화 킬/와이프 대조로 재검증 필요."
+    },
+    "blightedSever": {
+      "spellIDs": [
+        1307292,
+        1307403
+      ],
+      "evidenceLevel": "verified",
+      "idEvidenceLevel": "verified",
+      "meaningEvidenceLevel": "candidate",
+      "meaningEvidenceSource": "ID는 관측됐으나 탱 브레스 오피격 실패 의미를 10/5 신화 표본으로 재검증 필요."
+    },
+    "defilement": {
+      "spellIDs": [
+        1298381,
+        1298594
+      ],
+      "evidenceLevel": "verified",
+      "idEvidenceLevel": "verified",
+      "meaningEvidenceLevel": "candidate",
+      "meaningEvidenceSource": "ID는 관측됐으나 독립 실패 의미를 신화 킬/와이프 대조로 재검증 필요."
+    },
+    "dreadmarch": {
+      "castSpellIDs": [
+        1285643
+      ],
+      "debuffSpellIDs": [
+        1297445
+      ],
+      "expectedTargets": 4,
+      "evidenceLevel": "candidate",
+      "note": "1297445 대상 수는 반복 패턴 참고 신호로 수집. B36.4에서는 정배 성공/실패 직접 계약 재검증 전까지 종합 판정에 사용하지 않음.",
+      "idEvidenceLevel": "candidate",
+      "meaningEvidenceLevel": "candidate",
+      "meaningEvidenceSource": "정배 대상 수는 반복 패턴 참고 신호. 직접 성공/실패 계약 미검증."
+    },
+    "phase2Activation": {
+      "spellIDs": [
+        1288624
+      ],
+      "sourceNpcIDs": [
+        259854
+      ],
+      "evidenceLevel": "verified",
+      "note": "말라크라스 Dreadful Presence 첫 cast를 P2 활성화 로그 앵커로 사용.",
+      "idEvidenceLevel": "verified",
+      "meaningEvidenceLevel": "unavailable",
+      "meaningEvidenceSource": "P2 진입 시각 앵커. 성공/실패 의미 없음."
+    },
+    "manifestationOfDread": {
+      "summonSpellIDs": [
+        1285844
+      ],
+      "npcIDs": [
+        261218
+      ],
+      "fixationSpellIDs": [
+        1285911
+      ],
+      "evidenceLevel": "verified",
+      "note": "현신 NPC와 Unnerving Fixation. Soul Sever 직후 fixation 제거는 현신 정리 후보 신호로 사용.",
+      "idEvidenceLevel": "verified",
+      "meaningEvidenceLevel": "unavailable",
+      "meaningEvidenceSource": "현신/fixation 식별 앵커. 소환 발생 자체는 실패가 아님."
+    },
+    "spiritcackle": {
+      "castSpellIDs": [
+        1286441
+      ],
+      "summonSpellIDs": [
+        1286498
+      ],
+      "npcIDs": [
+        261521
+      ],
+      "expectedAddsPerCycle": 2,
+      "evidenceLevel": "verified",
+      "note": "3개 신화 킬 P2 15개 사이클 모두 차단쫄 2마리 소환.",
+      "idEvidenceLevel": "verified",
+      "meaningEvidenceLevel": "verified",
+      "meaningEvidenceSource": "3개 상위 신화 킬 P2 15사이클에서 사이클당 차단쫄 2마리 반복 확인. 웨이브 구성 의미 검증."
+    },
+    "wailOfTerror": {
+      "spellIDs": [
+        1286399
+      ],
+      "successProxySpellIDs": [
+        1308011
+      ],
+      "evidenceLevel": "verified",
+      "failureSignal": "플레이어에게 1286399 debuff 적용 시 차단 실패",
+      "note": "차단 실패 결과는 1286399 플레이어 debuff로 직접 판정. 1308011은 수집만 하며 성공 판정에는 사용하지 않음.",
+      "idEvidenceLevel": "verified",
+      "meaningEvidenceLevel": "verified",
+      "meaningEvidenceSource": "공략상 차단 기술 + 10/5 신화 실제 미차단에서 1286399 플레이어 공포 적용을 직접 확인."
+    },
+    "gloombomb": {
+      "castSpellIDs": [
+        1310882
+      ],
+      "debuffSpellIDs": [
+        1310881
+      ],
+      "damageSpellIDs": [
+        1310883
+      ],
+      "expectedTargets": 4,
+      "evidenceLevel": "verified",
+      "note": "3개 신화 킬 P2 반복 사이클에서 대상 4명. 공략상 영혼살무사는 암영 폭탄 적중 전까지 받는 피해 99% 감소. 실제 local/WCL에서는 1310883이 쫄에게 직접 피해 이벤트로 찍히지 않아, 폭탄 전/후 짧은 창의 합산 피해량/감소 전 피해량 비율이 약 1%→정상으로 전환되는지를 verified 적중 신호로 사용.",
+      "directSoulcoilerHitSignal": "1310883 direct add damage는 보조/legacy 신호만 사용; 빈 직접-hit stream 자체는 miss 근거로 사용하지 않음",
+      "soulcoilerHitSignal": "NPC 261521 개체별 폭탄 전 2초/후 2초 합산 damage/unmitigatedAmount: ~1%→>=50% 전환이면 99% DR 해제 verified",
+      "idEvidenceLevel": "verified",
+      "meaningEvidenceLevel": "verified",
+      "meaningEvidenceSource": "공략 + 3개 상위 신화 킬의 4대상 패턴 + 실제 신화 와이프의 추가피격/99% DR 해제 신호로 검증.",
+      "raidPlanTiming": "공포의 통곡 1차단 확인 후 바로 암영폭탄 적중",
+      "timingEvidenceLevel": "verified",
+      "timingEvidenceSource": "실제 Try20: 1차단→폭탄 +0.922초, Try22: +2.842초. 순서는 검증됨. 최대 허용 지연시간은 미확정."
+    },
+    "soulSever": {
+      "spellIDs": [
+        1286620
+      ],
+      "sourceNpcIDs": [
+        259854
+      ],
+      "fixationRemovalWindowSec": 0.25,
+      "evidenceLevel": "verified",
+      "note": "공략상 두려움의 현신 제거 전방 브레스. 1286620의 플레이어 피격도 기록하며, raidPlan.phase2.tankPlayers가 제공되면 비탱커 피격을 개인 실수로 판정. fixation 동시 제거 수는 후보 보조 신호.",
+      "playerHitSpellIDs": [
+        1286620
+      ],
+      "periodicTankSpellIDs": [
+        1312630,
+        1307959
+      ],
+      "idEvidenceLevel": "verified",
+      "meaningEvidenceLevel": "verified",
+      "meaningEvidenceSource": "공략상 현신 제거 전방 + raidPlan/탱커 역할 계약. 비탱커 피격을 실행 실패로 판정."
+    },
+    "soulbinding": {
+      "spellIDs": [
+        1304032
+      ],
+      "sourceNpcIDs": [
+        259854
+      ],
+      "evidenceLevel": "verified",
+      "note": "P2 종료/사이페 진입 로그 앵커.",
+      "idEvidenceLevel": "verified",
+      "meaningEvidenceLevel": "unavailable",
+      "meaningEvidenceSource": "P2 종료/사이페 진입 앵커. 성공/실패 의미 없음."
+    },
+    "malevolentResonance": {
+      "auraSpellIDs": [
+        1310744
+      ],
+      "damageSpellIDs": [
+        1312132
+      ],
+      "evidenceLevel": "verified",
+      "note": "신화에서 두려움의 현신끼리 접촉하면 Malevolent Resonance가 발생. 1310744 aura + 1312132 1초 주기 암흑 피해로 직접 판정. Wowhead/Encounter Journal 설명과 3개 킬/실제 와이프 로그에서 교차 확인.",
+      "spatialSignal": "local raw only: resonance 동시 대상과 fixation 활성 대상, 플레이어 좌표/5초 이동량을 candidate context로 사용; 같은 트라이의 비접촉 fixation 구간과 비교만 하며 hard safe-distance는 미설정",
+      "idEvidenceLevel": "verified",
+      "meaningEvidenceLevel": "verified",
+      "meaningEvidenceSource": "공략/Encounter Journal + 3개 상위 신화 킬 + 실제 신화 와이프의 1310744/1312132 및 직후 사망 연결로 검증."
+    },
+    "axegrinderGlaive": {
+      "spellIDs": [
+        1285017
+      ],
+      "sourceNpcIDs": [
+        260474
+      ],
+      "sourceType": "NPC",
+      "evidenceLevel": "verified",
+      "idEvidenceLevel": "verified",
+      "meaningEvidenceLevel": "verified",
+      "note": "도끼분쇄자 글레이브. 실제 Try24에서 동일 플레이어 연속 피격 후 직접 사망 및 맹독성 파열 활성 중 글레이브 연계사망을 확인. 비치명 단발 피격은 관측만 하고, 연속 피격 뒤 직접 사망만 실패로 승격.",
+      "meaningEvidenceSource": "10/6 실제 신화 Try24 + 공대장 피드백(브레스 디버프 중 글레이브 피격은 생존이 매우 어려움)."
+    }
+  },
+  "priorityChecks": [
+    {
+      "key": "second_guillotine",
+      "title": "두 번째 단두대",
+      "referenceRatePct": 23
+    },
+    {
+      "key": "eternal_sunset",
+      "title": "영원한 일몰",
+      "referenceRatePct": 20
+    },
+    {
+      "key": "knockback_fall",
+      "title": "넉백 낙사",
+      "referenceRatePct": 14
+    },
+    {
+      "key": "gravebind",
+      "title": "무덤구속",
+      "referenceRatePct": 13
+    },
+    {
+      "key": "toxic_rupture",
+      "title": "맹독성 파열",
+      "referenceRatePct": 8
+    },
+    {
+      "key": "march_fall",
+      "title": "행진 낙사",
+      "referenceRatePct": 8
+    }
+  ],
+  "evidencePolicy": {
+    "version": "B37.4.32",
+    "contract": "idEvidenceLevel=ID/event-shape reality; meaningEvidenceLevel=success/failure meaning",
+    "mythicLocalKillCountAtCalibration": 0,
+    "referenceNote": "로컬 신화 킬 0개이므로 의미 근거는 실제 신화 Wipe, 기존 3개 상위 신화 킬 reference, 공략/공대 계획을 항목별로 명시. 향후 로컬 신화 Kill 확보 시 재대조.",
+    "completionNote": "신화 실제 Wipe 캡슐로 검증된 판정만 locked. 의미 계약이 미확정인 무덤구속/행진/기타 priority 후보는 candidate 또는 unavailable로 유지하며 firstMistake/붕괴 원인에 승격하지 않음."
+  }
+}

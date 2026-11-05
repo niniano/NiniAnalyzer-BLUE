@@ -1,0 +1,7 @@
+{
+  "_설명": "똬리의 제단 신화 공대 차단 규칙 (2026-10-25 공대장 설명). 지우면 예전 판정.",
+  "backupLine": 3,
+  "firstAdd": "late",
+  "secondAdd": "beforeBomb",
+  "bombWindowSec": 5.0
+}
