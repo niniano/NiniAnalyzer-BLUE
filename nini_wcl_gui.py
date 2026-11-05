@@ -1321,6 +1321,14 @@ class App(tk.Tk):
                     pass
         except tk.TclError:
             pass
+        # rc5.4 (GitHub): Windows Tk fires <<NotebookTabChanged>> while the selected tab is being
+        # destroyed; the handler then touched already-destroyed widgets ("bad window path name") and
+        # the in-flight callback made destroy fail ("can't delete Tcl command"). Stop listening first.
+        self._closing = True
+        try:
+            self.notebook.unbind("<<NotebookTabChanged>>")
+        except (AttributeError, tk.TclError):
+            pass
         try:
             super().destroy()
         finally:
@@ -6490,7 +6498,13 @@ class App(tk.Tk):
             self.b3742_prec_run_btn.configure(state="disabled")
 
     def _on_main_frame_changed(self, _event=None):
-        self._refresh_context_tabs()
+        if getattr(self, "_closing", False):
+            return
+        try:
+            self._refresh_context_tabs()
+        except tk.TclError:
+            if not getattr(self, "_closing", False):
+                raise
 
     def _context_action(self):
         if self.raid_public_mode:
