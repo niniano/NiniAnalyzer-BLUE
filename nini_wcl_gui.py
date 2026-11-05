@@ -1329,6 +1329,10 @@ class App(tk.Tk):
             self.notebook.unbind("<<NotebookTabChanged>>")
         except (AttributeError, tk.TclError):
             pass
+        # rc5.4 (GitHub): ``root.after_cancel`` deletes the Tcl command of an ``after`` that a *child*
+        # widget scheduled, but the child still lists it in ``_tclCommands`` -> its destroy() raises
+        # "can't delete Tcl command" (seen on Windows where a child timer is still pending at close).
+        self._purge_dead_tcl_commands()
         try:
             super().destroy()
         finally:
@@ -6496,6 +6500,27 @@ class App(tk.Tk):
                 "원본 로그·분석 데이터셋을 확인하세요."
             )
             self.b3742_prec_run_btn.configure(state="disabled")
+
+    def _purge_dead_tcl_commands(self):
+        """Drop already-deleted Tcl command names from every widget before Tk destroy walks them."""
+        stack = [self]
+        while stack:
+            w = stack.pop()
+            try:
+                stack.extend(list(w.children.values()))
+            except Exception:
+                pass
+            names = getattr(w, "_tclCommands", None)
+            if not names:
+                continue
+            alive = []
+            for name in names:
+                try:
+                    if self.tk.call("info", "commands", name):
+                        alive.append(name)
+                except tk.TclError:
+                    pass
+            w._tclCommands = alive
 
     def _on_main_frame_changed(self, _event=None):
         if getattr(self, "_closing", False):
