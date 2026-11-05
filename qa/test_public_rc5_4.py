@@ -31,7 +31,7 @@ U = _load("rc54_ulatek", "live/ulatek_conclusion_v1.py")
 class Versions(unittest.TestCase):
     def test_gui_version(self):
         gui = (ROOT / "nini_wcl_gui.py").read_text(encoding="utf-8")
-        self.assertIn('PUBLIC_APP_VERSION = "1.0.0-rc5.4"', gui)
+        self.assertIn('PUBLIC_APP_VERSION = "1.0.0-rc5.5"', gui)
 
     def test_judgment_modules(self):
         self.assertEqual(W.VERSION, "COILED-WIPE-CAUSE-V3.7")

@@ -39,7 +39,7 @@ assert (ROOT/'package_public_release.py').is_file()
 entry=(ROOT/'nini_raid_gui.py').read_text(encoding='utf-8')
 assert 'start_error_notice_poll(app)' in entry
 assert 'maybe_show_first_run(app)' in entry
-assert 'PUBLIC_APP_VERSION = "1.0.0-rc5.4"' in gui
+assert 'PUBLIC_APP_VERSION = "1.0.0-rc5.5"' in gui
 print('STAGE 2.4 RELEASE GATE PASS — first-run guide, local-only error notice and packager')
 
 assert (ROOT/'build_public_windows.py').read_text(encoding='utf-8').find("'--contents-directory', '_internal'") >= 0
@@ -57,7 +57,7 @@ assert '_drop_feign_deaths' in (ROOT/'live/boss_mechanics/engine.py').read_text(
 assert 'def _pull_badge_text' in gui and 'def _public_auto_open_latest_session' in gui
 iss=(ROOT/'installer/NiniAnalyzer_Public.iss').read_text(encoding='utf-8-sig')
 assert 'AppId={{' in iss and 'PrivilegesRequired=lowest' in iss and 'AppUserModelID: "{#AppUserModelID}"' in iss
-assert '#define AppVersion "1.0.0-rc5.4"' in iss
+assert '#define AppVersion "1.0.0-rc5.5"' in iss
 assert 'UninstallDelete' not in iss, 'installer must never delete user raid records'
 print('RC4 GATE PASS — scroll, fonts, feign death, puller, first screen, installer')
 
@@ -146,3 +146,17 @@ assert 'def live_analysis_busy(' in (ROOT/'live/raid_review.py').read_text(encod
 for _q in ('qa/test_public_rc5_4.py', 'qa/test_public_rc5_4_gravebound.py', 'qa/test_public_rc5_4_speed.py'):
     assert (ROOT/_q).is_file(), _q
 print('RC5.4 GATE PASS — GOLD V5.2.4 sync, judgment V3.7/V1.9')
+
+# RC5.5: 아이콘 · 로고 Nini Brand Kit R3 (BLUE). 예전 흰 네모 아이콘이 다시 들어오면 막는다.
+# (Pillow 는 이 검사 뒤에 설치될 수 있어서, 없으면 그림 검사는 qa/test_public_rc5_5_brand.py 에 맡긴다)
+assert (ROOT/'qa/test_public_rc5_5_brand.py').is_file()
+try:
+    from PIL import Image as _Img
+except ImportError:
+    _Img = None
+if _Img is not None:
+    _ic = _Img.open(ROOT/'resources/brand_public/nini_analyzer_256.png').convert('RGBA')
+    assert _ic.getpixel((0, 0))[3] == 0, 'RC5.5: icon corner must be transparent (R3 round icon)'
+    assert all(abs(a - b) <= 6 for a, b in zip(_ic.getpixel((128, 20))[:3], (0x0D, 0x39, 0x52))), 'RC5.5: R3 navy circle'
+    assert _Img.open(ROOT/'resources/brand_public/nini_analyzer_sidebar_wordmark.png').size == (196, 42)
+print('RC5.5 GATE PASS — Brand Kit R3 icons and sidebar wordmark')
