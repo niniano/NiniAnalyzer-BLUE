@@ -742,6 +742,18 @@ def build(meta: dict, facts: dict, hp: list | None = None, rawc: dict | None = N
                     cause = f"{h['label']} {len(hit)}명 · 끊지 못한 시전 {max(n_done, len(done))}번 (첫 {mmss(done[0])})"
                     conf, group, advice = "확정", h["label"], h["advice"]
         if cause is None and collapse is not None:
+            # V1.10: 2026-11-06 신화 핫픽스(송곳니 내장 파열 -40%) 뒤에는 차단을 놓쳐도 3명까지 안 죽을 수 있다.
+            #   끊지 못한 시전이 붕괴 12초 안쪽에 있고 그 사망이 1명 이상이면 [추정]으로 잡는다.
+            for h in spec.get("hard") or ():
+                if not h.get("castSuccess"):
+                    continue
+                hit = [d for d in deaths if d.get("spellID") in h["deaths"] or d.get("rawSpellID") in h["deaths"]]
+                done = [t for t in cast_times(facts, (h["castSuccess"],), gap=0.3, event="SUCCESS") if collapse - 12.0 <= t <= collapse + 2.0]
+                if hit and done:
+                    cause = f"{h['label']} {len(hit)}명 · 붕괴 전 끊지 못한 시전 {len(done)}번 ({mmss(done[0])} → {mmss(collapse)} 붕괴)"
+                    conf, group, advice = "추정", h["label"], h["advice"]
+                    break
+        if cause is None and collapse is not None:
             burst = [d for d in deaths if collapse - 10 <= d["sec"] <= collapse + 6]
             cnt = Counter(_label(spec, d)[0] for d in burst)
             if cnt:

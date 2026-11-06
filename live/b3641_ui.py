@@ -524,7 +524,8 @@ def _gravebound_outcome_of(target: dict) -> str:
     if a is None or r is None:
         return "unknown"
     held = _safe_float(r, 0.0) - _safe_float(a, 0.0)
-    if held >= GRAVEBOUND_EXPIRE_SEC:
+    limit = _safe_float(target.get("durationSec"), 11.0) - 0.5 if target.get("durationSec") else GRAVEBOUND_EXPIRE_SEC
+    if held >= limit:
         return "expired"
     return "complete" if _safe_int(target.get("removedStackEvents")) >= 2 else "unknown"
 

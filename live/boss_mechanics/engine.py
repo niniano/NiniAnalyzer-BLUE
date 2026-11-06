@@ -3058,6 +3058,7 @@ def _coiled_gravebound_states(rows: list[dict], bomb_targets: list[dict], explos
     frag_rows = _fast_rows_spell(rows, {GRAVEBOUND_FRAGMENT_DAMAGE_ID})
     death_rows = [x for x in _fast_rows_event(rows, {"death", "unit_died"})]
     last_sec = max((float(x.get("sec") or 0) for x in rows), default=0)
+    duration = gravebound_duration_from_rows(rows)
     for key in target_keys:
         rel = [
             x for x in _fast_rows_spell(rows, {1286837})
@@ -3078,7 +3079,7 @@ def _coiled_gravebound_states(rows: list[dict], bomb_targets: list[dict], explos
         # 찍히고, 세 번째 파편에서 디버프가 풀린다 (10/25·9/29 신화 실측: 완료 169번 모두 10.4초 안 · 시간 초과 37번 모두 10.9~11.0초).
         # 그래서 「풀린 시각에 파편 피해가 같이 있음」 = 완료, 「11초에 풀림」 = 시간 초과, 「일찍 풀렸는데 그때 죽음」 = 다른 원인 사망.
         outcome, outcome_note = _coiled_gravebound_outcome(key, applied, removed, len(stack_rows),
-                                                           frag_rows, death_rows, last_sec)
+                                                           frag_rows, death_rows, last_sec, duration)
         out.append({
             "player": names.get(key),
             "appliedSec": round(float(applied.get("sec") or 0), 3) if applied else None,
@@ -3089,6 +3090,7 @@ def _coiled_gravebound_states(rows: list[dict], bomb_targets: list[dict], explos
             "evidenceLevel": EVIDENCE_VERIFIED if status in {"success", "failed"} else EVIDENCE_UNAVAILABLE,
             "outcome": outcome,
             "outcomeNote": outcome_note,
+            "durationSec": duration,
         })
     return sorted(out, key=lambda x: str(x.get("player") or ""))
 
@@ -3096,11 +3098,27 @@ def _coiled_gravebound_states(rows: list[dict], bomb_targets: list[dict], explos
 GRAVEBOUND_DEBUFF_ID = 1286837
 GRAVEBOUND_FRAGMENT_DAMAGE_ID = 1308330
 GRAVEBOUND_DURATION_SEC = 11.0
+GRAVEBOUND_DURATION_SEC_HOTFIX = 13.0   # 2026-11-06 신화 핫픽스: 영혼 파편이 사라지기까지 2초 늘어남
+
+
+def gravebound_duration_from_rows(rows: list[dict]) -> float:
+    """무덤구속 지속시간: 같은 판에서 11.5초 넘게 유지된 디버프가 하나라도 있으면 핫픽스 뒤(13초), 아니면 11초.
+    (11초 판에서는 11.5초를 넘길 수 없음 · 예전 기록은 그대로 11초)"""
+    open_at: dict = {}
+    for x in _fast_rows_spell(rows, {GRAVEBOUND_DEBUFF_ID}):
+        key, ev, sec = _target_key(x), _event_name(x), float(x.get("sec") or 0)
+        if ev in {"applydebuff", "spell_aura_applied"}:
+            open_at[key] = sec
+        elif ev in {"removedebuff", "spell_aura_removed"} and key in open_at:
+            if sec - open_at.pop(key) > GRAVEBOUND_DURATION_SEC + 0.5:
+                return GRAVEBOUND_DURATION_SEC_HOTFIX
+    return GRAVEBOUND_DURATION_SEC
 
 
 def _coiled_gravebound_outcome(key, applied: dict | None, removed: dict | None, stack_events: int,
-                               frag_rows: list[dict], death_rows: list[dict], last_sec: float) -> tuple[str, str]:
-    """V5.2.3: 무덤구속 한 명의 결과 = complete(영혼 3개 완료) / expired(11초 시간 초과) / died(다른 원인 사망) / unknown."""
+                               frag_rows: list[dict], death_rows: list[dict], last_sec: float,
+                               duration: float = GRAVEBOUND_DURATION_SEC) -> tuple[str, str]:
+    """V5.2.3: 무덤구속 한 명의 결과 = complete(영혼 3개 완료) / expired(시간 초과 · 11초, 11/6 핫픽스 뒤 13초) / died / unknown."""
     if applied is None:
         return "unknown", "걸린 시각 없음"
     a_sec = float(applied.get("sec") or 0)
@@ -3109,11 +3127,11 @@ def _coiled_gravebound_outcome(key, applied: dict | None, removed: dict | None, 
         d = sorted(float(x.get("sec") or 0) for x in death_rows if _target_key(x) == key and float(x.get("sec") or 0) >= a_sec - 0.1)
         if d:
             held = d[0] - a_sec
-            if held >= GRAVEBOUND_DURATION_SEC - 0.5:
+            if held >= duration - 0.5:
                 return "expired", f"{held:.1f}초에 시간 초과 사망"
             return "died", f"{held:.1f}초에 다른 원인으로 사망"
-        if last_sec >= a_sec + GRAVEBOUND_DURATION_SEC + 0.5:
-            return "expired", "풀린 기록 없이 11초 지남"
+        if last_sec >= a_sec + duration + 0.5:
+            return "expired", f"풀린 기록 없이 {duration:.0f}초 지남"
         return "unknown", "전투가 먼저 끝남"
     r_sec = float(removed.get("sec") or 0)
     hit_at_remove = any(_target_key(x) == key and abs(float(x.get("sec") or 0) - r_sec) <= 0.15
@@ -3122,7 +3140,7 @@ def _coiled_gravebound_outcome(key, applied: dict | None, removed: dict | None, 
     held = r_sec - a_sec
     if hit_at_remove:
         return "complete", f"{held:.1f}초에 영혼 3개 완료"
-    if held >= GRAVEBOUND_DURATION_SEC - 0.5:
+    if held >= duration - 0.5:
         return "expired", f"{held:.1f}초 시간 초과"
     died = any(_target_key(x) == key and -0.2 <= float(x.get("sec") or 0) - r_sec <= 0.3 for x in death_rows)
     if died:
