@@ -440,7 +440,10 @@
       "targetMaxSec": 170,
       "healthCheckpointSec": 165,
       "note": "P1 딜조절 목표: 2:45~2:50 사이 P2 진입. CombatLog/WCL 시각의 0.1초 이내 경계 오차는 목표 구간으로 처리. 2:45 시점 줄잔 체력을 함께 표시해 딜 부족과 기믹 대기를 구분.",
-      "boundaryToleranceSec": 0.1
+      "boundaryToleranceSec": 0.1,
+      "minorEarlySec": 6.0,
+      "minorLateSec": 5.0,
+      "minorNote": "1.0.2: 목표보다 6초 이내로 빠르거나 5초 이내로 늦으면 실패가 아니라 주의. 그보다 크게 벗어나면 실패."
     },
     "phase2Analysis": {
       "expectedMindControlTargets": 4,

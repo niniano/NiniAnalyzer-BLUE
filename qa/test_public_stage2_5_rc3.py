@@ -89,7 +89,7 @@ class RC3Tests(unittest.TestCase):
     def test_release_rejects_rc2_marker(self):
         with tempfile.TemporaryDirectory() as t:
             root=Path(t);mock_windows_layout(root,'1.0.0-rc2')
-            with self.assertRaisesRegex(ValueError,'not a genuine 1.0.1'):validate(root)
+            with self.assertRaisesRegex(ValueError,'not a genuine 1.0.2'):validate(root)
 
     def test_release_rejects_runtime_caches_even_in_internal(self):
         with tempfile.TemporaryDirectory() as t:

@@ -52,7 +52,7 @@ class Sidebar(unittest.TestCase):
 
     def test_version(self):
         gui = (ROOT / "nini_wcl_gui.py").read_text(encoding="utf-8")
-        self.assertIn('PUBLIC_APP_VERSION = "1.0.1"', gui)
+        self.assertIn('PUBLIC_APP_VERSION = "1.0.2"', gui)
 
 
 if __name__ == "__main__":

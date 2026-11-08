@@ -1662,6 +1662,52 @@ def _coiled_boss_health_snapshot(rows: list[dict], checkpoint_sec: float, *, bos
     }
 
 
+def _player_base_name(name) -> str:
+    text = str(name or "").strip()
+    return text.split("-", 1)[0] if text else ""
+
+
+def _coiled_roster_plan(rows: list[dict], strategy: dict) -> dict:
+    """V5.3.5: pick the raidPlan.rosterPlans entry whose roster is in this pull.
+
+    Plans written for one raid roster must not be shown or used for another
+    raid's pulls.  Matching is by character name
+    without realm; a plan applies only when ``minPresent`` names are present.
+    """
+    plans = (((strategy or {}).get("raidPlan") or {}).get("rosterPlans") or {})
+    present = set()
+    for row in rows:
+        if str(row.get("sourceGUID") or "").startswith("Player-"):
+            n = _player_base_name(row.get("sourceName"))
+            if n:
+                present.add(n)
+    best = None
+    for key, plan in plans.items() if isinstance(plans, dict) else []:
+        if not isinstance(plan, dict):
+            continue
+        match = plan.get("rosterMatch") or {}
+        names = [str(x) for x in (match.get("names") or []) if x]
+        try:
+            need = int(match.get("minPresent", max(1, len(names) // 2)))
+        except (TypeError, ValueError):
+            need = max(1, len(names) // 2)
+        hit = sorted({n for n in names if n in present})
+        row = {"key": key, "name": plan.get("name") or key, "presentCount": len(hit), "minPresent": need,
+               "rosterSize": len(set(names)), "matched": bool(names) and len(hit) >= need}
+        if row["matched"] and (best is None or row["presentCount"] > best["presentCount"]):
+            best = row
+    return {
+        "matched": best is not None,
+        "planKey": best["key"] if best else None,
+        "planName": best["name"] if best else None,
+        "presentCount": best["presentCount"] if best else 0,
+        "minPresent": best["minPresent"] if best else None,
+        "plan": plans.get(best["key"]) if best else None,
+        "playersSeen": len(present),
+        "candidatePlans": sorted(plans.keys()) if isinstance(plans, dict) else [],
+    }
+
+
 def _coiled_phase1_transition(rows: list[dict], rule: dict, strategy: dict) -> dict:
     cfg = (strategy or {}).get("phase1Transition") or {}
     target_min = float(cfg.get("targetMinSec", 165.0))
@@ -1691,14 +1737,29 @@ def _coiled_phase1_transition(rows: list[dict], rule: dict, strategy: dict) -> d
     ]
     activation_sec = round(float(activation_rows[0].get("sec") or 0), 3) if activation_rows else None
 
+    # V5.3.5: a few seconds outside the 2:45~2:50 window is a pacing note,
+    # not a failure (2026-11-08 kill entered at 2:40.4 and cleaned 7 orbs).
+    # Only entries beyond the minor window (e.g. 2:08 push into guillotine 2)
+    # stay "failed" in the check.
+    try:
+        minor_early = max(0.0, float(cfg.get("minorEarlySec", 6.0)))
+    except (TypeError, ValueError):
+        minor_early = 6.0
+    try:
+        minor_late = max(0.0, float(cfg.get("minorLateSec", 5.0)))
+    except (TypeError, ValueError):
+        minor_late = 5.0
+    severity = None
     if zero is not None:
         entry_sec = float(zero.get("sec") or 0)
         if entry_sec < target_min - boundary_tolerance:
             status, label = "early", "목표보다 빠른 P2 진입"
+            severity = "minor" if entry_sec >= target_min - minor_early - boundary_tolerance else "major"
         elif entry_sec <= target_max + boundary_tolerance:
             status, label = "success", "P2 진입 목표 구간"
         else:
             status, label = "late", "목표보다 늦은 P2 진입"
+            severity = "minor" if entry_sec <= target_max + minor_late + boundary_tolerance else "major"
         evidence = EVIDENCE_VERIFIED
         basis = "zuljan_hp_zero"
     else:
@@ -1711,8 +1772,11 @@ def _coiled_phase1_transition(rows: list[dict], rule: dict, strategy: dict) -> d
         "targetMinSec": target_min,
         "targetMaxSec": target_max,
         "targetBoundaryToleranceSec": boundary_tolerance,
+        "minorEarlySec": minor_early,
+        "minorLateSec": minor_late,
         "entrySec": round(entry_sec, 3) if entry_sec is not None else None,
         "status": status,
+        "severity": severity,
         "label": label,
         "basis": basis,
         "healthAtCheckpoint": hp_checkpoint,
@@ -2776,8 +2840,8 @@ def _coiled_post_g2_cleanup_signal(
     """
     plan = ((strategy or {}).get("raidPlan") or {}).get("orbHandoff") or {}
     g2 = next((x for x in (orb_accounting.get("guillotineStates") or []) if safe_int(x.get("guillotineIndex")) == 2), None)
-    active = safe_int(orb_accounting.get("currentActiveOrbs"))
-    if not g2 or active is None:
+    fight_end_active = safe_int(orb_accounting.get("currentActiveOrbs"))
+    if not g2 or fight_end_active is None:
         return {
             "verified": False, "remainingOrbs": None, "removedOrbs": None,
             "status": "unknown", "reason": "orb_ledger_unavailable",
@@ -2809,6 +2873,26 @@ def _coiled_post_g2_cleanup_signal(
                 "evidenceLevel": EVIDENCE_UNAVAILABLE,
             }
 
+    # V5.3.5: currentActiveOrbs is the ledger value at the END of the fight.
+    # In kills, P3 waves keep adding orbs that the breath ledger never clears
+    # (7 -> 39 in the 2026-11-08 kill), so "active at P2 entry" must be read
+    # from the ledger at or before the entry anchor, not from the fight end.
+    ledger_rows = [x for x in (orb_accounting.get("ledger") or []) if isinstance(x, dict)]
+    at_entry = [
+        x for x in ledger_rows
+        if x.get("activeAfter") is not None and float(x.get("sec") or 0) <= float(entry_sec) + 1e-6
+    ]
+    if at_entry:
+        active = safe_int(max(at_entry, key=lambda x: float(x.get("sec") or 0)).get("activeAfter"))
+    else:
+        active = fight_end_active
+    if active is None:
+        return {
+            "verified": False, "remainingOrbs": None, "removedOrbs": None,
+            "status": "unknown", "reason": "orb_ledger_unavailable",
+            "evidenceLevel": EVIDENCE_UNAVAILABLE,
+        }
+
     # If verified breath arithmetic already reaches zero, no extra cleanup
     # signal is required.
     if active == 0:
@@ -2829,8 +2913,9 @@ def _coiled_post_g2_cleanup_signal(
     except (TypeError, ValueError):
         cluster_gap = 0.15
 
+    # V5.3.5: only P1 breaths before the entry anchor bound the cleanup window.
     last_breath_sec = max(
-        [float(x.get("sec") or 0) for x in (orb_accounting.get("ledger") or []) if x.get("kind") == "breath"]
+        [float(x.get("sec") or 0) for x in ledger_rows if x.get("kind") == "breath" and float(x.get("sec") or 0) <= float(entry_sec) + 1e-6]
         or [float(g2.get("sec") or 0)]
     )
     start_sec = max(float(g2.get("sec") or 0), last_breath_sec) + 0.20
@@ -4605,6 +4690,7 @@ def _analyze_coiled(events: Iterable[dict], encounter: dict, rule: dict, *, sour
     goals = (strategy or {}).get("breathGoals") or {}
     survival_context = _coiled_survival_context(rows)
     phase1_transition = _coiled_phase1_transition(rows, rule, strategy)
+    roster_plan = _coiled_roster_plan(rows, strategy)
     phase2_activation_sec = phase1_transition.get("malacrassActivationSec")
     # B36.5 NSRT protection windows are P2-entry relative.  Use the true Zul'jan
     # HP-zero transition when available; only fall back to the later Malacrass
@@ -5045,12 +5131,23 @@ def _analyze_coiled(events: Iterable[dict], encounter: dict, rule: dict, *, sour
         p1hp = phase1_transition.get("healthAtCheckpoint") or {}
         entry_sec = phase1_transition.get("entrySec")
         if entry_sec is not None:
-            p1_status = "success" if phase1_transition.get("status") == "success" else "failed"
+            p1_raw = phase1_transition.get("status")
+            if p1_raw == "success":
+                p1_status = "success"
+            elif p1_raw in {"early", "late"} and phase1_transition.get("severity") == "minor":
+                p1_status = "warning"
+            else:
+                p1_status = "failed"
             hp_text = f" · 2:45 줄잔 {p1hp.get('healthPct')}%" if p1hp.get("available") else " · 2:45 줄잔 HP 확인 불가"
+            off_text = ""
+            if p1_raw == "early":
+                off_text = f" · {float(phase1_transition.get('targetMinSec') or 165.0) - float(entry_sec):.1f}초 빠름"
+            elif p1_raw == "late":
+                off_text = f" · {float(entry_sec) - float(phase1_transition.get('targetMaxSec') or 170.0):.1f}초 늦음"
             checks.append(make_check(
                 key="phase1_transition", title="P1→P2 진입 타이밍", status=p1_status,
                 evidence_level=EVIDENCE_VERIFIED,
-                summary=f"{_fmt_time(entry_sec)} P2 진입 · 목표 2:45~2:50{hp_text}",
+                summary=f"{_fmt_time(entry_sec)} P2 진입 · 목표 2:45~2:50{off_text}{hp_text}",
                 details=[phase1_transition.get("note")],
                 ids={"bossNpcID": 257911},
             ))
@@ -5062,6 +5159,24 @@ def _analyze_coiled(events: Iterable[dict], encounter: dict, rule: dict, *, sour
                 summary=f"P2 도달은 확인됨 · 실제 HP 0 진입 시각은 resource snapshot 부재로 확인 불가 · {hp_text}",
                 details=[f"말라크라스 활성 앵커 {_fmt_time(phase2_activation_sec)}" if phase2_activation_sec is not None else "말라크라스 활성 앵커 미관측"],
                 ids={"bossNpcID": 257911, "phase2ActivationSpellID": 1288624},
+            ))
+
+        if roster_plan.get("candidatePlans"):
+            if roster_plan.get("matched"):
+                rp_plan = roster_plan.get("plan") or {}
+                rp_summary = (
+                    f"{roster_plan.get('planName')} 계획 적용 · 계획 인원 {roster_plan.get('presentCount')}명 확인"
+                    f" · 위치 판정은 좌표 보정 전이라 표시만"
+                    if rp_plan.get("positionJudgment") == "pending_calibration"
+                    else f"{roster_plan.get('planName')} 계획 적용 · 계획 인원 {roster_plan.get('presentCount')}명 확인"
+                )
+            else:
+                rp_summary = "등록된 공대 계획 인원이 아님 · 공대별 배치 계획은 적용하지 않음"
+            checks.append(make_check(
+                key="raid_roster_plan", title="공대 계획 대상", status="observed",
+                evidence_level=EVIDENCE_VERIFIED,
+                summary=rp_summary,
+                details=[f"후보 계획: {', '.join(roster_plan.get('candidatePlans') or [])}"],
             ))
 
         if phase2.get("reached"):
@@ -5195,6 +5310,19 @@ def _analyze_coiled(events: Iterable[dict], encounter: dict, rule: dict, *, sour
         if configured_alignments:
             align_statuses = [str(x.get("status") or "unknown") for x in configured_alignments]
             align_status = "failed" if "failed" in align_statuses else "unknown" if "unknown" in align_statuses else "success"
+            # V5.3.5: missing/late cooldowns on a shield that still broke in
+            # time are a note, not a failure (2026-11-08 kill: all 4 shields
+            # broke in 10~15s but the check read "실패").
+            failed_cycle_shields = [
+                str(c.get("status") or "unknown")
+                for c in shield_cycles
+                if (c.get("cooldownAlignment") or {}).get("requirementsConfigured")
+                and str((c.get("cooldownAlignment") or {}).get("status") or "") == "failed"
+            ]
+            align_note = None
+            if align_status == "failed" and failed_cycle_shields and all(x == "success" for x in failed_cycle_shields):
+                align_status = "warning"
+                align_note = "해당 보호막은 모두 제때 깨짐 · 참고"
             fail_count = sum(
                 len(x.get("failures") or [])
                 + int(((x.get("autoSpecCooldowns") or {}).get("judgedLateCount") or 0))
@@ -5204,7 +5332,7 @@ def _analyze_coiled(events: Iterable[dict], encounter: dict, rule: dict, *, sour
             checks.append(make_check(
                 key="shield_cooldown_alignment", title="보호막 쿨기 정렬", status=align_status,
                 evidence_level=EVIDENCE_VERIFIED,
-                summary=f"raidPlan 지정 보호막 {len(configured_alignments)}회 · 미사용/지연 항목 {fail_count}개",
+                summary=f"raidPlan 지정 보호막 {len(configured_alignments)}회 · 미사용/지연 항목 {fail_count}개" + (f" · {align_note}" if align_note else ""),
                 details=["물약 분모는 보호막 시작 시점 관측 생존자. 자동 전문화 쿨기는 entryPolicies의 judge 항목만 이 집계와 원인 A에 합류."],
             ))
 
@@ -5484,6 +5612,7 @@ def _analyze_coiled(events: Iterable[dict], encounter: dict, rule: dict, *, sour
             "orbFailures": orb_failures,
             "orbCausalChainCandidate": orb_causal_chain,
             "phase1Transition": phase1_transition,
+            "rosterPlan": roster_plan,
             "p1Execution": p1_execution,
             "firstVerifiedFailure": first_verified_failure,
             "phase2": phase2,

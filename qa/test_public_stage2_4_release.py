@@ -85,7 +85,7 @@ class ReleaseTests(unittest.TestCase):
             root=Path(t); app=root/'dist'/'NiniAnalyzer_Public'
             (app/'_internal'/'resources'/'brand_public').mkdir(parents=True)
             (app/'NiniAnalyzer_Public.exe').write_bytes(b'fake exe for testing')
-            (app/'_internal'/'NiniAnalyzer_Public.version').write_text('1.0.1\n',encoding='ascii')
+            (app/'_internal'/'NiniAnalyzer_Public.version').write_text('1.0.2\n',encoding='ascii')
             (app/'_internal'/'resources'/'brand_public'/'nini_analyzer.ico').write_bytes(b'ico bytes')
             (app/'_internal'/'data'/'skill_icons').mkdir(parents=True)
             (app/'_internal'/'assets'/'fonts').mkdir(parents=True)
@@ -109,7 +109,7 @@ class ReleaseTests(unittest.TestCase):
             (root/'_internal'/'resources'/'brand_public'/'nini_analyzer.ico').write_bytes(b'ico')
             (root/'NiniAnalyzer_Public.exe').write_bytes(b'exe')
             (root/'_internal'/'NiniAnalyzer_Public.version').write_text('1.0.0-rc1\n',encoding='ascii')
-            with self.assertRaisesRegex(ValueError, 'not a genuine 1.0.1'): validate(root)
+            with self.assertRaisesRegex(ValueError, 'not a genuine 1.0.2'): validate(root)
 
     def test_release_rejects_session_data_and_archive(self):
         with tempfile.TemporaryDirectory() as t:
@@ -117,7 +117,7 @@ class ReleaseTests(unittest.TestCase):
             (root/'_internal'/'resources'/'brand_public').mkdir(parents=True)
             (root/'_internal'/'resources'/'brand_public'/'nini_analyzer.ico').write_bytes(b'ico')
             (root/'NiniAnalyzer_Public.exe').write_bytes(b'exe')
-            (root/'_internal'/'NiniAnalyzer_Public.version').write_text('1.0.1\n',encoding='ascii')
+            (root/'_internal'/'NiniAnalyzer_Public.version').write_text('1.0.2\n',encoding='ascii')
             (root/'_internal'/'data'/'skill_icons').mkdir(parents=True)
             (root/'_internal'/'assets'/'fonts').mkdir(parents=True)
             for _n in ('PyeojinGothic-Medium.ttf','Paperlogy-6SemiBold.ttf','LICENSE_PyeojinGothic_OFL.txt','LICENSE_Paperlogy_OFL.txt'): (root/'_internal'/'assets'/'fonts'/_n).write_bytes(b'x')

@@ -3,7 +3,7 @@
 ; Installs per-user (no admin prompt). Raid records in %LOCALAPPDATA%\NiniAnalyzer\Public are never removed.
 
 #define AppName "NiniAnalyzer Public"
-#define AppVersion "1.0.1"
+#define AppVersion "1.0.2"
 #define AppExe "NiniAnalyzer_Public.exe"
 #define AppUserModelID "NINI.Analyzer.Public"
 
