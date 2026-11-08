@@ -1,7 +1,7 @@
 # NiniAnalyzer Public (BLUE) · Windows 설치 파일 자동 빌드
 # - GitHub 「Releases」에서 릴리스를 Publish 하면: Windows에서 빌드 → 설치 파일 · ZIP · SHA256 을 그 릴리스에 자동 첨부
 # - Actions 탭 「Run workflow」: 빌드만 해서 Artifacts 로 받기 (릴리스에는 안 올림)
-# 릴리스 태그는 v + 소스의 버전(build_public_windows.py VERSION)과 같아야 함 (예: v1.0.0)
+# 릴리스 태그는 v + 소스의 버전(build_public_windows.py VERSION)과 같아야 함 (예: v1.0.1)
 name: Build BLUE installer
 
 on:
@@ -60,7 +60,7 @@ jobs:
             "test_public_no_drive_leak.py", "test_public_stage2_4_release.py", "test_public_stage2_5_rc3.py",
             "test_public_rc4_fixes.py", "test_public_rc4_2_feign_recheck.py", "test_public_rc4_3_class_color.py",
             "test_public_rc4_4_fonts.py", "test_public_rc5_layout.py", "test_public_rc5_3.py", "test_public_rc5_3_1.py",
-            "test_public_rc5_4*.py", "test_public_rc5_5*.py", "test_public_rc5_6*.py", "test_nini_stage2_2_1_gui_regression.py",
+            "test_public_rc5_4*.py", "test_public_rc5_5*.py", "test_public_rc5_6*.py", "test_public_1_0_1*.py", "test_nini_stage2_2_1_gui_regression.py",
             "test_b37_5_0_step4_3_live_try_wheel.py", "test_b37_5_0_5_try_wheel_focus_regression.py")
           foreach ($t in $tests) {
             python -m unittest discover -s qa -p $t

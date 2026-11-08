@@ -39,7 +39,7 @@ assert (ROOT/'package_public_release.py').is_file()
 entry=(ROOT/'nini_raid_gui.py').read_text(encoding='utf-8')
 assert 'start_error_notice_poll(app)' in entry
 assert 'maybe_show_first_run(app)' in entry
-assert 'PUBLIC_APP_VERSION = "1.0.0"' in gui
+assert 'PUBLIC_APP_VERSION = "1.0.1"' in gui
 print('STAGE 2.4 RELEASE GATE PASS — first-run guide, local-only error notice and packager')
 
 assert (ROOT/'build_public_windows.py').read_text(encoding='utf-8').find("'--contents-directory', '_internal'") >= 0
@@ -57,7 +57,7 @@ assert '_drop_feign_deaths' in (ROOT/'live/boss_mechanics/engine.py').read_text(
 assert 'def _pull_badge_text' in gui and 'def _public_auto_open_latest_session' in gui
 iss=(ROOT/'installer/NiniAnalyzer_Public.iss').read_text(encoding='utf-8-sig')
 assert 'AppId={{' in iss and 'PrivilegesRequired=lowest' in iss and 'AppUserModelID: "{#AppUserModelID}"' in iss
-assert '#define AppVersion "1.0.0"' in iss
+assert '#define AppVersion "1.0.1"' in iss
 assert 'UninstallDelete' not in iss, 'installer must never delete user raid records'
 print('RC4 GATE PASS — scroll, fonts, feign death, puller, first screen, installer')
 
@@ -167,3 +167,9 @@ assert 'GRAVEBOUND_DURATION_SEC_HOTFIX = 13.0' in _e and 'def gravebound_duratio
 assert '붕괴 전 끊지 못한 시전' in (ROOT/'live/boss_guides_v1.py').read_text(encoding='utf-8'), 'RC5.6: twin fangs estimate'
 assert (ROOT/'qa/test_public_rc5_6_hotfix.py').is_file()
 print('RC5.6 GATE PASS — 2026-11-06 mythic hotfix (Gravebound 13s, Twin Fangs missed kick)')
+
+# 1.0.1: 본인에게만 걸린 블러드 계열 버프는 블러드가 아님 (GOLD V5.3.4)
+_e = (ROOT/'live/boss_mechanics/engine.py').read_text(encoding='utf-8')
+assert 'def _lust_raidwide_aura_rows(' in _e and '_LUST_DEBUFF_IDS' in _e, '1.0.1: raid-wide bloodlust filter'
+assert (ROOT/'qa/test_public_1_0_1_bloodlust.py').is_file()
+print('1.0.1 GATE PASS — bloodlust needs cast / raid-wide aura / exhaustion debuff')

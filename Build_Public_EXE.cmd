@@ -49,6 +49,9 @@ if errorlevel 1 goto FAIL
 echo [CHECK] RC5.6 mythic hotfix 2026-11-06...
 py -3 -m unittest discover -s qa -p "test_public_rc5_6*.py" -v
 if errorlevel 1 goto FAIL
+echo [CHECK] 1.0.1 bloodlust self-aura fix...
+py -3 -m unittest discover -s qa -p "test_public_1_0_1*.py" -v
+if errorlevel 1 goto FAIL
 echo [CHECK] Try mouse-wheel GUI regressions...
 py -3 -m unittest discover -s qa -p test_nini_stage2_2_1_gui_regression.py -v
 if errorlevel 1 goto FAIL
@@ -64,8 +67,8 @@ if errorlevel 1 goto FAIL
 call "%~dp0Build_Installer_Only.cmd" nopause
 if errorlevel 1 goto FAIL
 echo.
-echo [DONE] dist\NiniAnalyzer_Public_1.0.0_Setup_Windows_x64.exe   (give this to guild members)
-echo [DONE] dist\NiniAnalyzer_Public_1.0.0_Windows_x64_SAFE_FOLDER.zip   (portable, optional)
+echo [DONE] dist\NiniAnalyzer_Public_1.0.1_Setup_Windows_x64.exe   (give this to guild members)
+echo [DONE] dist\NiniAnalyzer_Public_1.0.1_Windows_x64_SAFE_FOLDER.zip   (portable, optional)
 pause
 exit /b 0
 :FAIL

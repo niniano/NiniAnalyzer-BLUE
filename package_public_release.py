@@ -5,7 +5,7 @@ import zipfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parent
 FOLDER=ROOT/'dist'/'NiniAnalyzer_Public'
-VERSION='1.0.0'
+VERSION='1.0.1'
 ZIP=ROOT/'dist'/f'NiniAnalyzer_Public_{VERSION}_Windows_x64_SAFE_FOLDER.zip'
 SHA=ZIP.with_suffix(ZIP.suffix+'.sha256.txt')
 RELEASE_GUIDE=ROOT/'START_HERE_PUBLIC.txt'
@@ -22,7 +22,7 @@ def validate(folder:Path)->list[Path]:
         raise ValueError('RC3 requires an actual _internal directory')
     version=internal/'NiniAnalyzer_Public.version'
     if not version.is_file() or version.read_text(encoding='ascii').strip()!=VERSION:
-        raise ValueError('This is not a genuine 1.0.0 build; rebuild instead of repackaging an older RC')
+        raise ValueError('This is not a genuine 1.0.1 build; rebuild instead of repackaging an older RC')
     if not (internal/'resources'/'brand_public'/'nini_analyzer.ico').is_file():
         raise FileNotFoundError('Bundled BLUE icon missing under _internal/resources')
     if not (internal/'live'/'boss_mechanics'/'rules').is_dir():

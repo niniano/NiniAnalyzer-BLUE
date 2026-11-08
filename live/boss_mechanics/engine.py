@@ -1745,6 +1745,44 @@ _BLOODLUST_FAMILY_IDS = {
     264667,
     390386,    # Fury of the Aspects
 }
+# V5.3.4: 블러드 계열 버프가 「공대 전체에 걸렸을 때」만 블러드로 본다.
+# 증강 기원사의 위상의 격노(390386)는 블러드가 아닐 때도 본인에게만 몇 초씩 반복해서 걸린다
+# (2026-11-08 똬리 신화 T2·T3·T5: 본인 1명 · 지친/만족 디버프 없음 → 블러드로 오판).
+# 진짜 블러드는 시전 성공 줄이 있거나, 1.5초 안에 3명 이상에게 걸리거나, 블러드 피로 디버프가 같이 걸린다.
+_LUST_DEBUFF_IDS = {57723, 57724, 80354, 95809, 160455, 264689, 390435}
+_LUST_RAIDWIDE_MIN_TARGETS = 3
+_LUST_RAIDWIDE_WINDOW_SEC = 1.5
+
+
+def _row_target_key(row: dict) -> str:
+    return str(row.get("destGUID") or row.get("destName") or row.get("targetName") or row.get("targetID") or "")
+
+
+def _lust_raidwide_aura_rows(rows: list[dict]) -> list[dict]:
+    """블러드 계열 버프 적용 줄 중 공대 전체에 걸린 것만 (시간순 원래 순서)."""
+    applies = []
+    debuff_secs = []
+    for row in rows:
+        sid = _row_spell_id(row)
+        if sid in _BLOODLUST_FAMILY_IDS and _is_aura_apply(row):
+            applies.append(row)
+        elif sid in _LUST_DEBUFF_IDS and _is_aura_apply(row):
+            debuff_secs.append(float(row.get("sec") or 0))
+    out = []
+    win = _LUST_RAIDWIDE_WINDOW_SEC
+    for row in applies:
+        sec = float(row.get("sec") or 0)
+        sid = _row_spell_id(row)
+        targets = {
+            _row_target_key(x) for x in applies
+            if _row_spell_id(x) == sid and abs(float(x.get("sec") or 0) - sec) <= win
+        }
+        targets.discard("")
+        if len(targets) >= _LUST_RAIDWIDE_MIN_TARGETS or any(abs(d - sec) <= win for d in debuff_secs):
+            out.append(row)
+    return out
+
+
 _COMBAT_POTION_IDS = {
     1236616,
     1236994,
@@ -1922,6 +1960,10 @@ def _coiled_match_player_spell(
         return []
     pkey = _player_name_key(player) if player else ""
     out = []
+    # V5.3.4: 블러드 계열 버프 적용 줄은 공대 전체에 걸린 것만 블러드 근거로 쓴다.
+    raidwide_lust_ids = None
+    if spell_ids & _BLOODLUST_FAMILY_IDS:
+        raidwide_lust_ids = {id(x) for x in _lust_raidwide_aura_rows(_fast_rows_spell(rows, _BLOODLUST_FAMILY_IDS | _LUST_DEBUFF_IDS))}
     lo = float(center_sec) - max(0.0, float(before_sec))
     hi = float(center_sec) + max(0.0, float(after_sec))
     for row in rows:
@@ -1934,6 +1976,9 @@ def _coiled_match_player_spell(
         # haste effects because several log sources expose the buff but omit a
         # player cast row.
         if not (_is_completed_cast(row) or _is_aura_apply(row)):
+            continue
+        if (raidwide_lust_ids is not None and _row_spell_id(row) in _BLOODLUST_FAMILY_IDS
+                and not _is_completed_cast(row) and id(row) not in raidwide_lust_ids):
             continue
         source_name = row.get("sourceName")
         if pkey and _player_name_key(source_name) != pkey:
@@ -9118,11 +9163,8 @@ def _append_bloodlust_observation(review: dict | None, events: Iterable[dict], *
     evidence_rows = casts
     source = "cast"
     if not evidence_rows:
-        evidence_rows = [
-            x for x in rows
-            if safe_int(x.get("spellID") or x.get("abilityGameID")) in _BLOODLUST_FAMILY_IDS
-            and _is_aura_apply(x)
-        ]
+        # V5.3.4: 본인에게만 걸린 블러드 계열 버프(증강 위상의 격노 등)는 블러드가 아니다.
+        evidence_rows = _lust_raidwide_aura_rows(rows)
         source = "aura"
     evidence_rows.sort(key=lambda x: float(x.get("sec") or 0))
     first = evidence_rows[0] if evidence_rows else None
