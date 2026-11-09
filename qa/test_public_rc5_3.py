@@ -42,11 +42,11 @@ class Build(unittest.TestCase):
 
     def test_versions(self):
         gui = (ROOT / "nini_wcl_gui.py").read_text(encoding="utf-8")
-        self.assertIn('PUBLIC_APP_VERSION = "1.0.3"', gui)
+        self.assertIn('PUBLIC_APP_VERSION = "1.0.5"', gui)
         self.assertNotIn('"bold" if int(j.get("number") or 1) == 1 else "normal"', gui)
         self.assertNotIn('"bold" if i == 1 else "normal"', gui)
         self.assertEqual(BG.VERSION, "BOSS-GUIDES-V1.6")
-        self.assertRegex(UL.VERSION, r"^ULATEK-CONCLUSION-V1\.(8|9|\d\d)")  # RC5.4: V1.9
+        self.assertRegex(UL.VERSION, r"^ULATEK-CONCLUSION-V(1\.(8|9|\d\d)|[2-9]\.\d+)")  # RC5.4: V1.9 · 1.0.5: V2.0
         coiled = importlib.import_module("live.coiled_wipe_cause_v1")
         self.assertRegex(coiled.VERSION, r"^COILED-WIPE-CAUSE-V3\.[4-9]")  # RC5.4: V3.7
         self.assertEqual(coiled.parse_kick_rules(V.kick_rules(ROOT))["backupLine"], 3)

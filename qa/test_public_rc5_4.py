@@ -31,11 +31,11 @@ U = _load("rc54_ulatek", "live/ulatek_conclusion_v1.py")
 class Versions(unittest.TestCase):
     def test_gui_version(self):
         gui = (ROOT / "nini_wcl_gui.py").read_text(encoding="utf-8")
-        self.assertIn('PUBLIC_APP_VERSION = "1.0.3"', gui)
+        self.assertIn('PUBLIC_APP_VERSION = "1.0.5"', gui)
 
     def test_judgment_modules(self):
         self.assertEqual(W.VERSION, "COILED-WIPE-CAUSE-V3.7")
-        self.assertEqual(U.VERSION, "ULATEK-CONCLUSION-V1.9")
+        self.assertRegex(U.VERSION, r"^ULATEK-CONCLUSION-V(1\.9|[2-9]\.\d+)$")  # 1.0.5: V2.0
 
     def test_no_personal_data_in_modules(self):
         for rel in ("live/coiled_wipe_cause_v1.py", "live/ulatek_conclusion_v1.py"):

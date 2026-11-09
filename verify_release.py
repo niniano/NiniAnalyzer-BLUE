@@ -39,7 +39,7 @@ assert (ROOT/'package_public_release.py').is_file()
 entry=(ROOT/'nini_raid_gui.py').read_text(encoding='utf-8')
 assert 'start_error_notice_poll(app)' in entry
 assert 'maybe_show_first_run(app)' in entry
-assert 'PUBLIC_APP_VERSION = "1.0.3"' in gui
+assert 'PUBLIC_APP_VERSION = "1.0.5"' in gui
 print('STAGE 2.4 RELEASE GATE PASS — first-run guide, local-only error notice and packager')
 
 assert (ROOT/'build_public_windows.py').read_text(encoding='utf-8').find("'--contents-directory', '_internal'") >= 0
@@ -57,7 +57,7 @@ assert '_drop_feign_deaths' in (ROOT/'live/boss_mechanics/engine.py').read_text(
 assert 'def _pull_badge_text' in gui and 'def _public_auto_open_latest_session' in gui
 iss=(ROOT/'installer/NiniAnalyzer_Public.iss').read_text(encoding='utf-8-sig')
 assert 'AppId={{' in iss and 'PrivilegesRequired=lowest' in iss and 'AppUserModelID: "{#AppUserModelID}"' in iss
-assert '#define AppVersion "1.0.3"' in iss
+assert '#define AppVersion "1.0.5"' in iss
 assert 'UninstallDelete' not in iss, 'installer must never delete user raid records'
 print('RC4 GATE PASS — scroll, fonts, feign death, puller, first screen, installer')
 
@@ -115,7 +115,7 @@ print('RC5 GATE PASS — V4.7 display modules bundled, frozen boss lookup, perso
 
 # RC5.3: GOLD V5.0 (키식스 신화 · 울라텍 늦은 절규 표시) + V5.2 (트라이 화면 · 똬리 차단 규칙). 글꼴은 공개 글꼴 그대로.
 assert 'BOSS-GUIDES-V1.6' in (ROOT/'live/boss_guides_v1.py').read_text(encoding='utf-8')
-assert re.search(r'ULATEK-CONCLUSION-V1\.(8|9|\d\d)', (ROOT/'live/ulatek_conclusion_v1.py').read_text(encoding='utf-8'))  # RC5.4: V1.8 이상
+assert re.search(r'ULATEK-CONCLUSION-V(1\.(8|9|\d\d)|[2-9]\.\d+)', (ROOT/'live/ulatek_conclusion_v1.py').read_text(encoding='utf-8'))  # RC5.4: V1.8 이상 (1.0.5: V2.0)
 assert re.search(r'COILED-WIPE-CAUSE-V3\.[4-9]', (ROOT/'live/coiled_wipe_cause_v1.py').read_text(encoding='utf-8'))  # RC5.4: V3.4 이상
 assert 'live.v52_screen' in (ROOT/'build_public_windows.py').read_text(encoding='utf-8')
 assert "('kick_rules_3429.json','.')" in (ROOT/'build_public_windows.py').read_text(encoding='utf-8')
@@ -139,7 +139,7 @@ print('RC5.3.1 GATE PASS — rogue-only modules removed from the public build')
 assert not (ROOT/'live/display_patch.py').exists(), 'GOLD display_patch must not ship'
 _c = (ROOT/'live/coiled_wipe_cause_v1.py').read_text(encoding='utf-8')
 assert 'VERSION = "COILED-WIPE-CAUSE-V3.7"' in _c and 'def soul_link_order(' in _c
-assert 'VERSION = "ULATEK-CONCLUSION-V1.9"' in (ROOT/'live/ulatek_conclusion_v1.py').read_text(encoding='utf-8')
+assert re.search(r'VERSION = "ULATEK-CONCLUSION-V(1\.9|[2-9]\.\d+)"', (ROOT/'live/ulatek_conclusion_v1.py').read_text(encoding='utf-8'))  # 1.0.5: V2.0
 _e = (ROOT/'live/boss_mechanics/engine.py').read_text(encoding='utf-8')
 assert 'def _fast_rows_spell(' in _e and 'GRAVEBOUND_DURATION_SEC = 11.0' in _e
 assert 'def live_analysis_busy(' in (ROOT/'live/raid_review.py').read_text(encoding='utf-8')
@@ -188,3 +188,13 @@ assert '("1.0.3", [' in _ob, '1.0.3: whats-new entry for this version'
 assert 'maybe_show_whats_new' in (ROOT/'nini_raid_gui.py').read_text(encoding='utf-8'), '1.0.3: entrypoint schedules whats-new'
 assert (ROOT/'qa/test_public_1_0_3_onboarding.py').is_file()
 print('1.0.3 GATE PASS — onboarding / whats-new cards')
+
+# 1.0.5: 울라텍 신화 알 운반 → 살무사 (GOLD V5.2.7 · V5.3.6) · 1.0.4 태그는 1.0.3 커밋에 남아 있어 건너뜀
+_u = (ROOT/'live/ulatek_conclusion_v1.py').read_text(encoding='utf-8')
+assert 'VERSION = "ULATEK-CONCLUSION-V2.0"' in _u and 'def viper_review(' in _u, '1.0.5: egg carry -> viper chain'
+assert 'VIPER_STUN = 1303414' in _u and 'def viper_marks(' in _u and 'def egg_viper_notes(' in _u, '1.0.5: viper mark -> landing stun notes'
+assert 'notes[:0] = egg_viper_notes(vr)' in _u, '1.0.5: egg/viper notes shown first'
+assert 'raidplan_ulatek' not in _u
+assert '("1.0.5", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8'), '1.0.5: whats-new entry'
+assert (ROOT/'qa/test_public_1_0_5_ulatek_viper.py').is_file()
+print('1.0.5 GATE PASS — Ulatek egg/wave -> viper -> stun')

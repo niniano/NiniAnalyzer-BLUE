@@ -19,7 +19,7 @@ import gzip
 from collections import Counter
 from pathlib import Path
 
-VERSION = "ULATEK-CONCLUSION-V1.9"
+VERSION = "ULATEK-CONCLUSION-V2.0"
 BOSS_NPC = "-257758-"
 CRY = 1305650
 UNCHECKED_RAGE = 1301007
@@ -76,7 +76,7 @@ MYTHIC_P3_SEC = 400             # 6:40 · 사이페와 3페 경계 (첫 뱀의 �
 #    유령의 똬리 시전 1299010, 맞은 사람에게 영혼 압박자 1300685 (6초) — 영웅 10/3 킬 실측: 똬리마다 5~6명
 #  · 2페 송곳니 줄 6개(움켜쥐는 송곳니 1311611) 동시에 끊기 — 영웅 10/3: 3:11~3:34 따로따로 끊김
 #  · 물약: 풀 20초 전 선물약 → 4:46쯤 2심장 물약 → 3심장(9:44) 물약 (물약 쿨 5분)
-#  · 알 든 사람끼리 스치면 살무사 (맹독성 분출 1307635, 신화만 · 아직 실측 전이라 표시만)
+#  · 알 든 사람끼리 스치면 살무사 (맹독성 분출 1307635, 신화만) · V2.0에서 실측 (아래)
 COIL_CAST = 1299010
 COIL_SOAK = 1300685
 COILS_MYTHIC = 8
@@ -84,6 +84,22 @@ FANG = 1311611
 FANG_SYNC_SEC = 1.5
 EGG_BURST = 1307635
 POTION_WORD = "물약"
+# V2.0 알 운반 → 살무사 (2026-11-03 신화 44트 실측 · 공대 공략 「알 든 상태에서 알끼리 닿거나 파도·살무사 맞으면 신화는 1시간 디버프」)
+#  · 유독한 껍질 1307612 = 알 들고 있는 동안 (떨어지면 썩은 노른자 1312150)
+#  · 알 든 사람이 부식의 파도에 맞거나(14트) 알끼리 부딪히면(맹독성 분출 · 8트) 0.1~6초 안에 역병비늘 살무사가 나온다
+#  · 살무사: 아무나 주시 → 점프해서 착지 범위 스턴 (석화의 독침 1305163) · 44트 중 35트가 살무사가 먼저 나온 뒤 붕괴
+#  · 막을 수 없는 분노는 1:15~1:16(8트) · 1:25(12트)에 거의 같은 시각으로 반복 → 붕괴 20초보다 앞이면 첫 실수에서 뺀다
+SHELL = 1307612
+VIPER_NPC = "-261915-"           # 역병비늘 살무사
+VIPER_STING = 1305163            # 석화의 독침 (살무사 주시 · 5초 뒤 그 자리에 착지)
+# V5.3.6: 착지 스턴은 따로 1303414 (주시 대상 + 착지 범위 안 사람) · 11/8 신화 9트 실측 주시 → 스턴 5.0~5.1초
+VIPER_STUN = 1303414
+VIPER_MARK_TO_STUN = (3.5, 7.0)
+VIPER_TRIGGER_SEC = 6.0          # 원인 → 살무사 출현 (실측 0.1~5.9초)
+VIPER_CLUSTER_SEC = 4.0
+VIPER_DROP_SEC = 1.0             # 파도·충돌이 없을 때: 살무사 1초 안쪽 직전에 알(유독한 껍질)이 사라진 사람 (44트 중 27무리)
+VIPER_BEFORE_COLLAPSE_SEC = 25.0 # 살무사가 붕괴 25초 안쪽에서 먼저 나오면 붕괴 원인으로 본다
+FIRST_MISTAKE_WINDOW_SEC = 20.0  # 첫 실수(막을 수 없는 분노)는 붕괴 20초 안쪽만
 POTION_H2_SEC, POTION_H2_LATE_SEC = 286, 290      # 4:46 (+4초 여유)
 POTION_H3_REF_SEC = 584                           # 9:44 막심장
 POTION_CD_SEC = 300
@@ -97,7 +113,9 @@ NEXT = {
     "heart1_dps": "1심장 66% 미달: 작쫄은 기력 보충용이라 광딸 금지, 심장 구간엔 심장 타겟 딜 집중.",
     "doomscale_alive": "약화된 파멸비늘을 심장에 최대한 붙여 파킹(웅덩이 감수)하고 2심장 동안 심장 타겟 광.",
     "calcified_corpse": "뱀의 물어뜯기 만료 전에 흡수 담당이 받으세요 (석회화한 시체 0명).",
+    "egg_viper": "알 든 사람은 파도 피하기가 최우선 (꼬리 파도 방향 미리 · 이동기 아끼기) · 알끼리 3미터 · 살무사 주시 대상은 공대에서 떨어지고 나머지는 착지 자리 피하기 (석화의 독침 스턴).",
 }
+EGG_VIPER_KIND = "알 운반 → 살무사"
 
 
 def short(name) -> str:
@@ -136,7 +154,8 @@ def _ts_sec(ts: str, start):
 def scan_raw(raw_path, start_ts: str) -> dict:
     """울라텍 HP 와 고통스러운 절규(시전 시작/완료/차단자), 소환수 주인만 읽는다."""
     out = {"hp": [], "cry": [], "petOwner": {}, "doomSeen": {}, "doomDied": {}, "weakness": [], "acid": [], "vein": [], "prey": [], "available": False,
-           "coilCasts": [], "coilSoak": [], "fang": [], "eggBurst": [], "potions": []}
+           "coilCasts": [], "coilSoak": [], "fang": [], "eggBurst": [], "potions": [],
+           "shell": [], "waveHits": [], "viperSeen": {}, "viperSting": [], "viperStun": [], "rage": []}
     p = Path(raw_path) if raw_path else None
     if p is None or not p.is_file():
         for name in ("raw.log.gz", "raw.log"):
@@ -163,6 +182,8 @@ def scan_raw(raw_path, start_ts: str) -> dict:
     coil_tok, soak_tok = f",{COIL_CAST},".encode(), f",{COIL_SOAK},".encode()
     fang_tok, egg_tok = f",{FANG},".encode(), f",{EGG_BURST},".encode()
     pot_tok = POTION_WORD.encode()
+    shell_tok, wave_tok = f",{SHELL},".encode(), f",{WAVE_SPELL},".encode()
+    viper_tok, sting_tok, rage_tok = VIPER_NPC.encode(), f",{VIPER_STING},".encode(), f",{UNCHECKED_RAGE},".encode()
     opener = gzip.open if str(p).endswith(".gz") else open
     last_hp = -1.0
     with opener(p, "rb") as fh:
@@ -177,7 +198,10 @@ def scan_raw(raw_path, start_ts: str) -> dict:
             is_prey = prey_tok in raw and b"SPELL_CAST_START" in raw
             is_plan = (coil_tok in raw or soak_tok in raw or fang_tok in raw or egg_tok in raw
                        or (pot_tok in raw and b"SPELL_AURA_" in raw))
-            if not (is_boss or is_cry or is_pet or is_doom or is_weak or is_acid or is_vein or is_prey or is_plan):
+            is_egg2 = (shell_tok in raw and b"SPELL_AURA_" in raw) or (wave_tok in raw and b",Player-" in raw) \
+                or viper_tok in raw or (sting_tok in raw and b"SPELL_AURA_APPLIED" in raw) \
+                or (rage_tok in raw and b"SPELL_CAST_SUCCESS" in raw)
+            if not (is_boss or is_cry or is_pet or is_doom or is_weak or is_acid or is_vein or is_prey or is_plan or is_egg2):
                 continue
             line = raw.decode("utf-8", errors="replace").rstrip("\r\n")
             head, _, payload = line.partition("  ")
@@ -202,6 +226,23 @@ def scan_raw(raw_path, start_ts: str) -> dict:
                 elif (POTION_WORD in f[10] and ev in ("SPELL_AURA_APPLIED", "SPELL_AURA_REMOVED")
                       and f[1].startswith("Player-") and f[1] == f[5]):
                     out["potions"].append({"sec": round(s, 3), "event": ev, "player": short(f[2]), "name": f[10]})
+            if is_egg2 and len(f) > 6:
+                # V2.0 알 운반 → 살무사
+                for g in (f[1], f[5]):
+                    if VIPER_NPC in g:
+                        out["viperSeen"].setdefault(g, round(s, 3))
+                sid = f[9] if len(f) > 9 else ""
+                if sid == str(SHELL) and ev in ("SPELL_AURA_APPLIED", "SPELL_AURA_REMOVED") and f[5].startswith("Player-"):
+                    out["shell"].append({"sec": round(s, 3), "event": ev, "target": short(f[6])})
+                elif sid == str(WAVE_SPELL) and ev.startswith("SPELL") and f[5].startswith("Player-"):
+                    out["waveHits"].append({"sec": round(s, 3), "target": short(f[6])})
+                elif sid == str(VIPER_STING) and ev == "SPELL_AURA_APPLIED" and f[5].startswith("Player-"):
+                    out["viperSting"].append({"sec": round(s, 3), "target": short(f[6])})
+                elif sid == str(VIPER_STUN) and ev == "SPELL_AURA_APPLIED" and f[5].startswith("Player-"):
+                    out["viperStun"].append({"sec": round(s, 3), "target": short(f[6])})
+                elif sid == str(UNCHECKED_RAGE) and ev == "SPELL_CAST_SUCCESS":
+                    if not out["rage"] or s - out["rage"][-1] > 1.0:
+                        out["rage"].append(round(s, 3))
             if is_pet and len(f) > 13:
                 if ev == "SPELL_CAST_SUCCESS" and f[1].startswith("Pet-") and f[13].startswith("Player-"):
                     out["petOwner"].setdefault(f[1], f[13])
@@ -519,6 +560,128 @@ def potion_review(raw: dict, hearts: list, facts: dict, duration: float) -> dict
             "h3Ok": h3_ok, "h3None": h3_none, "line": "딜러 물약 · " + " · ".join(parts)}
 
 
+def viper_review(raw: dict) -> dict | None:
+    """V2.0 살무사가 언제 나왔고, 바로 앞(6초)에 알 든 사람이 파도를 맞았는지 · 알끼리 부딪혔는지."""
+    raw = raw or {}
+    seen = sorted((raw.get("viperSeen") or {}).values())
+    if not seen:
+        return None
+    carry = {}
+    spans = {}
+    for x in sorted(raw.get("shell") or [], key=lambda x: x["sec"]):
+        if x["event"] == "SPELL_AURA_APPLIED":
+            carry[x["target"]] = x["sec"]
+        elif x["target"] in carry:
+            spans.setdefault(x["target"], []).append((carry.pop(x["target"]), x["sec"]))
+    for n, a in carry.items():
+        spans.setdefault(n, []).append((a, float("inf")))
+
+    def carrying(n, t):
+        return any(a - 0.05 <= t <= b + 0.35 for a, b in spans.get(n, []))
+    waves = []
+    for w in sorted(raw.get("waveHits") or [], key=lambda x: x["sec"]):
+        if carrying(w["target"], w["sec"]) and not any(v[1] == w["target"] and abs(v[0] - w["sec"]) < 2 for v in waves):
+            waves.append((w["sec"], w["target"]))
+    bursts = [(x["sec"], x["target"]) for x in raw.get("eggBurst") or []
+              if x.get("event") == "SPELL_AURA_APPLIED" and x.get("target") and x["target"] != "nil"]
+    drops = [(x["sec"], x["target"]) for x in raw.get("shell") or [] if x["event"] == "SPELL_AURA_REMOVED"]
+    out = []
+    for grp in _clusters(seen, VIPER_CLUSTER_SEC):
+        t = grp[0]
+        # V5.3.6: 무리(4초 안 연달아 나온 살무사) 안쪽에서 맞은 알 든 사람도 같이 적는다
+        wv = [(s, n) for s, n in waves if t - VIPER_TRIGGER_SEC <= s <= grp[-1] + 0.5]
+        bs = [(s, n) for s, n in bursts if t - VIPER_TRIGGER_SEC <= s <= grp[-1] + 0.5]
+        dr = [(s, n) for s, n in drops if t - VIPER_DROP_SEC <= s <= t + 0.3]
+        if wv:
+            kind, names, tsec = "wave", sorted({n for _s, n in wv}), wv[0][0]
+        elif bs:
+            kind, names, tsec = "burst", sorted({n for _s, n in bs}), bs[0][0]
+        elif dr:
+            kind, names, tsec = "drop", sorted({n for _s, n in dr}), dr[0][0]
+        else:
+            kind, names, tsec = None, [], None
+        out.append({"sec": t, "count": len(grp), "trigger": kind, "names": names, "triggerSec": tsec})
+    stung = sorted({x["target"] for x in raw.get("viperSting") or []})
+    return {"clusters": out, "waves": waves, "bursts": bursts, "stung": stung, "stingCount": len(raw.get("viperSting") or []),
+            "marks": viper_marks(raw)}
+
+
+def viper_marks(raw: dict) -> list[dict]:
+    """V5.3.6 살무사 주시(석화의 독침 1305163) → 5초 뒤 착지 스턴(1303414). 스턴 걸린 사람을 주시 대상과 묶는다."""
+    stuns = sorted((raw or {}).get("viperStun") or [], key=lambda x: x["sec"])
+    groups = []
+    for x in stuns:
+        if groups and x["sec"] - groups[-1][0]["sec"] <= 0.6:
+            groups[-1].append(x)
+        else:
+            groups.append([x])
+    used = set()
+    out = []
+    for m in sorted((raw or {}).get("viperSting") or [], key=lambda x: x["sec"]):
+        lo, hi = VIPER_MARK_TO_STUN
+        hit = next((i for i, g in enumerate(groups) if i not in used and lo <= g[0]["sec"] - m["sec"] <= hi), None)
+        if hit is None:
+            out.append({"sec": m["sec"], "target": m["target"], "stunSec": None, "stunned": []})
+            continue
+        used.add(hit)
+        names = []
+        for x in groups[hit]:
+            if x["target"] not in names:
+                names.append(x["target"])
+        if m["target"] in names:
+            names.remove(m["target"])
+            names.insert(0, m["target"])
+        out.append({"sec": m["sec"], "target": m["target"], "stunSec": groups[hit][0]["sec"], "stunned": names})
+    for i, g in enumerate(groups):   # 주시 기록 없이 스턴만 남은 경우
+        if i not in used:
+            names = []
+            for x in g:
+                if x["target"] not in names:
+                    names.append(x["target"])
+            out.append({"sec": None, "target": None, "stunSec": g[0]["sec"], "stunned": names})
+    return sorted(out, key=lambda x: x["stunSec"] if x["stunSec"] is not None else x["sec"])
+
+
+def egg_viper_notes(vr: dict | None, limit: int = 6) -> list[str]:
+    """V5.3.6 화면 「참고」 줄: 알 든 사람 파도 전부 · 살무사 주시 → 스턴 전부."""
+    if not vr:
+        return []
+    out = []
+    cl = vr.get("clusters") or []
+    total = sum(c["count"] for c in cl)
+    waves = vr.get("waves") or []
+    head = f"알 든 사람 부식의 파도 {len(waves)}번"
+    if waves:
+        head += " · " + ", ".join(f"{n} {mmss(s)}" for s, n in waves[:limit]) + (f" 외 {len(waves) - limit}" if len(waves) > limit else "")
+    bursts = vr.get("bursts") or []
+    if bursts:
+        head += " · 알 충돌 " + "·".join(sorted({n for _s, n in bursts})[:4]) + f" {mmss(bursts[0][0])}"
+    head += f" → 살무사 {total}마리 (" + " · ".join(f"{mmss(c['sec'])} {c['count']}" for c in cl[:limit]) + (" …" if len(cl) > limit else "") + ")"
+    out.append(head)
+    marks = [m for m in vr.get("marks") or [] if m.get("stunned") or m.get("target")]
+    if marks:
+        parts = []
+        for m in marks[:limit]:
+            t = m["stunSec"] if m.get("stunSec") is not None else m["sec"]
+            if m.get("stunned"):
+                parts.append(f"{mmss(t)} " + "+".join(m["stunned"][:4]) + (f" 외 {len(m['stunned']) - 4}" if len(m["stunned"]) > 4 else ""))
+            else:
+                parts.append(f"{mmss(t)} {m['target']} 주시(스턴 없음)")
+        n_stun = sum(len(m.get("stunned") or []) for m in marks)
+        out.append(f"살무사 주시→스턴 {len(marks)}번 · {n_stun}명 · " + ", ".join(parts) + (f" 외 {len(marks) - limit}번" if len(marks) > limit else ""))
+    return out
+
+
+def _trigger_txt(c: dict) -> str:
+    if c.get("trigger") == "wave":
+        return f"알 든 {'·'.join(c['names'][:3])} 부식의 파도 {mmss(c['triggerSec'])}"
+    if c.get("trigger") == "burst":
+        return f"알 충돌 {'·'.join(c['names'][:3])} {mmss(c['triggerSec'])}"
+    if c.get("trigger") == "drop":
+        return f"알 든 {'·'.join(c['names'][:3])} 알 놓침 {mmss(c['triggerSec'])} (물·피격?)"
+    return "원인 미확인 (알 운반 밖)"
+
+
 def egg_burst_line(raw: dict) -> str | None:
     ev = [x for x in (raw or {}).get("eggBurst") or [] if x["event"] in ("SPELL_DAMAGE", "SPELL_AURA_APPLIED", "SPELL_CAST_SUCCESS")]
     if not ev:
@@ -527,7 +690,7 @@ def egg_burst_line(raw: dict) -> str | None:
     for t in _clusters([x["sec"] for x in ev], 3.0):
         names = sorted({x["target"] for x in ev if t[0] <= x["sec"] <= t[-1] and x["target"] and x["target"] != "nil"})
         firsts.append(f"{mmss(t[0])}" + (f" {'·'.join(names[:3])}" if names else ""))
-    return f"알 충돌(맹독성 분출) {len(firsts)}번 · " + ", ".join(firsts[:5]) + " [표시만 · 신화 실측 전]"
+    return f"알 충돌(맹독성 분출) {len(firsts)}번 · " + ", ".join(firsts[:5]) + " → 곧바로 살무사 (V2.0 실측)"
 
 
 def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = None) -> dict:
@@ -583,6 +746,40 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
     if fm.get("sec") is None and dwin["wave"]:
         w_name, w_sec = dwin["wave"][0]
         first = f"{stage_at(w_sec, hearts, p3)} {mmss(w_sec)} 부식의 파도 사망 · {w_name} [추정]"
+    first_kind = fm.get("kind")
+
+    # V2.0 알 운반 → 살무사: 붕괴 25초 안쪽에서 살무사가 먼저 나왔으면 그게 뿌리
+    vr = viper_review(raw) if (raw.get("available") and mythic) else None
+    vchain = None
+    if vr and result != "kill" and _col0 is not None:
+        inwin = [c for c in vr["clusters"]
+                 if float(_col0) - VIPER_BEFORE_COLLAPSE_SEC <= c["sec"] <= float(_col0) + 1.0]
+        if inwin:
+            vchain = inwin[0]   # 붕괴 25초 안쪽 첫 살무사가 뿌리
+    if vchain:
+        t0 = vchain["triggerSec"] if vchain.get("triggerSec") is not None else vchain["sec"]
+        first = (f"{stage_at(t0, hearts, p3)} {mmss(t0)} {_trigger_txt(vchain)} → 살무사 {mmss(vchain['sec'])}"
+                 + (" [확정]" if vchain.get("trigger") in ("wave", "burst") else " [추정]"))
+        first_kind = EGG_VIPER_KIND
+    elif (fm.get("kind") == "unchecked_rage" and fm.get("sec") is not None and _col0 is not None
+          and float(fm["sec"]) < float(_col0) - FIRST_MISTAKE_WINDOW_SEC and result != "kill"):
+        # 1:16 · 1:25 처럼 붕괴보다 한참 앞선 막을 수 없는 분노는 첫 실수로 치지 않는다 (참고로만)
+        near_fail = [f for f in (obs.get("verifiedFailures") or []) if f.get("sec") is not None
+                     and float(_col0) - FIRST_MISTAKE_WINDOW_SEC <= float(f["sec"]) <= float(_col0) + 1.0]
+        if near_fail:
+            nf = near_fail[0]
+            who2 = ", ".join(short(x) for x in (nf.get("players") or [])[:2])
+            first = (f"{stage_at(nf['sec'], hearts, p3)} {mmss(nf['sec'])} {nf.get('label') or nf.get('kind')}"
+                     + (f" · {who2}" if who2 else ""))
+            first_kind = nf.get("kind")
+        elif dwin["wave"]:
+            w_name, w_sec = dwin["wave"][0]
+            first = f"{stage_at(w_sec, hearts, p3)} {mmss(w_sec)} 부식의 파도 사망 · {w_name} [추정]"
+            first_kind = "wave_death"
+        else:
+            first = f"붕괴({mmss(_col0)}) 20초 안 확정 실패 없음"
+            first_kind = None
+        first += f" (막을 수 없는 분노 {mmss(fm['sec'])}는 붕괴보다 한참 앞이라 참고만)"
 
     # 3. 전멸 원인
     collapse = (raid or {}).get("collapse") or {}
@@ -591,6 +788,17 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
     failures = obs.get("verifiedFailures") or []
     if result == "kill":
         cause = {"group": "킬", "code": "KILL", "label": "킬", "confidence": "verified", "next": "-"}
+    elif vchain:
+        top_txt = ""
+        if spells:
+            top, n = max(spells.items(), key=lambda kv: kv[1])
+            top_txt = f" {top} {n}명"
+        rage_mid = [t for t in (raw.get("rage") or []) if vchain["sec"] <= t <= float(col_start) + 1.0]
+        cause = {"group": EGG_VIPER_KIND, "code": "EGG_VIPER",
+                 "confidence": "verified" if vchain.get("trigger") in ("wave", "burst") else "likely",
+                 "label": (f"{_trigger_txt(vchain)} → 살무사 {vchain['count']}마리 {mmss(vchain['sec'])} → 붕괴{top_txt} ({mmss(col_start)})"
+                           + (f" · 그 사이 막을 수 없는 분노 {len(rage_mid)}회" if rage_mid else "")),
+                 "next": NEXT["egg_viper"]}
     elif spells:
         top, n = max(spells.items(), key=lambda kv: kv[1])
         near = [f for f in failures if f.get("sec") is not None and col_start is not None
@@ -748,12 +956,23 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
         eb = egg_burst_line(raw)
         if eb:
             extra.append("알충돌 " + eb)
+        if vr:
+            cl = vr["clusters"]
+            extra.append(f"살무사 첫 {mmss(cl[0]['sec'])} · {sum(c['count'] for c in cl)}마리 · "
+                         + ", ".join(f"{mmss(c['sec'])} {c['count']}마리 ← {_trigger_txt(c)}" for c in cl[:8])
+                         + (f" · 석화의 독침 스턴 {vr['stingCount']}번" if vr.get("stingCount") else ""))
+            plan["viper"] = {"first": cl[0]["sec"], "chain": bool(vchain),
+                             "trigger": (vchain or {}).get("trigger"), "names": (vchain or {}).get("names") or [],
+                             "waveCarriers": [n for _s, n in vr["waves"]], "bursts": [n for _s, n in vr["bursts"]],
+                             "stuns": [{"sec": m["stunSec"], "target": m["target"], "stunned": m["stunned"]} for m in vr.get("marks") or []]}
+            notes[:0] = egg_viper_notes(vr)   # 화면 참고 칸은 4줄까지라 알·살무사를 앞에
     ac = obs.get("anguishedCry") or {}
     if not raw.get("available") and (ac.get("startCount") or ac.get("completedCount")):
         extra.append(f"절규   시전 {ac.get('startCount', 0)} · 완료(놓침) {ac.get('completedCount', 0)}")
     ur = (obs.get("uncheckedRage") or {}).get("count")
     if ur:
-        extra.append(f"분노   막을 수 없는 분노 {ur}회 (탱 공백)")
+        rg = raw.get("rage") or []
+        extra.append(f"분노   막을 수 없는 분노 {ur}회 (탱 공백)" + (" · " + ", ".join(mmss(t) for t in rg[:6]) if rg else ""))
     cc = (obs.get("calcifiedCorpse") or {}).get("count")
     if cc:
         names = sorted({short(x.get("target") or x.get("player") or x.get("targetName")) for x in (obs.get("calcifiedCorpse") or {}).get("events") or [] if isinstance(x, dict)})
@@ -764,7 +983,7 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
         "lines": {"어디까지": reach, "첫 실수": first, "전멸 원인": cause_line, "딜·힐": dps, "다음 풀": cause["next"]},
         "cause": cause, "hearts": len(hearts), "heartWindows": hearts, "extraLines": extra, "notes": notes,
         "cry": {"kicks": len(cr["kicks"]), "misses": len(cr["misses"]), "byPlayer": cr["byPlayer"], "missNth": cr.get("missNth") or {}, "late": len(cr.get("late") or [])},
-        "firstKind": fm.get("kind"), "heart1EndHp": h1_hp, "rosterNames": sorted({short(r.get("name")) for r in ((facts or {}).get("roster") or [])}), "heart1Short": h1_short, "doomscale": doom_alive, "stages": ulatek_stages(duration, hearts, p3, result == "kill", mythic), "acidCount": len(acid_done), "deathWindows": {k: len(v) for k, v in dwin.items()},
+        "firstKind": first_kind, "heart1EndHp": h1_hp, "rosterNames": sorted({short(r.get("name")) for r in ((facts or {}).get("roster") or [])}), "heart1Short": h1_short, "doomscale": doom_alive, "stages": ulatek_stages(duration, hearts, p3, result == "kill", mythic), "acidCount": len(acid_done), "deathWindows": {k: len(v) for k, v in dwin.items()},
         "plan": plan,
     }
 
