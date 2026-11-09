@@ -431,7 +431,9 @@ def _five_box(app):
     for key in FIVE_KEYS:
         r = tk.Frame(box, bg=T.PANEL_BG)
         r.pack(fill="x", pady=(_px(app, 1), _px(app, 2)))
-        tk.Label(r, text=key, bg=T.PANEL_BG, fg=T.MUTED, font=(FONT_TITLE, 10), width=8, anchor="nw").pack(side="left", anchor="n")
+        _lab = tk.Label(r, text=key, bg=T.PANEL_BG, fg=T.MUTED, font=(FONT_TITLE, 10), width=8, anchor="nw")
+        _lab.pack(side="left", anchor="n")
+        st.setdefault("five_labels", {})[key] = _lab   # V5.2.8: 킬 판은 칸 이름을 바꿔 보인다
         bold = key in ("다음 풀",)
         txt = tk.Text(r, height=1, wrap="word", bg=T.PANEL_BG, fg=T.TEXT, bd=0, relief="flat", highlightthickness=0,
                       font=(FONT_BODY, 11, "bold") if bold else (FONT_BODY, 11), cursor="arrow", padx=0, pady=0,
@@ -551,6 +553,9 @@ def _show_five(app, row):
     name = _BOSS_MODULES.get(enc)
     key = _row_key(row)
     box_rows = None
+    kill_on = False
+    if name and key and not _managed(v40) and st["five"].get(key) != {}:
+        kill_on = _kill_glance(app, row)   # V5.2.8: 킬 판도 결론 칸 (예전 칸은 「판정 상세 펼치기」)
     if name and key and _managed(v40):
         result = st["five"].get(key)
         if result is None and key not in st["pending"]:
@@ -576,6 +581,7 @@ def _show_five(app, row):
             box_rows = _five_box(app)
             box, rows, stage_frame = box_rows
             _set_stages(app, stage_frame, [])
+            _set_labels(app, {})
             for k, txt in rows.items():
                 _set_text(txt, "불러오는 중…" if k == FIVE_KEYS[0] else "")
             note = st.get("five_note")
@@ -585,6 +591,14 @@ def _show_five(app, row):
             box_rows = _five_box(app)
             box, rows, stage_frame = box_rows
             _set_stages(app, stage_frame, result.get("_stages"))
+            _set_labels(app, result.get("_labels") or {})
+            try:   # V5.2.9: 「엔진 기믹 판정 없음」 대신 결론 모듈 체크 칸
+                from live.v529_board import fill_check_cards
+                if fill_check_cards(app, result.get("_checks") or []):
+                    _compact_cards(app)
+                    _regrid_cards(app)
+            except Exception:
+                pass
             names = _name_colors(row)
             for k, txt in rows.items():
                 _set_text(txt, result.get(k) or "-")
@@ -614,6 +628,46 @@ def _show_five(app, row):
             if not _managed(w):
                 w.pack(fill="x", pady=(_px(app, 4), _px(app, 6)))
         st["five_hidden_rows"] = []
+        if kill_on:   # V5.2.8: 킬 결론을 못 만들었으면 예전 화면으로
+            try:
+                v40.pack_forget()
+                app._v40_restore_legacy()
+                app._v40_visible_key = None
+            except Exception:
+                pass
+
+
+def _set_labels(app, labels: dict) -> None:
+    for k, lab in (app._v43.get("five_labels") or {}).items():
+        try:
+            lab.configure(text=labels.get(k, k))
+        except Exception:
+            pass
+
+
+def _kill_glance(app, row) -> bool:
+    """V5.2.8: 킬 판도 「한눈에 보기」 결론 칸을 보인다. 예전 칸(첫 실수·주요 사고·붕괴 직결)은 「판정 상세 펼치기」."""
+    try:
+        if str(row.get("result") or "").lower() != "kill" or row.get("mechanicReviewStale"):
+            return False
+        if app._live_row_is_fake(row) or app._live_row_is_reset(row):
+            return False
+        box = app.v40_overview_box
+        for widget, _pack in getattr(app, "_v40_legacy_pack", ()):
+            if widget.winfo_manager():
+                widget.pack_forget()
+        chron = getattr(app, "v37_raid_time_box", None)
+        if chron is not None and chron.winfo_manager():
+            chron.pack_forget()
+        app._v40_visible_key = _row_key(row) or "kill"
+        app._v40_details_open = False
+        app._v40_chronology_available = False
+        app.v40_toggle_btn.configure(text="판정 상세 펼치기 ▾")
+        if not box.winfo_manager():
+            box.pack(fill="x", pady=(0, _px(app, 3)))
+        return True
+    except Exception:
+        return False
 
 
 def _compute(app, mod, key, row) -> None:
@@ -628,6 +682,8 @@ def _compute(app, mod, key, row) -> None:
         lines = {k: str((out.get("lines") or {}).get(k) or "") for k in FIVE_KEYS}
         lines["_stages"] = out.get("stages") or []
         lines["_notes"] = [str(x) for x in (out.get("notes") or [])][:4]
+        lines["_labels"] = dict(out.get("labels") or {})   # V5.2.8: 킬 판 칸 이름 (사망 정리 · 다음 주)
+        lines["_checks"] = list(out.get("checks") or [])   # V5.2.9: 엔진 판정 없는 보스의 기믹 수행 체크 칸
     except Exception:
         lines = {}
     try:

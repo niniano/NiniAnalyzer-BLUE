@@ -407,6 +407,10 @@ def _major_incident(review: dict, cycle_index: Any = None) -> dict | None:
     totals remain available in the engine artifact, but mixing cycle 2 contact
     counts into cycle 1 cards made the top line internally inconsistent.
     """
+    # NINI_P1_CLOSEOUT_V1_SAFE_HOOK: verified P1 collapse is a major incident.
+    p1_major = review.get("majorIncident") if isinstance(review.get("majorIncident"), dict) else {}
+    if p1_major.get("kind") == "p1_execution_mass_deaths" and p1_major.get("evidenceLevel") == "verified":
+        return dict(p1_major)
     cycle = _cycle_by_index(review, cycle_index)
     collision = cycle.get("manifestCollision") or {}
     episodes = list(collision.get("episodes") or [])
@@ -482,8 +486,61 @@ def _collapse_direct(review: dict) -> tuple[dict | None, dict]:
     }
 
 
+def _coiled_soak_verified_collapse(review: dict, row: dict, collapse_meta: dict) -> dict | None:
+    """UI-only bridge: verified short soak + Execution deaths + SAME B31 cluster.
+
+    This is not a global rule update and never assigns responsibility by name.
+    It cannot promote a short soak without Execution or with a mismatched B31.
+    """
+    enc = review.get("encounter") or {}
+    result = str(row.get("result") or enc.get("result") or "").upper()
+    if result == "KILL" or normalize_difficulty(_current_difficulty(review, row)) != 16:
+        return None
+    if collapse_meta.get("collapseBasis") != "b31":
+        return None
+    collapse_sec = _safe_float(collapse_meta.get("collapseSec"))
+    collapse_count = _safe_int(collapse_meta.get("collapseDeathCountB31"))
+    if collapse_sec is None or collapse_count < 4:
+        return None
+    soak = ((review.get("observations") or {}).get("p1Closeout") or {})
+    for r in soak.get("soakRounds") or []:
+        if not isinstance(r, dict) or r.get("evidenceLevel") != "verified":
+            continue
+        count = r.get("soakCount")
+        required = r.get("requiredCount")
+        linked = _safe_int(r.get("executionLinkedDeathCount"))
+        if count is None or required is None or not r.get("executionObserved") or linked < 4:
+            continue
+        if _safe_int(count) >= _safe_int(required) or _safe_int(required) < 1:
+            continue
+        # The soaking impact is slightly BEFORE the corresponding Execution.
+        # Do not link a separate/earlier collapse, even if counts happen to match.
+        impact = _safe_float(r.get("impactSec"))
+        if impact is None or not 0.0 <= collapse_sec - impact <= 0.80:
+            continue
+        if linked / max(collapse_count, 1) < 0.60:
+            continue
+        idx = _safe_int(r.get("index"))
+        label = f"{idx}차 단두대 소킹 인원 부족"
+        summary = (f"{idx}차 단두대 {_safe_int(count)}/{_safe_int(required)}명"
+                   f" → 처형(1283606) → {linked}명 사망 · B31 붕괴 {collapse_count}명")
+        return {
+            "kind": "p1_guillotine_short_soak", "sec": impact,
+            "label": label, "title": label, "summary": summary,
+            "status": "failed", "evidenceLevel": "verified",
+            "directSpellIDs": [1283594, 1283606],
+            "causalScope": "verified_soak_execution_deaths", "blame": "unassigned",
+        }
+    return None
+
+
 def _next_pull(first: dict | None, major: dict | None) -> str:
     kinds = {str((major or {}).get("kind") or ""), str((first or {}).get("kind") or "")}
+    # NINI_P1_CLOSEOUT_V1_SAFE_HOOK: exact collapse gets an actionable next-pull note.
+    if "p1_guillotine_short_soak" in kinds:
+        return "단두대 최소 6명 실제 소킹 확인 · 대상자 보축 상태 점검 (고정 담당자 추정 금지)"
+    if "p1_execution_mass_deaths" in kinds:
+        return "단두대 실제 분담 6명·대상 보축 적용/유지 및 해제 시점 확인 (책임자 단정 금지)"
     if "manifest_collision" in kinds:
         return "현신 대상자끼리 동선 분리"
     if "wail_interrupt_failure" in kinds:
@@ -1224,6 +1281,16 @@ def _generic_mechanic_priority_model(review: dict, row: dict | None = None) -> d
     }
 
 
+def _nightfall_post_success_shield_removal(sh: dict) -> bool:
+    """UI-only: shield removal strictly AFTER cast success, not a shield break proof."""
+    if sh.get("breakSec") is None or sh.get("castSuccessSec") is None:
+        return False
+    try:
+        return float(sh["breakSec"]) > float(sh["castSuccessSec"])
+    except (ValueError, TypeError, OverflowError):
+        return False
+
+
 def build_try_priority_model(review: dict, row: dict | None = None) -> dict:
     """B36.4.1 read-only UI projection.
 
@@ -1245,8 +1312,30 @@ def build_try_priority_model(review: dict, row: dict | None = None) -> dict:
                       p2_summary.get("firstMistake") if isinstance(p2_summary, dict) else None):
         if isinstance(candidate, dict) and candidate.get("sec") is not None:
             first_candidates.append(dict(candidate))
-    first = min(first_candidates, key=lambda x: _safe_float(x.get("sec"), 1e12)) if first_candidates else _fallback_first_mistake(review)
     direct, collapse_meta = _collapse_direct(review)
+    # NINI_COILED_ACCURACY_HF2: never label a post-collapse verified event as
+    # the FIRST mistake that explains an earlier B31 collapse. Keep original
+    # review untouched; the event remains visible in saved evidence.
+    b31_anchor = (_safe_float(collapse_meta.get("collapseSec"))
+                  if collapse_meta.get("collapseBasis") == "b31" else None)
+    valid_first_candidates = [c for c in first_candidates
+                              if b31_anchor is None or _safe_float(c.get("sec"), 1e12) <= b31_anchor + 0.10]
+    chronology_excluded_count = len(first_candidates) - len(valid_first_candidates)
+    first = (min(valid_first_candidates, key=lambda x: _safe_float(x.get("sec"), 1e12))
+             if valid_first_candidates else
+             (_fallback_first_mistake(review) if b31_anchor is None else None))
+    # COILED_SOAK_HEADLINE_V13: presentation only. Use the already-stored
+    # verified soaking + Execution-to-death evidence, NEVER mutate B31 or a
+    # mechanic_review.json. Personal blame is deliberately not inferred.
+    soak_incident = _coiled_soak_verified_collapse(review, row, collapse_meta)
+    if soak_incident is not None and direct is None:
+        direct = soak_incident
+        # Keep the true earliest previously verified failure when present.
+        if first is None or _safe_float(first.get("sec"), 1e12) > _safe_float(soak_incident.get("sec"), 1e12):
+            first = dict(soak_incident)
+        collapse_meta = dict(collapse_meta)
+        collapse_meta["collapseSummary"] = soak_incident["summary"]
+        collapse_meta["collapseStatus"] = "linked"
     # Screen 7 is a cycle-level review.  Focus the mechanic cards/evidence on
     # the cycle containing the first verified mistake; if none exists, use the
     # first observed P2 cycle.  The collapse-direct line remains fight-level.
@@ -1254,6 +1343,8 @@ def build_try_priority_model(review: dict, row: dict | None = None) -> dict:
     cycle = _cycle_by_index(review, focus_cycle_index)
     focus_cycle_index = _safe_int(cycle.get("index"), focus_cycle_index)
     major = _major_incident(review, focus_cycle_index)
+    if soak_incident is not None and major is None:
+        major = dict(soak_incident)
     checks = _checks(review)
 
     phase = obs.get("phase1Transition") or {}
@@ -1302,6 +1393,10 @@ def build_try_priority_model(review: dict, row: dict | None = None) -> dict:
     else:
         orb_val = "로그 신호 없음"
     orb_note = _orb_residual_note(review) or str((orb_check or {}).get("summary") or "브레스별 전략 슬롯")
+    # Scope clarity: a mechanic's success is not a successful fight.
+    if (orb_status == "success" and
+            str(row.get("result") or (review.get("encounter") or {}).get("result") or "").upper() == "WIPE"):
+        orb_note += " · 구슬 처리만 성공(전투 결과는 전멸)"
     if orb_status == "unknown" and breath_values:
         orb_note = "판정 미완료 · " + orb_note
 
@@ -1477,7 +1572,12 @@ def build_try_priority_model(review: dict, row: dict | None = None) -> dict:
         if sh.get("p2RelativeSec") is not None:
             bits.append(f"P2 {float(sh.get('p2RelativeSec')):+.1f}초")
         if sh.get("breakDurationSec") is not None:
-            bits.append(f"파괴 {float(sh.get('breakDurationSec')):.1f}초")
+            if _nightfall_post_success_shield_removal(sh):
+                bits.append(f"해제 관측 {float(sh.get('breakDurationSec')):.1f}초 · 파괴 미확정")
+            else:
+                bits.append(f"파괴 {float(sh.get('breakDurationSec')):.1f}초")
+        elif _nightfall_post_success_shield_removal(sh):
+            bits.append("시전 완료 후 보호막 해제 · 파괴 미확정")
         if sh.get("remainingPct") is not None and status == "failed":
             bits.append(f"잔여 {float(sh.get('remainingPct')):.1f}%")
         if sh.get("castSuccessSec") is not None:
@@ -1627,6 +1727,51 @@ def build_try_priority_model(review: dict, row: dict | None = None) -> dict:
             "anchorBasis": shield_plan.get("anchorBasis"),
         }
 
+    # Mythic P1 Guillotine soaking: observational card, no fixed player roster.
+    # Every round counts distinct 1283594 DAMAGE/MISSED target GUIDs, not
+    # SPELL_ABSORBED repetitions or a preconfigured list of names.
+    soak_data = obs.get("p1Closeout") or {}
+    soak_rounds = soak_data.get("soakRounds") or []
+    soak_value_bits = []
+    soak_note_bits = []
+    soak_states = []
+    if "soakRounds" not in soak_data:
+        soak_value = "기존 복기 · 재분석 필요"
+        soak_status = "unknown"
+        soak_note = "소킹 인원 필드 없음 · 이 트라이 재분석 후 표시"
+    elif not soak_rounds:
+        soak_value = "단두대 미도달"
+        soak_status = "unknown"
+        soak_note = "이 트라이에 단두대 대상 오라·시전 신호 없음"
+    else:
+        for r in soak_rounds[:2]:
+            idx = _safe_int(r.get("index"))
+            n = r.get("soakCount")
+            required = _safe_int(r.get("requiredCount"), 6)
+            state = str(r.get("status") or "unknown")
+            soak_states.append(state)
+            prefix = f"{idx}차 "
+            if n is None:
+                label = "피격 전 종료" if r.get("reason") == "soak_resolution_not_reached" else "인원 확인 불가"
+                soak_value_bits.append(prefix + label)
+                soak_note_bits.append(f"{idx}차 소킹 대상 신호 없음")
+            else:
+                mark = "✓" if state == "success" else "✕" if state == "failed" else "!" if state == "warning" else "?"
+                soak_value_bits.append(f"{prefix}{int(n)}/{required}명 {mark}")
+                if r.get("executionObserved"):
+                    deaths = _safe_int(r.get("executionLinkedDeathCount"))
+                    soak_note_bits.append(f"{idx}차 처형 발생 · 직접 연계사망 {deaths}명")
+                elif state == "warning":
+                    soak_note_bits.append(f"{idx}차 {required}명 미달 관측 · 처형 미발생")
+        soak_value = " · ".join(soak_value_bits)
+        soak_note = " · ".join(soak_note_bits) if soak_note_bits else "1283594 피격·빗나감 대상 GUID 중복 제외"
+        soak_status = ("failed" if "failed" in soak_states else
+                       "warning" if "warning" in soak_states else
+                       "unknown" if "unknown" in soak_states else "success")
+    soak_card = _card("p1_guillotine_soak", "P1 단두대 소킹", soak_status,
+                      soak_value, soak_note,
+                      evidence_level=("verified" if soak_rounds and any(r.get("soakCount") is not None for r in soak_rounds) else None))
+
     cards = [
         _card("p2_entry", "P2 진입", entry_status, entry_val, entry_note, raw_status=entry_raw_status, evidence_level="verified" if phase.get("entrySec") is not None else None),
         _card("p1_orbs", "P1 구슬 처리", orb_status, orb_val, orb_note),
@@ -1642,6 +1787,9 @@ def build_try_priority_model(review: dict, row: dict | None = None) -> dict:
         _card("prior_add", "이전 쫄 중첩", overlap_status, overlap_val, overlap_note),
         _card("p2_entry_orbs", "P2 진입 잔여 구슬", p2_orb_status, p2_orb_val, p2_orb_note),
     ]
+
+    if normalize_difficulty(_current_difficulty(review, row)) == 16:
+        cards.insert(2, soak_card)
 
     # B37.4.30: the chart must preserve the engine's mechanic semantics.
     # Start from review.timeline (authoritative status/evidence) and add only
@@ -1699,7 +1847,11 @@ def build_try_priority_model(review: dict, row: dict | None = None) -> dict:
         if sh.get("startSec") is not None:
             timeline.append({"kind": "shield", "sec": float(sh["startSec"]), "label": f"보호막 {sh.get('index')}", "status": "unknown"})
         if sh.get("breakSec") is not None:
-            timeline.append({"kind": "shield", "sec": float(sh["breakSec"]), "label": f"보호막 {sh.get('index')} 파괴", "status": "success", "evidenceLevel": "verified"})
+            late_removal = _nightfall_post_success_shield_removal(sh)
+            label = (f"보호막 {sh.get('index')} 해제 · 일몰 완료 후(파괴 미확정)" if late_removal
+                     else f"보호막 {sh.get('index')} 파괴")
+            timeline.append({"kind": "shield", "sec": float(sh["breakSec"]), "label": label,
+                             "status": "unknown" if late_removal else "success", "evidenceLevel": "verified"})
         if sh.get("castSuccessSec") is not None:
             item = {"kind": "nightfall", "sec": float(sh["castSuccessSec"]), "label": "영원한 일몰 완료", "status": "failed", "evidenceLevel": "verified"}
             role, role_label = _timeline_judgment_role(item, result=result, first=first, direct=direct)
@@ -1759,7 +1911,8 @@ def build_try_priority_model(review: dict, row: dict | None = None) -> dict:
             "note": "좌표는 유령 위치의 대리값 · 개인 책임 확정 근거 아님" if spatial else "현신 접촉 자체는 검증됨",
         })
 
-    first_text = "검증된 실패 없음"
+    first_text = ("붕괴 이전 첫 실수 미확정 · 붕괴 후 실패는 첫 실수에서 제외"
+                  if first is None and chronology_excluded_count else "검증된 실패 없음")
     if first:
         first_text = f"{first.get('label') or '실패'}"
         if first.get("summary"):
@@ -1809,6 +1962,34 @@ def build_try_priority_model(review: dict, row: dict | None = None) -> dict:
         footer_bits.append(f"통곡 미차단 {wfail}회")
     footer = " · ".join(footer_bits)
     next_pull = _next_pull(first, major)
+    # NINI_P1_CLOSEOUT_V1_SAFE_HOOK: show P1 root hypotheses without promoting
+    # them to verified firstMistake/majorIncident/collapseDirect.
+    if direct is None and collapse_meta.get("collapseBasis") == "b31":
+        p1_closeout = (obs.get("p1Closeout") or {})
+        b31_sec = collapse_meta.get("collapseSec")
+        p1_boundary = (obs.get("phase1Transition") or {})
+        p1_entry = (_safe_float(p1_boundary.get("entrySec"))
+                    if p1_boundary.get("evidenceLevel") == "verified" and
+                       p1_boundary.get("basis") == "zuljan_hp_zero" else None)
+        nearby = []
+        if b31_sec is not None:
+            for item in p1_closeout.get("collapses") or []:
+                if item.get("evidenceLevel") != "candidate":
+                    continue
+                try:
+                    if (p1_entry is not None and float(item.get("sec")) >= p1_entry-0.25):
+                        continue  # legacy P2 death cluster is NOT a P1 candidate
+                    if abs(float(item.get("sec")) - float(b31_sec)) <= 0.75:
+                        nearby.append(item)
+                except (ValueError, TypeError):
+                    continue
+        if nearby:
+            c = max(nearby, key=lambda x: int(x.get("deathCount") or 0))
+            cards.append(_card("p1_closeout_candidate", "P1 전멸 원인 후보", "unknown",
+                str(c.get("title") or "기믹 미확정"),
+                "같은 시각 다수 사망 · 사고 발생은 확인, 충돌/딜 부족의 구체 원인과 담당자 미확정",
+                evidence_level="candidate"))
+            next_pull = "후보 검증: " + str(c.get("action") or "직전 공략 수행 확인")
     if footer:
         footer += f" → 다음 풀: {next_pull}"
     else:
@@ -1823,6 +2004,7 @@ def build_try_priority_model(review: dict, row: dict | None = None) -> dict:
         "focusCycleIndex": focus_cycle_index,
         "firstMistake": first,
         "firstMistakeText": first_text,
+        "postCollapseFirstCandidatesExcluded": chronology_excluded_count,
         "majorIncident": major,
         "majorIncidentText": major_text,
         "collapseDirect": direct,
@@ -2181,7 +2363,9 @@ def _p2_milestones(review: dict) -> list[dict]:
                 label += f" · 목표 +{float(sh.get('targetOffsetSec')):.0f}s"
             out.append({"kind": "shield", "label": label, "sec": _safe_float(sh.get("startSec"))})
         if sh.get("breakSec") is not None:
-            out.append({"kind": "shield_break", "label": f"보호막 {si} 파괴", "sec": _safe_float(sh.get("breakSec"))})
+            label = (f"보호막 {si} 해제 · 일몰 완료 후(파괴 미확정)"
+                     if _nightfall_post_success_shield_removal(sh) else f"보호막 {si} 파괴")
+            out.append({"kind": "shield_break", "label": label, "sec": _safe_float(sh.get("breakSec"))})
         if sh.get("interruptSec") is not None:
             out.append({"kind": "nightfall_interrupt", "label": f"영원한 일몰 {si} 차단 · {short_player(sh.get('interruptPlayer'))}", "sec": _safe_float(sh.get("interruptSec"))})
         if sh.get("castSuccessSec") is not None:
@@ -2382,6 +2566,76 @@ def _generic_primary_issue(model: dict, row: dict) -> str:
     return "확정 원인 없음"
 
 
+# COILED_ACCURACY_HF3: factual P1 late-rupture account. This is deliberately
+# separate from firstMistake, collapseDirect and B31's causal classification.
+# Older saved reviews are useful even without the HF3 HP170 field.
+def _coiled_late_rupture_observation(review: dict, row: dict | None = None) -> dict | None:
+    if not isinstance(review, dict) or review.get("bossKey") != "coiled_altar":
+        return None
+    row = row or {}
+    if normalize_difficulty(_current_difficulty(review, row)) != 16:
+        return None
+    result = str(row.get("result") or (review.get("encounter") or {}).get("result") or "").upper()
+    if result != "WIPE":
+        return None
+    obs = review.get("observations") or {}
+    snap = obs.get("collapseSnapshot") or {}
+    b31 = review.get("b31CollapseContext") or {}
+    closeout = obs.get("p1Closeout") or {}
+    entry = obs.get("phase1Transition") or {}
+    # Only the actual saved B31 cluster and an ID-confirmed rupture burst.
+    sec = _safe_float(b31.get("startSec"))
+    bsec = _safe_float(snap.get("collapseSec"))
+    if sec is None or bsec is None or not (171.5 <= sec <= 174.5):
+        return None
+    if abs(sec - bsec) > 0.75 or _safe_int(b31.get("count")) < 4:
+        return None
+    lead = snap.get("collapseLeadFinalHit") or {}
+    burst = [x for x in (snap.get("collapseBurstChainCandidates") or []) if isinstance(x, dict)]
+    has_rupture = (str(lead.get("spellID")) == "1299838" and abs(_safe_float(lead.get("sec"), -999) - sec) <= 0.8) or any(
+        str(x.get("spellID")) == "1299838" and abs(_safe_float(x.get("sec"), -999) - sec) <= 0.8 for x in burst)
+    if not has_rupture:
+        return None
+    if _safe_int((b31.get("spells") or {}).get("맹독성 파열")) < 3:
+        return None
+    transition = _safe_float(entry.get("entrySec")) if entry.get("evidenceLevel") == "verified" and entry.get("basis") == "zuljan_hp_zero" else None
+    if transition is not None and transition <= sec + 0.1:
+        return None  # Not P1 if P2 was reached BEFORE the collapse.
+    hp170 = closeout.get("hpAt170Observation") or {}
+    if not hp170 and closeout.get("hpAt170") is not None:
+        hp170 = {"healthPct": closeout.get("hpAt170"), "sec": 170.0, "evidenceLevel": "verified"}
+    hp_pct = _safe_float(hp170.get("healthPct")) if isinstance(hp170, dict) else None
+    if hp_pct is not None and (not 0 <= hp_pct <= 100 or abs(_safe_float(hp170.get("sec"), -999)-170.0) > 1.05):
+        hp_pct = None
+    hp_at_165 = (entry.get("healthAtCheckpoint") or {})
+    hp165 = (_safe_float(hp_at_165.get("healthPct")) if hp_at_165.get("available") and
+             abs(_safe_float(hp_at_165.get("sec"),-999)-165.0) <= 2.0 else None)
+    evidence = []
+    if hp_pct is not None:
+        evidence.append(f"2:50 줄잔 HP {hp_pct:.2f}% 관측(표본 {fmt_clock(hp170.get('sec'))})")
+    elif hp165 is not None:
+        evidence.append(f"2:50 HP 미수집 · 2:45 줄잔 HP {hp165:.2f}% 관측")
+    else:
+        evidence.append("2:50 줄잔 HP 자료 없음 · 전환 지연 원인 판정 보류")
+    rain = _safe_float(closeout.get("lateRainCastSec"))
+    if rain is not None and 170.0 <= rain <= sec + 0.20:
+        evidence.append(f"{fmt_clock(rain)} 유독한 폭우(1299960) 시전 관측 · 반복 기술")
+    collapse_note = f"{fmt_clock(sec)} 맹독성 파열(1299838) 피격 직후 B31 {int(b31['count'])}명 붕괴 관측"
+    if transition is not None:
+        collapse_note += f" · P2 {fmt_clock(transition)} (붕괴 뒤 {transition-sec:.1f}초)"
+    else:
+        collapse_note += " · P2 HP 0 진입 미관측"
+    evidence.append(collapse_note)
+    return {
+        "kind": "p1_late_rupture_observation", "sec": sec,
+        "title": "P1 전환 지연 구간 · 맹독성 파열 집단 사망",
+        "observation": f"{fmt_clock(sec)} 맹독성 파열 피해 후 집단 사망 · 발생 관측(근본 원인 미확정)",
+        "evidence": evidence, "hpAt170": hp_pct,
+        "status": "observed", "causality": "rupture_hit_and_death_time_order_only",
+        "action": "2:50 HP 잔존·전환 타이밍을 확인하고, 선행 사망·딜 공백·구슬 이동은 개별 증거로 검증하세요. 순수 딜 부족/책임자 단정 금지",
+    }
+
+
 def build_simple_try_summary(review: dict, row: dict | None = None) -> dict:
     """One reason + evidence + next-pull action for the default Try screen."""
     row = row or {}
@@ -2395,6 +2649,18 @@ def build_simple_try_summary(review: dict, row: dict | None = None) -> dict:
             "action": "상세 로그에서 공대 붕괴 체인을 확인하세요.",
         }
 
+    # Surface an observed P1 rupture collapse before a separate earlier
+    # individual mistake; do not change the latter's verified classification.
+    late = _coiled_late_rupture_observation(review, row)
+    if late is not None:
+        return {
+            "supported": True,
+            "reason": late["observation"],
+            "evidence": late["evidence"][:3],
+            "action": "다음 풀 · " + late["action"],
+            "model": model,
+            "observedCollapse": late,
+        }
     reason = _generic_primary_issue(model, row)
     evidence: list[str] = []
     first = model.get("firstMistake") if isinstance(model.get("firstMistake"), dict) else None

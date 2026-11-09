@@ -39,7 +39,7 @@ assert (ROOT/'package_public_release.py').is_file()
 entry=(ROOT/'nini_raid_gui.py').read_text(encoding='utf-8')
 assert 'start_error_notice_poll(app)' in entry
 assert 'maybe_show_first_run(app)' in entry
-assert 'PUBLIC_APP_VERSION = "1.0.5"' in gui
+assert 'PUBLIC_APP_VERSION = "1.0.6"' in gui
 print('STAGE 2.4 RELEASE GATE PASS — first-run guide, local-only error notice and packager')
 
 assert (ROOT/'build_public_windows.py').read_text(encoding='utf-8').find("'--contents-directory', '_internal'") >= 0
@@ -57,7 +57,7 @@ assert '_drop_feign_deaths' in (ROOT/'live/boss_mechanics/engine.py').read_text(
 assert 'def _pull_badge_text' in gui and 'def _public_auto_open_latest_session' in gui
 iss=(ROOT/'installer/NiniAnalyzer_Public.iss').read_text(encoding='utf-8-sig')
 assert 'AppId={{' in iss and 'PrivilegesRequired=lowest' in iss and 'AppUserModelID: "{#AppUserModelID}"' in iss
-assert '#define AppVersion "1.0.5"' in iss
+assert '#define AppVersion "1.0.6"' in iss
 assert 'UninstallDelete' not in iss, 'installer must never delete user raid records'
 print('RC4 GATE PASS — scroll, fonts, feign death, puller, first screen, installer')
 
@@ -114,7 +114,7 @@ assert (ROOT/'qa/test_public_rc5_layout.py').is_file()
 print('RC5 GATE PASS — V4.7 display modules bundled, frozen boss lookup, personal data excluded')
 
 # RC5.3: GOLD V5.0 (키식스 신화 · 울라텍 늦은 절규 표시) + V5.2 (트라이 화면 · 똬리 차단 규칙). 글꼴은 공개 글꼴 그대로.
-assert 'BOSS-GUIDES-V1.6' in (ROOT/'live/boss_guides_v1.py').read_text(encoding='utf-8')
+assert re.search(r'BOSS-GUIDES-V1\.([6-9]|\d\d)\b', (ROOT/'live/boss_guides_v1.py').read_text(encoding='utf-8'))  # 1.0.6: V1.10
 assert re.search(r'ULATEK-CONCLUSION-V(1\.(8|9|\d\d)|[2-9]\.\d+)', (ROOT/'live/ulatek_conclusion_v1.py').read_text(encoding='utf-8'))  # RC5.4: V1.8 이상 (1.0.5: V2.0)
 assert re.search(r'COILED-WIPE-CAUSE-V3\.[4-9]', (ROOT/'live/coiled_wipe_cause_v1.py').read_text(encoding='utf-8'))  # RC5.4: V3.4 이상
 assert 'live.v52_screen' in (ROOT/'build_public_windows.py').read_text(encoding='utf-8')
@@ -198,3 +198,22 @@ assert 'raidplan_ulatek' not in _u
 assert '("1.0.5", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8'), '1.0.5: whats-new entry'
 assert (ROOT/'qa/test_public_1_0_5_ulatek_viper.py').is_file()
 print('1.0.5 GATE PASS — Ulatek egg/wave -> viper -> stun')
+
+# 1.0.6: GOLD V5.2.8~V5.3.3 따라잡기 (BOSS-GUIDES V1.10 · 킬 판 결론 · 기믹 수행 체크 보드 · 똬리 정확도)
+_bg = (ROOT/'live/boss_guides_v1.py').read_text(encoding='utf-8')
+assert 'VERSION = "BOSS-GUIDES-V1.10"' in _bg and 'MYTHIC_IDS = (16, 233)' in _bg, '1.0.6: boss guides V1.10'
+assert '"ownerCd": {' not in _bg and '121471' not in _bg, '1.0.6: rogue owner cooldown line stays GOLD-only'
+for _m in ('v528_review', 'v529_board', 'raid_coiled_brief_v43', 'boss_mechanics.coiled_p1_closeout'):
+    assert (ROOT/'live'/(_m.replace('.', '/') + '.py')).is_file(), _m
+    assert f'live.{_m}' in (ROOT/'build_public_windows.py').read_text(encoding='utf-8'), f'1.0.6 hidden import missing: {_m}'
+assert 'import_module("live.boss_guides_v1")' in (ROOT/'live/v529_board.py').read_text(encoding='utf-8'), '1.0.6: frozen board fallback'
+_g = (ROOT/'nini_wcl_gui.py').read_text(encoding='utf-8')
+assert 'from live.v529_board import add_guide_pairs' in _g and 'from live.v528_review import fill_duration' in _g
+assert '"p1_guillotine_soak"' in _g and 'def _coiled_hf4_factual_glance(' in _g
+assert 'from .coiled_p1_closeout import analyze' in (ROOT/'live/boss_mechanics/engine.py').read_text(encoding='utf-8')
+assert 233 in __import__('ast').literal_eval((ROOT/'live/session_summary.py').read_text(encoding='utf-8').split('RAID_DIFFICULTIES = ', 1)[1].split('\n', 1)[0])
+for _p in ('live/display_patch.py', 'live/raid_chronology_index_v37.json', 'live/wow_calendar_sync.py'):
+    assert not (ROOT/_p).exists(), f'GOLD-only file found: {_p}'
+for _q in ('kill_review', 'board', 'nullify', 'coiled_accuracy'):
+    assert (ROOT/f'qa/test_public_1_0_6_{_q}.py').is_file(), _q
+print('1.0.6 GATE PASS — GOLD V5.2.8~V5.3.3 catch-up (Kith\'ix V1.10, kill review, board, Coiled accuracy)')

@@ -3,7 +3,7 @@ from __future__ import annotations
 import os, sys, subprocess
 from pathlib import Path
 ROOT = Path(__file__).resolve().parent
-VERSION = "1.0.5"
+VERSION = "1.0.6"
 
 def build_command(root=ROOT, python=None, data_sep=None):
     root=Path(root)
@@ -46,7 +46,10 @@ def build_command(root=ROOT, python=None, data_sep=None):
              '--hidden-import=live.raid_collapse_display_v38','--hidden-import=live.raid_readable_korean_v39',
              '--hidden-import=live.raid_glance_v40',
              # RC5.3: GOLD V5.2 트라이 화면 (링크 · P2 보호막 칸 · 암영폭탄/현신 접촉 카드)
-             '--hidden-import=live.v52_screen',str(root/'nini_raid_gui.py')]
+             '--hidden-import=live.v52_screen',
+             # 1.0.6: GOLD V5.2.8~V5.3.3 따라잡기 (킬 판 결론 · 기믹 수행 체크 보드 · 똬리 P1 단두대 소킹 · 전환 지연 관측)
+             '--hidden-import=live.v528_review','--hidden-import=live.v529_board','--hidden-import=live.raid_coiled_brief_v43',
+             '--hidden-import=live.boss_mechanics.coiled_p1_closeout',str(root/'nini_raid_gui.py')]
     return args
 
 def main():

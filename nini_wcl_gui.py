@@ -255,7 +255,7 @@ PIPELINE = WORKDIR / "nini_wcl_pipeline.py"
 ENGINE = WORKDIR / "engine"
 CHARACTERS = ()  # PUBLIC: private character registry disabled
 DEFAULT_PLAYER = ""  # PUBLIC: no default personal identity
-PUBLIC_APP_VERSION = "1.0.5"
+PUBLIC_APP_VERSION = "1.0.6"
 WCL_DIFFICULTY_MAP = {15: 4, 16: 5, 233: 5}
 
 STATUS_RANK = {"경고": 4, "주의": 3, "표본부족": 2, "정상": 1, "비교전용": 0}
@@ -2812,7 +2812,7 @@ class App(tk.Tk):
         self.b3641_try_cards = {}
         card_cols = 2 if self._compact_ui else 5
         card_keys = [
-            "p2_entry", "p1_orbs", "mind_control", "gravebound", "gloombomb_add",
+            "p2_entry", "p1_orbs", "p1_guillotine_soak", "mind_control", "gravebound", "gloombomb_add",
             "gloombomb_extra", "wail", "manifest", "soul_sever", "prior_add",
             "p2_entry_orbs",
         ]
@@ -3140,6 +3140,11 @@ class App(tk.Tk):
         session_date = self._nav_session_date() or "현재 세션"
         pairs = self._b3641_review_pairs(all_dates=False)
         all_pairs = self._b3641_review_pairs(all_dates=True)
+        try:  # 1.0.6 (GOLD V5.2.9): 엔진 기믹 판정이 없는 보스(키식스 등)도 결론 5줄로 보드에 보인다
+            from live.v529_board import add_guide_pairs as _v529_pairs
+            pairs = _v529_pairs(pairs, self._b3641_context_rows(all_dates=False))
+        except Exception:
+            pass
 
         # B37.3.9.8: skip the rebuild (and flicker) when nothing shown changed.
         _pre_sig = ("board-pre", enc, session_date, tuple(self._b3798_row_signature(r) for r, _rev in pairs or []))
@@ -3153,6 +3158,11 @@ class App(tk.Tk):
         self.b3641_board_rows = {}
 
         model = build_generic_board_summary(pairs)
+        try:  # 1.0.6 (GOLD V5.2.9)
+            from live.v529_board import augment_board as _v529_aug
+            model = _v529_aug(model)
+        except Exception:
+            pass
         self._b3641_board_model = model
         diff_name = ""
         for _r, _rev in pairs or []:
@@ -3631,11 +3641,57 @@ class App(tk.Tk):
         except Exception:
             pass
 
+    def _v528_no_judgment_text(self):
+        """1.0.6 (GOLD V5.2.8): 판정 순서가 비었을 때 결론 줄([추정] 첫 실수 · 킬 사망 정리)과 엇갈리지 않는 문구."""
+        try:
+            from live.v528_review import no_judgment_text
+            return no_judgment_text(getattr(self, "_b3641_try_row", None) or {})
+        except Exception:
+            return "검증된 실수 없음"
+
     def _v40_restore_legacy(self):
         """Restore V3.9's original conclusion rows with their exact packing."""
         for widget, pack in getattr(self, "_v40_legacy_pack", ()):
             if not widget.winfo_manager():
                 widget.pack(**pack)
+
+    @staticmethod
+    def _coiled_hf4_factual_glance(result, row, summary, priority_model=None):
+        """HF4: expose HF3's *observed* late-P1 rupture in the three V4 rows.
+
+        This is presentation-only.  Never promote an observation to a B31
+        collapseDirect verdict, an assigned player's fault, or a DPS failure.
+        Unrelated bosses, non-mythic/kill/reset/stale rows and reviews without
+        HF3's exact evidence contract retain all three original V4 lines.
+        """
+        if not isinstance(result, (tuple, list)) or len(result) != 3:
+            return result
+        if not isinstance(row, dict) or not isinstance(summary, dict):
+            return result
+        if (str(row.get("result") or "").lower() != "wipe"
+                or row.get("mechanicReviewStale")):
+            return result
+        try:
+            if int(row.get("encounterID") or 0) != 3429 or int(row.get("difficultyID") or 0) != 16:
+                return result
+        except (TypeError, ValueError):
+            return result
+        # Preserve any already verified *direct* cause over this observation.
+        if isinstance(priority_model, dict) and priority_model.get("collapseDirect"):
+            return result
+        observation = summary.get("observedCollapse")
+        if not isinstance(observation, dict):
+            return result
+        if (observation.get("kind") != "p1_late_rupture_observation"
+                or observation.get("status") != "observed"
+                or observation.get("causality") != "rupture_hit_and_death_time_order_only"):
+            return result
+        what = str(observation.get("observation") or "").strip()
+        if not what or "맹독성 파열" not in what or "집단 사망" not in what:
+            return result
+        # Only the first two lines change. Keep V4.3's next-pull advice as-is.
+        relation = "맹독성 파열 피해와 다수 사망이 같은 시간대에 관측됨 · 전환 지연의 근본 원인 미확정"
+        return (what, relation, result[2])
 
     def _v40_refresh_glance(self, row):
         """Display only: reset/fake/Kill/stale or missing timestamp use legacy UI."""
@@ -3688,6 +3744,28 @@ class App(tk.Tk):
                 result = clarify_glance(result, row, _v42_idx)
         except Exception:
             pass
+        # V4.3: Raid-first next-pull checks from already VERIFIED BossMechanic facts.
+        # Presentation only; a generic root-cause candidate is never promoted.
+        try:
+            from live.raid_coiled_brief_v43 import refine_glance
+            result = refine_glance(result, row, getattr(self, "_b3641_try_model", None))
+        except Exception:
+            pass  # Keep V4.2's original conclusion if the add-on is unavailable.
+        # HF4: the legacy three-cell V4 path above only uses the simple summary's
+        # action.  Reuse the *same saved review* already loaded by layout to show
+        # HF3's independently verified collapse observation.  Never read raw logs
+        # or modify the saved review/cache; failure keeps the original V4 text.
+        try:
+            if (int(row.get("encounterID") or 0) == 3429
+                    and int(row.get("difficultyID") or 0) == 16):
+                cached = getattr(self, "_v35_review_for", None)
+                review = cached[1] if cached and cached[0] is row else load_mechanic_review(row)
+                if isinstance(review, dict) and review:
+                    hf3_summary = build_simple_try_summary(review, row)
+                    result = self._coiled_hf4_factual_glance(
+                        result, row, hf3_summary, getattr(self, "_b3641_try_model", None))
+        except Exception:
+            pass  # Keep existing V4.3 conclusion if saved HF3 evidence is absent.
         for var, value in zip(self.v40_overview_vars, result):
             var.set(value)
         if not box.winfo_manager():
@@ -4940,6 +5018,11 @@ class App(tk.Tk):
         review = load_mechanic_review(row) if row else {}
         self._b3641_try_review = review if isinstance(review, dict) else {}
         model = build_try_priority_model(review, row or {}) if review else {"supported": False, "cards": [], "timeline": [], "evidence": []}
+        try:  # 1.0.6 (GOLD V5.2.8): 전용 판정 없는 보스(키식스 등)도 시간축 끝 = 전투 시간
+            from live.v528_review import fill_duration as _v528_fill
+            model = _v528_fill(model, row, review)
+        except Exception:
+            pass
         self._b3641_try_model = model
         if not model.get("supported"):
             self.b3641_try_scope_var.set("현재 트라이 · 전용 기믹 판정 데이터 없음")
@@ -4996,7 +5079,17 @@ class App(tk.Tk):
             self.b3641_major_var.set("주요 사고 · " + str(model.get("majorIncidentText") or "확인 불가"))
             self.b3641_collapse_var.set("붕괴 직결 · " + str(model.get("collapseText") or "확인 불가"))
             self.b3641_footer_var.set(str(model.get("footer") or ""))
+            # 1.0.6 (GOLD NINI_GRID_HF1): compact the actual generic boss cards so Coiled-only
+            # slots do not leave holes in the five-column layout.
+            _visible_cols = 2 if self._compact_ui else 5
+            _visible_slot = 0
             for card in model.get("cards") or []:
+                _widget = self.b3641_try_cards.get(card.get("key"))
+                if _widget is not None:
+                    _widget["frame"].grid_configure(
+                        row=_visible_slot // _visible_cols,
+                        column=_visible_slot % _visible_cols)
+                    _visible_slot += 1
                 self._set_b3641_card(card)
             self._replace_readonly_text(self.b365_shield_panel, str(model.get("sidePanelText") or "보조 관측 없음"))
             self._replace_readonly_text(self.b3641_try_evidence, str(model.get("evidenceText") or "추가 근거 없음"))
@@ -5010,7 +5103,12 @@ class App(tk.Tk):
 
         # Coiled uses all fixed slots; restore them after a generic boss may
         # have hidden unused cards.
-        for target in self.b3641_try_cards.values():
+        # 1.0.6 (GOLD NINI_GRID_HF1): restore original Coiled slot positions when switching
+        # back from a compacted generic boss. All existing Coiled cards remain.
+        _coiled_cols = 2 if self._compact_ui else 5
+        for _slot_idx, target in enumerate(self.b3641_try_cards.values()):
+            target["frame"].grid_configure(
+                row=_slot_idx // _coiled_cols, column=_slot_idx % _coiled_cols)
             target["frame"].grid()
 
         if hasattr(self, "b365_shield_box"):
@@ -6171,6 +6269,9 @@ class App(tk.Tk):
                 else:
                     self._bind_b3641_timeline_tip(c, item, tip)
                     self._bind_b3641_timeline_tip(c, txt, tip)
+            if rows_mode and int(glyph.get("v528Count") or 1) > 1:   # 1.0.6 (GOLD V5.2.8): 겹친 같은 기믹은 하나로 · ×n
+                c.create_text(x + _px(icon_size)/2 + 1, y + _px(icon_size)/2 + 1, anchor="sw", text=f"×{int(glyph.get('v528Count'))}",
+                              fill="#e9edf2", font=(FONT_BODY, 7, "bold"))
             numbers = list(glyph.get("judgmentNumbers") or ([] if not glyph.get("judgmentNumber") else [glyph.get("judgmentNumber")]))
             if numbers:
                 number_text = "·".join(str(n) for n in numbers[:3])
@@ -6235,7 +6336,7 @@ class App(tk.Tk):
         # without moving to another panel or losing the numbered mapping.
         c.create_text(6, judgment_top, anchor="nw", text="판정 순서", fill="#cfd5db", font=(FONT_BODY, 8, "bold"))
         if not judgments:
-            c.create_text(left, judgment_top, anchor="nw", text="검증된 실수 없음", fill="#8f98a3", font=(FONT_BODY, 8))
+            c.create_text(left, judgment_top, anchor="nw", text=self._v528_no_judgment_text(), fill="#8f98a3", font=(FONT_BODY, 8))
         else:
             role_name = {"collapse_driver":"붕괴 직결", "first_mistake":"첫 실수", "additional_failure":"추가 실수", "recovered_on_kill":"킬에서 회복"}
             for visual_idx, j in enumerate(shown_judgments, start=1):
@@ -6415,7 +6516,7 @@ class App(tk.Tk):
         jy = chart_bottom + tick_h + 2
         c.create_text(6, jy, anchor="nw", text="판정 순서", fill="#cfd5db", font=(FONT_BODY, 8, "bold"))
         if not judgment_events:
-            c.create_text(left, jy, anchor="nw", text="검증된 실수 없음", fill="#8f98a3", font=(FONT_BODY, 8))
+            c.create_text(left, jy, anchor="nw", text=self._v528_no_judgment_text(), fill="#8f98a3", font=(FONT_BODY, 8))
         else:
             role_name = {
                 "collapse_driver": "붕괴 직결", "first_mistake": "첫 실수",

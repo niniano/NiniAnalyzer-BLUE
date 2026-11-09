@@ -4741,6 +4741,9 @@ def _analyze_coiled(events: Iterable[dict], encounter: dict, rule: dict, *, sour
         })
 
     mythic_rule_applied = _mythic(encounter)
+    # NINI_P1_CLOSEOUT_V1_SAFE_HOOK: derive independent P1 evidence, no verdict promotion here.
+    from .coiled_p1_closeout import analyze as _nini_p1_closeout_analyze
+    _nini_p1_closeout = _nini_p1_closeout_analyze(rows, mythic=mythic_rule_applied, encounter=encounter)
     strategy_assignments = _strategy_slots_by_guillotine(breaths, orb_waves, guillotine_markers) if mythic_rule_applied else {}
 
     timeline = []
@@ -5603,6 +5606,8 @@ def _analyze_coiled(events: Iterable[dict], encounter: dict, rule: dict, *, sour
             "orbWaves": orb_waves,
             "orbWaveCount": len(orb_waves),
             "guillotineMarkers": guillotine_markers,
+            # NINI_P1_CLOSEOUT_V1_SAFE_HOOK: candidate and verified evidence kept separate.
+            "p1Closeout": _nini_p1_closeout,
             "guillotineCount": len(guillotine_markers),
             "sameNameCleaveCompletedCount": len(same_name_cleaves),
             "ignoredSameNameCleaveCount": len(ignored_same_name),
@@ -11140,6 +11145,11 @@ def link_review_to_b31(review: dict | None, b31_review: dict | None) -> dict | N
                 out["collapseDirect"] = dict(matched)
             # Preserve the older 1-second diagnostic inside observations, but
             # user-facing collapse anchoring now follows the canonical B31 cluster.
+    # NINI_P1_CLOSEOUT_V1_SAFE_HOOK: only exact spell->death + B31 match can set collapseDirect.
+    if out.get("bossKey") == "coiled_altar":
+        from .coiled_p1_closeout import attach as _nini_p1_closeout_attach
+        out = _nini_p1_closeout_attach(out, b31_review)
+        link = out.get("collapseLink") or link
     if out.get("bossKey") == "buried_sentinel":
         exact = _sentinel_exact_collapse_link(out, b31_review)
         if exact:

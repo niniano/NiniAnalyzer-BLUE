@@ -89,7 +89,21 @@ def ability_rows(glyphs, x_for, icon_px: int = ROW_ICON):
         row.setdefault("xs", []).append(raw["x"])
         raw["v45Color"] = row["color"]
         placed.append(raw)
-    return placed, [], rows
+    # V5.2.8: 같은 줄에서 아이콘이 겹치는 같은 기믹(부화 4개가 거의 동시 등)은 하나로 그리고 ×n 을 붙인다.
+    #         판정 번호가 붙은(실패·경고) 글리프는 합치지 않는다. 줄의 횟수(count)는 그대로.
+    merged: list[dict] = []
+    keep_at: dict[int, dict] = {}
+    for g in placed:
+        k = keep_at.get(g["lane"])
+        plain = not g.get("judgmentNumbers") and str(g.get("status") or "") not in ("failed", "warning")
+        if (k is not None and plain and k.get("v528Plain") and g["x"] - k["x"] < icon_px * 1.15):
+            k["v528Count"] = int(k.get("v528Count") or 1) + 1
+            k.setdefault("v528Secs", [k.get("sec")]).append(g.get("sec"))
+            continue
+        g["v528Plain"] = plain
+        keep_at[g["lane"]] = g
+        merged.append(g)
+    return merged, [], rows
 
 
 def row_outline(glyph: dict, outline: str) -> str:

@@ -3,6 +3,11 @@
 대상: 스조라크(3420) · 쌍둥이 송곳니(3421) · 매장된 파수꾼(3445) · 악성의 바쉬니크(3455)
       · 영혼살무사 네크잘리(3470) · 길 잃은 탐험가(3497) · V1.5: 키식스(3513, 키식스 해방)
 V1.6: 키식스 신화 보강 · 다른 공대 킬 4개 기준선 · 인벤 보스 이동 HP(65%·38%·25%) · 무효화 중첩 · 암흑 황폐 교대 · 공포 중 리혼/결의
+V1.7 (GOLD V5.2.8 · 2026-11-04 키식스 신화 첫킬): 233(유동 신화)도 신화로 · 킬 판 결론(사망 정리·다음 주·HP 체크·단계 비교)
+      · 붕괴 시작: 초반 몇 명 동시 사망 뒤 공대가 10초 넘게 버티고 나중에 진짜 무너지면 나중 쪽 · 우리 키식스 킬 기준선
+V1.8 (GOLD V5.2.9 · 키식스 5풀): 맹독 포효 웨이브 묶음(바로 앞 시전 기준) · 키식스 확정 원인은 붕괴 -10~+15초 사망만
+      · 붕괴 뒤 이어진 다른 확정 기믹은 「→ 결과」로 붙임 · 「기믹 수행 체크」 칸 재료(checks)
+V1.9 (GOLD V5.3.0): 키식스 무효화 3중첩 즉사(1308877) 사망은 「무효화 3중첩 즉사」로 묶음 (예전엔 「2중첩」으로 잘못 묶임)
 
 기준: Viserio 쿨기 공략 7개 (사용자 제공 2026-10-21) + 이 PC 로그(파수꾼 신화 8트, 나머지 영웅)에서 찾은 주문 ID.
 판정 재료: raid_facts.json(사망·마지막 피격 주문·적 시전 요약·로스터) + raw.log 의 보스 HP 만.
@@ -19,7 +24,8 @@ import math
 from collections import Counter
 from pathlib import Path
 
-VERSION = "BOSS-GUIDES-V1.6"
+VERSION = "BOSS-GUIDES-V1.10"
+MYTHIC_IDS = (16, 233)       # V1.7: 233 = 유동 신화 (키식스 해방 신화가 이 번호로 저장됨)
 BERSERK = {26662}               # 광폭화 (파수꾼 신화 7:00 관측)
 HEALER_SPECS = {65, 105, 256, 257, 264, 270, 1468}
 
@@ -226,7 +232,7 @@ SPECS: dict[int, dict] = {
             1308674: ("일월식 파편", "암흑 때 일월식 파편은 탱커 위주로 리아드린 앞에서 가로막기 · 맞을 땐 다른 사람과 3미터 떨어져 나눠 맞기."),
             1304946: ("암흑 황폐 (탱)", "암흑 황폐마다 도발 교대 · 대상 탱커는 공대에서 떨어져 맞기."),
             1304947: ("암흑 황폐 (탱)", "암흑 황폐마다 도발 교대 · 대상 탱커는 공대에서 떨어져 맞기."),
-            1308877: ("무위조각 (무효화 중첩)", "2단계 무위 관문은 공대 밖에 서로 떨어뜨려 깔기 · 날아오는 무위조각 피하기 (신화는 무효화 3중첩 즉사)."),
+            1308877: ("무효화 중첩 즉사", "무위 관문은 공대 밖에 서로 떨어뜨려 깔기 · 날아오는 무위조각 피하기 · 2중첩이면 조각 경로에서 완전히 빠지기 (신화 3중첩 즉사 · 면역기·보호막이면 버팀)."),
             1320010: ("부정 만료", "부정 받은 탱커는 끝나기 전에 무위 관문에 닿아 지우기 (폭발적인 재고정 때 공대 생존기)."),
             1304040: ("정신독침 (알 미처리)", "맹독 거한·공허술사·딱정벌레가 남긴 알을 부화 전에 깨기."),
             1301668: ("공허무리", "웨이브 시작 공허무리+딱정벌레 줄이 가장 아픈 힐 구간 · 힐 쿨 배정."),
@@ -244,11 +250,25 @@ SPECS: dict[int, dict] = {
         #   인벤 「이 공포 타이밍에 쓰면 바로 터져서 공대 전멸」 · 영웅 10/16 2트: 대상 아닌 사람이 쓴 결의는 아무 일 없음 → 대상 본인만 ⚠
         "raw_checks": {"stack": {1308875: ("무효화", 2, 3)}, "tankStack": {1304948: ("암흑 황폐", 2)},
                        "fear": (1304045, 1304046), "fearImmune": {49039: "리치의 혼", 104773: "영원한 결의"}},
+        "hardInCollapse": True,   # V1.7
+        # V1.8: 「기믹 수행 체크」 칸 (엔진 기믹 규칙이 없는 보스용 · 사망·동시 피격·raw 중첩만 · 붕괴 뒤 사망은 안 셈)
+        "checks": (
+            {"title": "빛구슬 (소멸)", "deaths": (1304424,), "cast": 1304424},
+            {"title": "빛 안 (숨막히는 암흑)", "deaths": (1303257, 1303165), "hits": (1303257,), "cast": 1302951},
+            {"title": "쫄·알 처리 (어둠의 광란)", "deaths": (1303261, 1304040), "hits": (1303261,), "cast": 1302951},
+            {"title": "딱정벌레 (소화액)", "deaths": (1302319,)},
+            {"title": "일월식 파편", "deaths": (1308674,), "cast": 1302951},
+            {"title": "촉수 · 공허흉터", "deaths": (1303685, 1304950)},
+            {"title": "무효화 중첩 (2단계)", "stack": 1308875, "stage": "2단계"},
+            {"title": "탱 교대 (암흑 황폐)", "tank": True},
+            {"title": "공포 중 리혼·결의", "fearImmune": True},
+        ),
         "hard": ({"cast": 1302951, "deaths": (1303261,), "min": 3, "atDeath": True, "label": "쫄·알 미처리 → 어둠의 광란",
                   "advice": "숨막히는 암흑(기력 100) 전에 쫄과 알을 모두 처치 · 웨이브 딜 배분(공허술사 먼저, 거한은 공허술사 위로) 확인."},
                  {"cast": 1304424, "deaths": (1304424,), "min": 3, "atDeath": True, "label": "빛의 은총 못 먹음 → 소멸",
                   "advice": "소멸 시전 중 빛구슬 한 사람 하나씩 (떨어질 원에 미리 들어가기) · 못 먹은 사람은 면역기·강한 생존기."}),
-        "avoid": (1303685, 1304950, 1302336, 1304424, 1303165, 1303257, 1308877, 1304047, 1304046),
+        # V1.7: 소화액(딱정벌레를 사람 쪽에서 터뜨림)도 피할 수 있는 실수 (11/04 신화 1트 0:18 첫 사망)
+        "avoid": (1303685, 1304950, 1302336, 1304424, 1303165, 1303257, 1308877, 1304047, 1304046, 1302319),
         "windows": (("웨이브 딱정벌레", 1302884, -11, 25, "웨이브 시작~딱정벌레 줄: 공허무리에 힐 쿨, 딱정벌레는 하나씩 · 줄 뒷부분에 개인 생존기 (2웨이브가 더 셈)."),
                     ("숨막히는 암흑", 1302951, 0, 50, "암흑 44초: 빛 안에 서기 · 소멸 빛구슬 · 공포는 밖으로 · 손아귀 흡수 지우기 · 비명(1:30·3:19)에 공대 뎀감.")),
         "abs_windows": (),
@@ -267,6 +287,9 @@ SPECS: dict[int, dict] = {
 # 우리 공대 신화 킬 (GOLD 기록 2026-09-30 · 10/12 · 10/18): 킬 시간과 30초마다 보스 HP 평균.
 # 전멸 트라이 「딜·힐」 줄에 「같은 시각 우리 킬 HP」로 붙는다. 다른 공대 기준선은 WCL 자료 받은 뒤 따로.
 OUR_KILLS = {
+    # V1.7: 키식스 신화 첫킬 2026-11-04 (5:01 · 3번째 풀)
+    3513: {"kills": (301,), "hp": ((30, 86.2), (60, 78.2), (90, 68.8), (120, 57.6), (150, 54.7), (180, 47.9), (210, 38.3),
+                                  (240, 28.6), (270, 21.8), (300, 1.0))},
     3420: {"kills": (344, 349), "hp": ((30, 85.1), (60, 77.9), (90, 71.2), (120, 61.2), (150, 52.2), (180, 46.0), (210, 38.8),
                                       (240, 30.4), (270, 20.8), (300, 13.1), (330, 5.1))},
     3421: {"kills": (378, 376), "hp": ((30, 83.7), (60, 76.3), (90, 68.7), (120, 61.7), (150, 55.1), (180, 48.0), (210, 40.7),
@@ -359,8 +382,9 @@ def read_json(path) -> dict:
         return {}
 
 
-def cast_times(facts: dict, spell_ids, gap: float = 3.0, event: str | None = None) -> list[float]:
-    """raid_facts.enemyCastSummary 에서 그 주문 시전 시각 (시작 우선, 가까운 건 하나로). event="SUCCESS" 면 완료만."""
+def cast_times(facts: dict, spell_ids, gap: float = 3.0, event: str | None = None, chain: bool = False) -> list[float]:
+    """raid_facts.enemyCastSummary 에서 그 주문 시전 시각 (시작 우선, 가까운 건 하나로). event="SUCCESS" 면 완료만.
+    V1.7 chain=True: 바로 앞 시전과의 간격으로 묶는다 (키식스 맹독 포효 2:05·2:22·2:37 이 한 웨이브)."""
     rows = [r for r in ((facts or {}).get("enemyCastSummary") or []) if int(r.get("spellID") or 0) in set(spell_ids)]
     if event:
         use = [r for r in rows if event in str(r.get("event") or "")]
@@ -369,9 +393,11 @@ def cast_times(facts: dict, spell_ids, gap: float = 3.0, event: str | None = Non
         use = starts or rows
     times = sorted(float(t) for r in use for t in (r.get("times") or []) if t is not None)
     out: list[float] = []
+    prev = None
     for t in times:
-        if not out or t - out[-1] > gap:
+        if not out or t - (prev if chain and prev is not None else out[-1]) > gap:
             out.append(round(t, 3))
+        prev = t
     return out
 
 
@@ -470,7 +496,7 @@ def _ts_of(text: str):
 
 def scan_raw_checks(raw_path, start_ts: str, checks: dict | None) -> dict:
     """V1.6 · 보스별 추가 raw 확인 (중첩 디버프 · 탱 중첩 · 공포 구간 · 공포 중 면역기). 판정 재료만 모은다."""
-    out = {"available": False, "stack": {}, "tankStack": [], "fear": [], "fearImmune": []}
+    out = {"available": False, "stack": {}, "tankStack": [], "fear": [], "fearImmune": [], "ownerCd": []}
     p = Path(raw_path)
     checks = checks or {}
     start = _ts_of(start_ts)
@@ -481,7 +507,8 @@ def scan_raw_checks(raw_path, start_ts: str, checks: dict | None) -> dict:
     fear_cfg = checks.get("fear") or ()
     fear_ids = {int(x) for x in (fear_cfg if isinstance(fear_cfg, (tuple, list, set)) else (fear_cfg,)) if x}
     immune = {int(k): v for k, v in (checks.get("fearImmune") or {}).items()}
-    want = set(stack_ids) | set(tank_ids) | set(immune) | fear_ids
+    owner_ids = {int(k) for k in (checks.get("ownerCd") or {})}
+    want = set(stack_ids) | set(tank_ids) | set(immune) | fear_ids | owner_ids
     toks = [f",{i},".encode() for i in want]
     fear_on: dict[str, set] = {}
     fear_spans: list[list[float]] = []
@@ -505,6 +532,14 @@ def scan_raw_checks(raw_path, start_ts: str, checks: dict | None) -> dict:
                     continue
                 sec = round((t - start).total_seconds(), 3)
                 who = short(f[6])
+                if sid in owner_ids and ev == "SPELL_CAST_SUCCESS":
+                    try:
+                        mine = f[1].startswith("Player") and int(f[3], 16) & 0x1
+                    except ValueError:
+                        mine = False
+                    if mine:
+                        out["ownerCd"].append({"sec": sec, "name": short(f[2]), "spellID": sid})
+                    continue
                 if sid in stack_ids and ev in ("SPELL_AURA_APPLIED", "SPELL_AURA_APPLIED_DOSE"):
                     n = 1 if ev == "SPELL_AURA_APPLIED" else int(float(f[13] or 1)) if len(f) > 13 else 1
                     rec = out["stack"].setdefault(sid, {})
@@ -567,7 +602,7 @@ def stages(spec: dict, facts: dict, duration: float, kill: bool) -> list[dict]:
             if sid is None:
                 bounds.append((label, 0.0))
                 continue
-            ts = cast_times(facts, (sid,), gap=float(st.get("gap") or 20))
+            ts = cast_times(facts, (sid,), gap=float(st.get("gap") or 20), chain=True)   # V1.7
             t = ts[int(nth) - 1] + float(off) if len(ts) >= int(nth) else None
             bounds.append((label, max(0.0, t) if t is not None else None))
         # 뒤 단계가 앞 단계보다 먼저 잡히면 (예: 2단계가 3웨이브 전에) 빈 단계는 건너뛴다
@@ -654,10 +689,27 @@ def collapse_at(deaths: list[dict], roster_n: int) -> float | None:
             j += 1
         if j - i + 1 >= 3:
             clusters.append(i)
-    for i in clusters:
-        tail = [d["sec"] for d in deaths[i:]]
-        if all(b - a <= 30.0 for a, b in zip(tail, tail[1:])):
-            return deaths[i]["sec"]
+    # V1.7: 몇 명 동시 사망(예: 소멸 3명) 뒤 공대가 10초 넘게 버티고, 나중에 15초 안에 5명+(로스터 25%) 무너지는
+    #       무리가 따로 있으면 그쪽이 붕괴 (키식스 11/04 1트: 2:25 소멸 3명 → 2:48 어둠의 광란 13명)
+    dense_n = max(5, int(math.ceil(roster_n * 0.25)))
+
+    def _dense(i):
+        t0 = deaths[i]["sec"]
+        return sum(1 for d in deaths[i:] if d["sec"] - t0 <= 15.0) >= dense_n
+
+    def _pause_after(i):
+        t0 = deaths[i]["sec"]
+        j = i
+        while j + 1 < len(deaths) and deaths[j + 1]["sec"] - t0 <= 3.0:
+            j += 1
+        return deaths[j + 1]["sec"] - deaths[j]["sec"] if j + 1 < len(deaths) else 0.0
+
+    cands = [i for i in clusters
+             if all(b - a <= 30.0 for a, b in zip([d["sec"] for d in deaths[i:]], [d["sec"] for d in deaths[i + 1:]]))]
+    for n_, i in enumerate(cands):
+        if not _dense(i) and _pause_after(i) >= 10.0 and any(_dense(k) for k in cands[n_ + 1:]):
+            continue
+        return deaths[i]["sec"]
     if clusters:
         return deaths[clusters[0]]["sec"]
     k = max(5, int(math.ceil(roster_n * 0.3)))
@@ -671,13 +723,140 @@ def _label(spec: dict, d: dict) -> tuple[str, str | None]:
     return d.get("spell") or "?", None
 
 
+LETHAL_STACK_DEATH = {1308877: ("무효화 3중첩 즉사", "무효화 중첩 즉사")}   # V1.9 키식스 · 즉사 주문 → (신화, 그 외) 묶음 이름
+#   신화는 3중첩 즉사 (11/04 두 킬 실측) · 영웅 이하는 더 많이 쌓여야 즉사 (와우보초 영웅 공략: 5중첩)
+
+
+def _death_group(spec: dict, d: dict, rawc: dict | None, mythic: bool = True) -> tuple[str, str | None]:
+    """V1.7 킬 판 사망 묶음: 그 사람이 죽기 전 중첩 디버프(무효화 등)가 경고 이상이면 그 중첩으로 묶는다.
+    V1.9: 즉사 주문(무효화 3중첩 즉사 1308877)으로 죽었으면 마지막 중첩 기록이 2여도 「3중첩 즉사」
+          (3중첩이 되는 순간 즉사 피해가 같이 들어와 3중첩 기록이 안 남는 경우가 많음 · 11/04 두 킬 실측)."""
+    if d.get("spellID") in LETHAL_STACK_DEATH or d.get("rawSpellID") in LETHAL_STACK_DEATH:
+        names = LETHAL_STACK_DEATH.get(d.get("spellID")) or LETHAL_STACK_DEATH.get(d.get("rawSpellID"))
+        m = (spec.get("mass") or {}).get(int(d.get("spellID") or d.get("rawSpellID") or 0))
+        return names[0 if mythic else 1], (m[1] if m else None)
+    for sid, (slab, warn, _lethal) in ((spec.get("raw_checks") or {}).get("stack") or {}).items():
+        v = (((rawc or {}).get("stack") or {}).get(int(sid)) or {}).get(d.get("name"))
+        if v and int(v.get("max") or 0) >= warn and float(v.get("sec") or 0) <= float(d.get("sec") or 0) + 0.5:
+            m = (spec.get("mass") or {}).get(int(sid))
+            # V1.9: 즉사가 아니면 실제 마지막 피격 이름에 중첩 상태를 붙인다 (예: 여덟 번의 일월식 · 무효화 2중첩)
+            return f"{_label(spec, d)[0]} · {slab} {int(v['max'])}중첩", (m[1] if m else None)
+    return _label(spec, d)
+
+
+def mechanic_checks(spec: dict, facts: dict, deaths: list, rawc: dict | None, chips: list, collapse, kill: bool,
+                    duration: float, mythic: bool = True) -> list[dict]:
+    """V1.8 「기믹 수행 체크」 칸 재료: {title, status(success/failed/warning/unknown), value, note}.
+    value 가 「적용 안 함」으로 시작하면 화면에서 숨는다 (그 기믹이 아직 안 나온 트라이)."""
+    cfg = spec.get("checks") or ()
+    if not cfg:
+        return []
+    rawc = rawc or {}
+    cut = duration if kill or collapse is None else collapse + 6.0
+    cast_ids = {int(r.get("spellID") or 0) for r in (facts.get("enemyCastSummary") or [])}
+    reached = {c["name"] for c in chips if c.get("status") in ("done", "fail")}
+    out = []
+    for c in cfg:
+        title = c["title"]
+        if c.get("cast") and not [t for t in cast_times(facts, (c["cast"],)) if t <= cut] and c["cast"] not in cast_ids:
+            out.append({"title": title, "status": "unknown", "value": "적용 안 함 · 아직 안 나옴", "note": ""})
+            continue
+        if c.get("stack"):
+            if c.get("stage") and c["stage"] not in reached:
+                out.append({"title": title, "status": "unknown", "value": "적용 안 함 · " + c["stage"] + " 전", "note": ""})
+                continue
+            if not rawc.get("available"):
+                out.append({"title": title, "status": "unknown", "value": "원본 로그 없음", "note": ""})
+                continue
+            rec = (rawc.get("stack") or {}).get(int(c["stack"])) or {}
+            hi = {n: v for n, v in rec.items() if v["sec"] <= cut}
+            # V1.9: 3중첩 즉사로 죽은 사람은 3중첩 기록이 없어도 3중첩으로 센다
+            killed3 = {d["name"] for d in deaths if (d.get("spellID") in LETHAL_STACK_DEATH or d.get("rawSpellID") in LETHAL_STACK_DEATH)
+                       and d["sec"] <= cut}
+            n3 = sorted({n for n, v in hi.items() if v["max"] >= 3} | killed3)
+            n2 = sorted(n for n, v in hi.items() if v["max"] == 2 and n not in killed3)
+            if n3:
+                out.append({"title": title, "status": "failed", "value": (f"3중첩 {len(n3)}명" if mythic else f"즉사 중첩 {len(n3)}명"),
+                            "note": ", ".join(n3[:3])})
+            elif n2:
+                out.append({"title": title, "status": "warning", "value": f"2중첩 {len(n2)}명", "note": ", ".join(n2[:3])})
+            else:
+                out.append({"title": title, "status": "success", "value": "2중첩 없음", "note": ""})
+            continue
+        if c.get("tank"):
+            if not rawc.get("available"):
+                out.append({"title": title, "status": "unknown", "value": "원본 로그 없음", "note": ""})
+                continue
+            miss = [e for e in (rawc.get("tankStack") or []) if e["sec"] <= cut]
+            out.append({"title": title, "status": "warning" if miss else "success",
+                        "value": f"2중첩 {len(miss)}번" if miss else "교대 정상",
+                        "note": ", ".join(f"{e['name']} {mmss(e['sec'])}" for e in miss[:2])})
+            continue
+        if c.get("fearImmune"):
+            if not rawc.get("available"):
+                out.append({"title": title, "status": "unknown", "value": "원본 로그 없음", "note": ""})
+                continue
+            bad = [e for e in (rawc.get("fearImmune") or []) if e.get("target") and e["sec"] <= cut]
+            out.append({"title": title, "status": "failed" if bad else "success",
+                        "value": f"공포 대상 {len(bad)}명 사용" if bad else "없음",
+                        "note": ", ".join(f"{e['name']} {mmss(e['sec'])}" for e in bad[:2])})
+            continue
+        ids = set(c.get("deaths") or ())
+        dd = [d for d in deaths if (d.get("spellID") in ids or d.get("rawSpellID") in ids) and d["sec"] <= cut]
+        hit_names = set()
+        for r in (facts.get("simultaneousDamage") or []):
+            try:
+                if int(r.get("spellID") or 0) in set(c.get("hits") or ()) and float(r.get("sec") or 0) <= cut:
+                    hit_names.update(short(x) for x in (r.get("players") or []))
+            except (TypeError, ValueError):
+                continue
+        if dd:
+            out.append({"title": title, "status": "failed", "value": f"사망 {len(dd)}명",
+                        "note": f"첫 {mmss(dd[0]['sec'])} · " + ", ".join(d["name"] for d in dd[:3])})
+        elif hit_names:
+            out.append({"title": title, "status": "warning", "value": f"{len(hit_names)}명 맞음 · 사망 없음", "note": ""})
+        else:
+            out.append({"title": title, "status": "success", "value": "사망 없음", "note": ""})
+    return out
+
+
+def owner_cd_line(cfg: dict | None, rec: list | None, hp: list | None, duration: float, kill: bool) -> str | None:
+    """V1.7: 로그 주인 주요 쿨기 사용 시각 · 쿨이 돌아온 뒤 5초 넘게 늦은 사용과 킬 직전(보스 5% 이하) 사용 표시.
+    전멸 판에서는 늦은 사용이 있을 때만 보인다."""
+    if not cfg or not rec:
+        return None
+    out = []
+    for sid, (lab, cd) in cfg.items():
+        uses = sorted((e for e in rec if int(e.get("spellID") or 0) == int(sid)), key=lambda e: e["sec"])
+        if not uses:
+            continue
+        parts, late = [], False
+        for i, e in enumerate(uses):
+            t = float(e["sec"])
+            tags = []
+            if i:
+                delay = t - (float(uses[i - 1]["sec"]) + float(cd))
+                if delay >= 5.0:
+                    tags.append(f"쿨 돌아온 뒤 {delay:.0f}초")
+                    late = True
+            h = hp_at(hp, t) if hp else None
+            if kill and h is not None and h <= 5.0:
+                tags.append(f"보스 {h:.0f}%")
+                late = True
+            parts.append(mmss(t) + (f" ({' · '.join(tags)})" if tags else ""))
+        if late or kill:
+            out.append(f"{uses[0].get('name') or '나'} {lab}  " + " · ".join(parts)
+                       + (" → 늦게 쓰면 다음 것도 밀림" if late else ""))
+    return " / ".join(out) or None
+
+
 # ---------------------------------------------------------------- 결론 다섯 줄
 
 def build(meta: dict, facts: dict, hp: list | None = None, rawc: dict | None = None) -> dict:
     enc = int(meta.get("encounterID") or (facts.get("encounter") or {}).get("encounterID") or 0)
     spec = SPECS.get(enc)
     # 우리 킬 기준선은 신화 킬로 만든 것이라 신화 트라이에만 붙인다 (영웅·일반은 비교 안 함).
-    mythic = int(meta.get("difficultyID") or (facts.get("encounter") or {}).get("difficultyID") or 0) == 16
+    mythic = int(meta.get("difficultyID") or (facts.get("encounter") or {}).get("difficultyID") or 0) in MYTHIC_IDS
     duration = float(meta.get("durationSec") or 0)
     result = str(meta.get("result") or "").lower()
     kill = result == "kill"
@@ -727,6 +906,12 @@ def build(meta: dict, facts: dict, hp: list | None = None, rawc: dict | None = N
             advice = "딜 부족: 쫄·전환 딜 배분 확인, 블러드·물약 타이밍, 붕괴 전 딜러 사망 줄이기."
         for h in spec.get("hard") or ():
             hit = [d for d in deaths if d.get("spellID") in h["deaths"] or d.get("rawSpellID") in h["deaths"]]
+            if collapse is not None and spec.get("hardInCollapse"):
+                # V1.7 (키식스만): 붕괴 -10초~+15초 안에서 min 명 넘게 죽어야 원인 · 붕괴 한참 전 사망은 세지 않음
+                #   (11/04 4트: 1:18·2:25 소멸 3명이 2:10 소화액 붕괴를 덮음)
+                if sum(1 for d in hit if collapse - 10.0 <= d["sec"] <= collapse + 15.0) < int(h.get("min") or 1):
+                    continue
+                hit = [d for d in hit if d["sec"] >= collapse - 10.0]
             if cause is not None or len(hit) < int(h.get("min") or 1):
                 continue
             if h.get("cast") and h["cast"] in casts:
@@ -752,6 +937,16 @@ def build(meta: dict, facts: dict, hp: list | None = None, rawc: dict | None = N
                 if hit and done:
                     cause = f"{h['label']} {len(hit)}명 · 붕괴 전 끊지 못한 시전 {len(done)}번 ({mmss(done[0])} → {mmss(collapse)} 붕괴)"
                     conf, group, advice = "추정", h["label"], h["advice"]
+                    break
+        if conf == "확정" and collapse is not None:
+            # V1.7: 붕괴 뒤 이어진 다른 확정 기믹 사망은 결과로 붙인다 (예: 2:25 소멸 → 2:47 어둠의 광란 8명)
+            for h in spec.get("hard") or ():
+                if h["label"] == group:
+                    continue
+                later = [d for d in deaths if (d.get("spellID") in h["deaths"] or d.get("rawSpellID") in h["deaths"])
+                         and d["sec"] > collapse + 6.0]
+                if len(later) >= int(h.get("min") or 1):
+                    cause += f" → {h['label'].split('→')[-1].strip()} {len(later)}명 ({mmss(later[0]['sec'])})"
                     break
         if cause is None and collapse is not None:
             burst = [d for d in deaths if collapse - 10 <= d["sec"] <= collapse + 6]
@@ -799,11 +994,14 @@ def build(meta: dict, facts: dict, hp: list | None = None, rawc: dict | None = N
             dps.append(f"보스 HP {end_hp:.1f}% · 같은 시각 우리 킬 {ref_hp:.0f}% ({diff:+.0f}%p {pace})")
         else:
             dps.append(f"보스 HP {end_hp:.1f}%")
-    if not kill and mythic:
+    stage_refs = []
+    if mythic:
         for c in chips:
             t = other_stage_txt(enc, c["name"], c.get("start")) if c.get("status") in ("done", "fail") and c.get("start") else None
             if t:
-                dps.append(t)
+                stage_refs.append(t)
+    if not kill:
+        dps.extend(stage_refs)
     hp_marks = []
     if mythic and hp:
         for name_, line_, why in spec.get("hp_checks") or ():
@@ -829,19 +1027,31 @@ def build(meta: dict, facts: dict, hp: list | None = None, rawc: dict | None = N
         other = other_kill_txt(enc) if mythic else None
         refs_ = [x for x in ((f"우리 최고 {mmss(best)}" if best else None), other) if x]
         heal_dead = sorted({d['name'] for d in deaths if d['name'] in healers})
-        dps = [f"처치 {mmss(duration)}" + (f" ({' · '.join(refs_)})" if refs_ else "") + f" · 사망 {len(deaths)}명"
-               + (f" (힐러 {', '.join(heal_dead)})" if heal_dead else "")]
+        dps = [f"처치 {mmss(duration)}" + (f" ({' · '.join(refs_)})" if refs_ else "")] + stage_refs + hp_marks
+        dps.append(f"사망 {len(deaths)}명" + (f" (힐러 {', '.join(heal_dead)})" if heal_dead else ""))
 
     # 다음 풀
+    death_sum = None
     if kill:
-        top = Counter(_label(spec, d)[0] for d in deaths).most_common(1)
-        adv = next((_label(spec, d)[1] for d in deaths if top and _label(spec, d)[0] == top[0][0] and _label(spec, d)[1]), None)
-        advice = (f"킬에서도 {top[0][0]} {top[0][1]}명: " + adv) if top and adv else None
+        # V1.7: 킬 판 사망 정리 (원인별 묶음 · 중첩 디버프로 죽은 사람은 그 중첩으로) + 다음 주 두 가지
+        grp: dict = {}
+        for d in deaths:
+            lab, adv = _death_group(spec, d, rawc, mythic)
+            g = grp.setdefault(lab, {"n": 0, "secs": [], "adv": adv})
+            g["n"] += 1
+            g["secs"].append(d["sec"])
+            g["adv"] = g["adv"] or adv
+        order = sorted(grp.items(), key=lambda kv: (-kv[1]["n"], kv[1]["secs"][0]))
+        if order:
+            death_sum = f"사망 {len(deaths)}명 · " + " · ".join(
+                f"{lab} {g['n']}명 ({', '.join(mmss(x) for x in g['secs'][:3])}{'…' if g['n'] > 3 else ''})" for lab, g in order)
+        picks = [(lab, g) for lab, g in order if g["adv"] and g["n"] >= 2][:2] or [(lab, g) for lab, g in order if g["adv"]][:1]
+        advice = " / ".join(f"{lab} {g['n']}명 → {g['adv'].rstrip(' .')}" for lab, g in picks) or None
     nxt = advice or ("붕괴 직전 10초 사망 순서를 붕괴 체인에서 확인하세요." if not kill else "사망 없이 더 빠른 킬: 같은 단계 시각을 다른 공대와 비교 (WCL 자료 받은 뒤).")
     if first is not None and not kill:
         fl, fa = _label(spec, first)
         if fa and fa != advice and fl not in str(cause):
-            nxt += f"; 첫 실수({fl})도 같이"
+            nxt = nxt.rstrip(" .;") + f" · 첫 실수({fl})도 같이 확인"   # V1.7: 「.;」 붙던 것 정리
 
     extra = []
     k = spec.get("kick")
@@ -876,13 +1086,20 @@ def build(meta: dict, facts: dict, hp: list | None = None, rawc: dict | None = N
     for e in imm[:3]:
         extra.append(f"공포 중 면역기  {mmss(e['sec'])} {e['name']} {e['spell']} "
                      + ("⚠ 공포 대상 본인 (인벤: 공포 타이밍 리혼·결의 금지)" if e.get("target") else "· 공포 대상 아님 (참고)"))
+    own = owner_cd_line(rc.get("ownerCd"), rawc.get("ownerCd"), hp, duration, kill)
+    if own:
+        extra.append(own)
     return {
         "version": VERSION, "encounterID": enc, "boss": spec["name"], "kill": kill, "durationSec": duration,
         "stages": chips, "collapseSec": collapse, "endHpPct": end_hp,
         "cause": {"text": cause, "confidence": conf, "group": group},
-        "lines": {"어디까지": where, "첫 실수": first_txt, "전멸 원인": f"{cause} [{conf}]" if not kill else "처치",
+        "lines": {"어디까지": where, "첫 실수": first_txt,
+                  "전멸 원인": f"{cause} [{conf}]" if not kill else (death_sum or "처치 · 사망 없음"),
                   "딜·힐": " · ".join(dps), "다음 풀": nxt},
+        # V1.7: 킬 판은 칸 이름을 바꿔 보인다 (화면 전용)
+        "labels": ({"전멸 원인": "사망 정리", "다음 풀": "다음 주"} if kill else {}),
         "extraLines": extra, "deathWindows": {w["name"]: w["count"] for w in win}, "hpChecks": hp_marks,
+        "checks": mechanic_checks(spec, facts, deaths, rawc, chips, collapse, kill, duration, mythic),   # V1.8 · V1.9 난이도
         "notes": extra[n_before_notes:],   # V1.6 화면 「참고」 줄: 무효화 중첩 · 탱 교대 · 공포 중 면역기
     }
 

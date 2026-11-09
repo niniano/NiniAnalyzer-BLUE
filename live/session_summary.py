@@ -27,7 +27,7 @@ TONE_OK = "ok"              # verified clean → green
 TONE_NEUTRAL = "neutral"    # unsupported / pending / no verified signal → gray
 
 # Raid difficulties (legacy 10/25 N/H, LFR, Normal, Heroic, Mythic, Timewalking raid).
-RAID_DIFFICULTIES = {3, 4, 5, 6, 7, 9, 14, 15, 16, 17, 33}
+RAID_DIFFICULTIES = {3, 4, 5, 6, 7, 9, 14, 15, 16, 17, 33, 233}
 
 _COUNT_RE = re.compile(r"\s*\d+\s*(개|명|회|마리)\s*")
 

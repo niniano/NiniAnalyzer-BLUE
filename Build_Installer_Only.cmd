@@ -23,7 +23,7 @@ if errorlevel 1 (
   if /i not "%~1"=="nopause" pause
   exit /b 1
 )
-powershell -NoProfile -Command "$f='dist\NiniAnalyzer_Public_1.0.5_Setup_Windows_x64.exe'; $h=(Get-FileHash $f -Algorithm SHA256).Hash.ToLower(); Set-Content -Encoding ascii ($f+'.sha256.txt') ($h+' *'+(Split-Path $f -Leaf)); Write-Host ('SETUP SHA256: '+$h)"
-echo [DONE] dist\NiniAnalyzer_Public_1.0.5_Setup_Windows_x64.exe
+powershell -NoProfile -Command "$f='dist\NiniAnalyzer_Public_1.0.6_Setup_Windows_x64.exe'; $h=(Get-FileHash $f -Algorithm SHA256).Hash.ToLower(); Set-Content -Encoding ascii ($f+'.sha256.txt') ($h+' *'+(Split-Path $f -Leaf)); Write-Host ('SETUP SHA256: '+$h)"
+echo [DONE] dist\NiniAnalyzer_Public_1.0.6_Setup_Windows_x64.exe
 if /i not "%~1"=="nopause" pause
 exit /b 0
