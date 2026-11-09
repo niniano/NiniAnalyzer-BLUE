@@ -39,7 +39,7 @@ assert (ROOT/'package_public_release.py').is_file()
 entry=(ROOT/'nini_raid_gui.py').read_text(encoding='utf-8')
 assert 'start_error_notice_poll(app)' in entry
 assert 'maybe_show_first_run(app)' in entry
-assert 'PUBLIC_APP_VERSION = "1.0.2"' in gui
+assert 'PUBLIC_APP_VERSION = "1.0.3"' in gui
 print('STAGE 2.4 RELEASE GATE PASS — first-run guide, local-only error notice and packager')
 
 assert (ROOT/'build_public_windows.py').read_text(encoding='utf-8').find("'--contents-directory', '_internal'") >= 0
@@ -57,7 +57,7 @@ assert '_drop_feign_deaths' in (ROOT/'live/boss_mechanics/engine.py').read_text(
 assert 'def _pull_badge_text' in gui and 'def _public_auto_open_latest_session' in gui
 iss=(ROOT/'installer/NiniAnalyzer_Public.iss').read_text(encoding='utf-8-sig')
 assert 'AppId={{' in iss and 'PrivilegesRequired=lowest' in iss and 'AppUserModelID: "{#AppUserModelID}"' in iss
-assert '#define AppVersion "1.0.2"' in iss
+assert '#define AppVersion "1.0.3"' in iss
 assert 'UninstallDelete' not in iss, 'installer must never delete user raid records'
 print('RC4 GATE PASS — scroll, fonts, feign death, puller, first screen, installer')
 
@@ -180,3 +180,11 @@ assert '"minorEarlySec"' in _e and 'p1_status = "warning"' in _e, '1.0.2: minor 
 assert 'align_note = "해당 보호막은 모두 제때 깨짐 · 참고"' in _e, '1.0.2: cooldown alignment on broken shields is a note'
 assert (ROOT/'qa/test_public_1_0_2_coiled_judgments.py').is_file()
 print('1.0.2 GATE PASS — coiled P2 entry orbs / P1 timing / shield cooldown notes')
+
+# 1.0.3: 첫 실행 안내 카드 · 새 소식 카드
+_ob = (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
+assert 'def open_welcome(app)' in _ob and 'def maybe_show_whats_new(' in _ob, '1.0.3: onboarding cards'
+assert '("1.0.3", [' in _ob, '1.0.3: whats-new entry for this version'
+assert 'maybe_show_whats_new' in (ROOT/'nini_raid_gui.py').read_text(encoding='utf-8'), '1.0.3: entrypoint schedules whats-new'
+assert (ROOT/'qa/test_public_1_0_3_onboarding.py').is_file()
+print('1.0.3 GATE PASS — onboarding / whats-new cards')

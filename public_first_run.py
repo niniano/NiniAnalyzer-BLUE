@@ -23,7 +23,21 @@ def maybe_show_first_run(app, home=None, ask_fn=None, info_fn=None) -> bool:
         return False
     # Mark BEFORE opening a modal dialog. A crash or early close must not repeat it.
     settings[WELCOME_KEY] = True
+    # 1.0.3: 새로 설치한 사람에게는 「새 소식」을 띄우지 않도록 지금 버전을 본 것으로 적는다.
+    try:
+        from live.public_onboarding import SEEN_KEY, _app_version
+        settings.setdefault(SEEN_KEY, _app_version(app))
+    except Exception:
+        pass
     atomic_write_json(folder / "settings.json", settings)
+    if ask_fn is None and info_fn is None:
+        # 1.0.3: 메시지 상자 대신 3단계 카드 창 (폴더 상태 · 폴더 선택 · 최신 로그 분석)
+        try:
+            from live.public_onboarding import open_welcome
+            open_welcome(app)
+            return True
+        except Exception:
+            pass   # 창을 못 만들면 아래 예전 메시지 상자로
     detected = getattr(app, '_public_log_dir', None)
     if detected is not None:
         try:

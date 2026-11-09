@@ -3,7 +3,7 @@
 WoW 레이드 로그 분석기의 공대 공유용 공개판. 내 WoWCombatLog를 읽어 트라이마다 전멸 원인 · 첫 실수 · 기믹 시간축을 보여 줍니다.
 
 - 처음 쓰는 법: `START_HERE_PUBLIC.txt`
-- 변경 내역: `README_1_0_2.md` (이전: `README_1_0_1.md` · `README_1_0_0.md` · `README_RC5_6.md` …)
+- 변경 내역: `README_1_0_3.md` (이전: `README_1_0_2.md` · `README_1_0_1.md` · `README_1_0_0.md` …)
 - 빌드: `Build_Public_EXE.cmd` (PyInstaller) · 설치 파일: `Build_Installer_Only.cmd` (Inno Setup, `installer/`)
 
 ## 공개판 원칙

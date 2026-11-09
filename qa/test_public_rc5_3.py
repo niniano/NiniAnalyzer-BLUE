@@ -42,7 +42,7 @@ class Build(unittest.TestCase):
 
     def test_versions(self):
         gui = (ROOT / "nini_wcl_gui.py").read_text(encoding="utf-8")
-        self.assertIn('PUBLIC_APP_VERSION = "1.0.2"', gui)
+        self.assertIn('PUBLIC_APP_VERSION = "1.0.3"', gui)
         self.assertNotIn('"bold" if int(j.get("number") or 1) == 1 else "normal"', gui)
         self.assertNotIn('"bold" if i == 1 else "normal"', gui)
         self.assertEqual(BG.VERSION, "BOSS-GUIDES-V1.6")

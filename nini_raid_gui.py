@@ -39,6 +39,9 @@ def main() -> None:
     start_error_notice_poll(app)
     # First launch guide is entrypoint-only (not shown by tests constructing App).
     app.after(1800, lambda: maybe_show_first_run(app))
+    # 1.0.3: 새 버전으로 처음 켰을 때 바뀐 내용 카드 (새 설치는 첫 실행 안내만)
+    from live.public_onboarding import maybe_show_whats_new
+    app.after(2600, lambda: maybe_show_whats_new(app))
     app.mainloop()
 
 if __name__ == "__main__":

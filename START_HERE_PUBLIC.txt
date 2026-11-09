@@ -1,8 +1,8 @@
-NiniAnalyzer Public v1.0.2 | 처음 사용하기
+NiniAnalyzer Public v1.0.3 | 처음 사용하기
 ================================================
 
 [설치 · 권장]
-1. NiniAnalyzer_Public_1.0.2_Setup_Windows_x64.exe 실행 → 다음 → 설치.
+1. NiniAnalyzer_Public_1.0.3_Setup_Windows_x64.exe 실행 → 다음 → 설치.
    관리자 권한이 필요 없고, 시작 메뉴(선택 시 바탕화면)에 바로가기가 생깁니다.
 2. 새 버전도 같은 방식으로 설치하면 덮어써지고, 가져온 공대 기록은 그대로 유지됩니다.
 3. 제거: Windows 설정 > 앱 > NiniAnalyzer Public. 공대 기록 폴더는 지워지지 않습니다.
@@ -50,4 +50,4 @@ _internal 폴더는 이동/삭제하지 마세요.
 - Windows에서 서명되지 않은 EXE 경고가 보일 수 있습니다.
   신뢰하는 배포처와 SHA256을 확인한 후, Windows의 PC 보호 화면에서 추가 정보 > 실행을 선택할 수 있습니다.
 
-지원용 빌드 식별: NiniAnalyzer Public 1.0.2
+지원용 빌드 식별: NiniAnalyzer Public 1.0.3

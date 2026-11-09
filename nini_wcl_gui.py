@@ -255,7 +255,7 @@ PIPELINE = WORKDIR / "nini_wcl_pipeline.py"
 ENGINE = WORKDIR / "engine"
 CHARACTERS = ()  # PUBLIC: private character registry disabled
 DEFAULT_PLAYER = ""  # PUBLIC: no default personal identity
-PUBLIC_APP_VERSION = "1.0.2"
+PUBLIC_APP_VERSION = "1.0.3"
 WCL_DIFFICULTY_MAP = {15: 4, 16: 5, 233: 5}
 
 STATUS_RANK = {"경고": 4, "주의": 3, "표본부족": 2, "정상": 1, "비교전용": 0}
@@ -1488,11 +1488,22 @@ class App(tk.Tk):
         if self._nini_sidebar_lockup is None:
             ttk.Label(brand_row, text="NiniAnalyzer",
                       style="Title.Sidebar.TLabel").pack(side="left", anchor="center")
-        ttk.Label(
+        version_label = ttk.Label(
             sidebar,
             text=(f"v{PUBLIC_APP_VERSION}" if self.raid_public_mode else f"engine v0.4-B31  ·  App {APP_BUILD}"),
             style="Muted.Sidebar.TLabel",
-        ).pack(anchor="w", pady=_px((2, 14)))
+        )
+        version_label.pack(anchor="w", pady=_px((2, 14)))
+        if self.raid_public_mode:
+            # 1.0.3: 버전 글자를 누르면 새 소식 (최근 3개 버전)
+            def _open_news(_event=None):
+                try:
+                    from live.public_onboarding import open_whats_new
+                    open_whats_new(self)
+                except Exception:
+                    pass
+            version_label.configure(cursor="hand2")
+            version_label.bind("<Button-1>", _open_news)
 
         self.player_var = tk.StringVar(value=self.current_player)
         self.players_found_var = tk.StringVar(value="")
