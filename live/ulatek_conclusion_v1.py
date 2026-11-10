@@ -102,6 +102,9 @@ BIG_EGG_HATCH = 1306862
 BIG_EGG_COUNT = 4
 BIG_EGG_PICK_BY_SEC = 255.0
 BIG_EGG_HATCH_TO_DEADLINE = 81.0   # 11/9 월 6트: 부화 시작 2:54.0~2:54.1 → 4:15
+# V5.4.0: 안 든 큰 알은 부화 시작 90.8초 뒤(4:24.8) 게걸스러운 파멸비늘로 나온다 (실측 5트 모두 4:24.8)
+#         큰 알을 든 채 죽어도 그 자리에서 바로 나온다 · 제대로 넣으면 안 나옴
+BIG_EGG_HATCH_TO_SPAWN = 90.8
 # 개인 임무 파일 (live/personal_duties.json) 은 GOLD 전용 · BLUE 에는 없어서 공용 큰 알 줄만 나온다
 PERSONAL_DUTIES_FILE = Path(__file__).resolve().parent / "personal_duties.json"
 VIPER_MARK_TO_STUN = (3.5, 7.0)
@@ -686,6 +689,9 @@ def big_egg_review(raw: dict, hearts: list, deaths: list, duration: float, duty:
         return None
     deadline = hatch[0] + BIG_EGG_HATCH_TO_DEADLINE if hatch else BIG_EGG_PICK_BY_SEC
     picks, open_ = [], {}
+    death_at: dict = {}
+    for d in deaths or []:
+        death_at.setdefault(short(d.get("name")), []).append(d)
     for x in sorted(raw.get("bigEgg") or [], key=lambda x: x["sec"]):
         if x["event"] == "SPELL_AURA_APPLIED":
             open_[x["target"]] = len(picks)
@@ -696,14 +702,33 @@ def big_egg_review(raw: dict, hearts: list, deaths: list, duration: float, duty:
     def _late_by(t: float, by: float) -> int:
         return int(float(t)) - int(float(by))
     late = [p for p in picks if _late_by(p["pick"], deadline) > 0]
+    # V5.4.0: 든 채 죽어서 떨어진 큰 알 (놓은 시각 ±1초에 그 사람 사망)
+    for p in picks:
+        if p.get("drop") is None:
+            continue
+        d = next((d for d in death_at.get(p["name"], []) if abs(float(d.get("sec") or 0) - float(p["drop"])) <= 1.0), None)
+        if d:
+            p["died"] = float(d["sec"])
+            p["diedBy"] = ((d.get("lastHit") or {}).get("spellName") or "").strip()
+    spawn_at = hatch[0] + BIG_EGG_HATCH_TO_SPAWN
+    unpicked = max(0, BIG_EGG_COUNT - len(picks))
     if duration < hatch[0] + 45 and not picks:
         return None   # 알방 알 단계 전에 끝남
-    parts = [f"{p['name']} {mmss(p['pick'])}" + (f"→{mmss(p['drop'])}" if p.get("drop") is not None else "") for p in picks]
+    parts = [f"{p['name']} {mmss(p['pick'])}" + (f"→{mmss(p['drop'])}" if p.get("drop") is not None else "")
+             + (" 들고 사망" if p.get("died") is not None else "") for p in picks]
+    tail = []
+    if unpicked and duration >= spawn_at - 0.5:
+        tail.append(f"안 든 큰 알 {unpicked}개 → {mmss(spawn_at)} 게걸스러운 파멸비늘")
+    dead_drop = [p for p in picks if p.get("died") is not None]
+    if dead_drop:
+        tail.append("들고 사망 → 그 자리 게걸스러운 파멸비늘 " + ", ".join(f"{p['name']} {mmss(p['died'])}" for p in dead_drop))
     line = (f"알방 큰 알 {len(picks)}/{BIG_EGG_COUNT} (기한 {mmss(deadline)}"
             + (f" · {mmss(duration)} 전멸" if duration < deadline + 30 else "") + ")"
             + (" · " + ", ".join(parts) if parts else "")
-            + (f" · 늦음 {', '.join(p['name'] for p in late)}" if late else ""))
-    out = {"deadline": round(deadline, 1), "picks": picks, "late": [p["name"] for p in late]}
+            + (f" · 늦음 {', '.join(p['name'] for p in late)}" if late else "")
+            + ("".join(f" · {t}" for t in tail)))
+    out = {"deadline": round(deadline, 1), "picks": picks, "late": [p["name"] for p in late],
+           "unpicked": unpicked, "spawnAt": round(spawn_at, 1), "diedHolding": [p["name"] for p in dead_drop]}
     if duty:
         who = str(duty.get("player"))
         by = float(duty.get("bigEggBySec") or deadline)
@@ -726,9 +751,13 @@ def big_egg_review(raw: dict, hearts: list, deaths: list, duration: float, duty:
         elif mine:
             gap = _late_by(mine["pick"], by)
             bits.append(f"큰 알 {mmss(mine['pick'])} " + ("✓" if gap <= 0 else f"늦음 +{gap}초"))
-            # V5.3.9: 큰 알은 같이 넣는다 · 다른 큰 알보다 5초+ 먼저 놓았으면 표시 (혼자 먼저 놓으면 바로 게걸스러운 파멸비늘)
             others = sorted(float(p["drop"]) for p in picks if p is not mine and p.get("drop") is not None)
-            if mine.get("drop") is not None and others and others[0] - float(mine["drop"]) >= 5.0:
+            if mine.get("died") is not None:
+                # V5.4.0: 들고 가다 사망 → 알에서 게걸스러운 파멸비늘
+                bits.append(f"들고 사망 {mmss(mine['died'])}" + (f"({mine['diedBy']})" if mine.get("diedBy") else "")
+                            + " → 알에서 게걸스러운 파멸비늘")
+            # V5.3.9: 큰 알은 같이 넣는다 · 다른 큰 알보다 5초+ 먼저 놓았으면 표시
+            elif mine.get("drop") is not None and others and others[0] - float(mine["drop"]) >= 5.0:
                 bits.append(f"혼자 먼저 놓음 {mmss(mine['drop'])} (나머지 {mmss(others[0])}~{mmss(others[-1])})")
         elif died and float(died["sec"]) < by + 0.5:
             spell = ((died.get("lastHit") or {}).get("spellName") or "").strip()
@@ -736,7 +765,8 @@ def big_egg_review(raw: dict, hearts: list, deaths: list, duration: float, duty:
         elif duration < by + 0.5:
             bits.append(f"큰 알 기한 전 전멸 ({mmss(duration)})")
         else:
-            bits.append(f"큰 알 안 듦 (기한 {mmss(by)})")
+            bits.append(f"큰 알 안 듦 (기한 {mmss(by)})"
+                        + (f" → {mmss(spawn_at)} 게걸스러운 파멸비늘" if duration >= spawn_at - 0.5 else ""))
         line = f"{who} 알방: " + " · ".join(bits) + " | " + line
         out["duty"] = {"player": who, "firstEgg": first_on and first_on["sec"], "firstEggOff": first_off and first_off["sec"],
                        "bigEgg": mine and mine["pick"], "by": by}

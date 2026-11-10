@@ -77,5 +77,18 @@ class OnTime(unittest.TestCase):
         self.assertNotIn("늦음 가", be["line"])
 
 
+
+class Spawn(unittest.TestCase):
+    """안 든 큰 알 → 4:24.8 게걸스러운 파멸비늘 · 들고 사망 → 그 자리에서."""
+    def test_unpicked_and_died_holding(self):
+        r = raw(big=[(253.6, "SPELL_AURA_APPLIED", "가"), (255.9, "SPELL_AURA_REMOVED", "가")])
+        r["bigEggHatch"] = [174.05]
+        deaths = [{"name": "가-서버-KR", "sec": 256.0, "lastHit": {"spellName": "괴저 증기"}}]
+        be = U.big_egg_review(r, HEARTS, deaths, 280.0)
+        self.assertIn("가 4:13→4:15 들고 사망", be["line"])
+        self.assertIn("안 든 큰 알 3개 → 4:24 게걸스러운 파멸비늘", be["line"])
+        self.assertIn("들고 사망 → 그 자리 게걸스러운 파멸비늘 가 4:16", be["line"])
+
+
 if __name__ == "__main__":
     unittest.main()
