@@ -1,11 +1,11 @@
 # NiniAnalyzer Public (BLUE) · Windows 설치 파일 자동 빌드
 # - GitHub 「Releases」에서 릴리스를 Publish 하면: Windows에서 빌드 → 설치 파일 · ZIP · SHA256 을 그 릴리스에 자동 첨부
 # - Actions 탭 「Run workflow」: 빌드만 해서 Artifacts 로 받기 (릴리스에는 안 올림)
-# - 릴리스 설명을 비워 두고 Publish 하면 README_<버전>.md (예: README_1_0_7.md) 로 설명을 바로 채움 (직접 쓴 설명은 그대로 둠)
+# - 릴리스 설명을 비워 두고 Publish 하면 README_<버전>.md (예: README_1_0_8.md) 로 설명을 바로 채움 (직접 쓴 설명은 그대로 둠)
 # - 설치 파일이 붙으면 디스코드 고정 「다운로드」 임베드를 바로 새 버전으로 고침 (NiniTools 저장소의 같은 스크립트 사용)
 #   필요: 이 저장소 Settings → Secrets and variables → Actions 에 NiniTools 와 같은 값
 #         Secret DISCORD_DOWNLOAD_WEBHOOK · Variable DOWNLOAD_MESSAGE_ID  (없으면 건너뜀 · NiniTools 4시간 주기 실행 때 반영)
-# 릴리스 태그는 v + 소스의 버전(build_public_windows.py VERSION)과 같아야 함 (예: v1.0.7)
+# 릴리스 태그는 v + 소스의 버전(build_public_windows.py VERSION)과 같아야 함 (예: v1.0.8)
 name: Build BLUE installer
 
 on:
@@ -64,7 +64,7 @@ jobs:
             "test_public_no_drive_leak.py", "test_public_stage2_4_release.py", "test_public_stage2_5_rc3.py",
             "test_public_rc4_fixes.py", "test_public_rc4_2_feign_recheck.py", "test_public_rc4_3_class_color.py",
             "test_public_rc4_4_fonts.py", "test_public_rc5_layout.py", "test_public_rc5_3.py", "test_public_rc5_3_1.py",
-            "test_public_rc5_4*.py", "test_public_rc5_5*.py", "test_public_rc5_6*.py", "test_public_1_0_1*.py", "test_public_1_0_2*.py", "test_public_1_0_3*.py", "test_public_1_0_5*.py", "test_public_1_0_6*.py", "test_public_1_0_7*.py", "test_nini_stage2_2_1_gui_regression.py",
+            "test_public_rc5_4*.py", "test_public_rc5_5*.py", "test_public_rc5_6*.py", "test_public_1_0_1*.py", "test_public_1_0_2*.py", "test_public_1_0_3*.py", "test_public_1_0_5*.py", "test_public_1_0_6*.py", "test_public_1_0_7*.py", "test_public_1_0_8*.py", "test_nini_stage2_2_1_gui_regression.py",
             "test_b37_5_0_step4_3_live_try_wheel.py", "test_b37_5_0_5_try_wheel_focus_regression.py")
           foreach ($t in $tests) {
             python -m unittest discover -s qa -p $t

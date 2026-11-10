@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import csv
 import gzip
+import json
 from collections import Counter
 from pathlib import Path
 
@@ -94,6 +95,15 @@ VIPER_NPC = "-261915-"           # 역병비늘 살무사
 VIPER_STING = 1305163            # 석화의 독침 (살무사 주시 · 5초 뒤 그 자리에 착지)
 # V5.3.6: 착지 스턴은 따로 1303414 (주시 대상 + 착지 범위 안 사람) · 11/8 신화 9트 실측 주시 → 스턴 5.0~5.1초
 VIPER_STUN = 1303414
+# V5.3.8: 2페(알방) 큰 알 = 파멸비늘 알 4개 (2:54 부화하는 파멸 시작) · 들면 파멸비늘 껍질 1300312
+#   공대 공략: 큰 알은 4:15 안에 들어야 함 · 다른 공대 가마솥 신호(약화) 4:24~4:31
+BIG_EGG_SHELL = 1300312
+BIG_EGG_HATCH = 1306862
+BIG_EGG_COUNT = 4
+BIG_EGG_PICK_BY_SEC = 255.0
+BIG_EGG_HATCH_TO_DEADLINE = 81.0   # 11/9 월 6트: 부화 시작 2:54.0~2:54.1 → 4:15
+# 개인 임무 파일 (live/personal_duties.json) 은 GOLD 전용 · BLUE 에는 없어서 공용 큰 알 줄만 나온다
+PERSONAL_DUTIES_FILE = Path(__file__).resolve().parent / "personal_duties.json"
 VIPER_MARK_TO_STUN = (3.5, 7.0)
 VIPER_TRIGGER_SEC = 6.0          # 원인 → 살무사 출현 (실측 0.1~5.9초)
 VIPER_CLUSTER_SEC = 4.0
@@ -155,7 +165,8 @@ def scan_raw(raw_path, start_ts: str) -> dict:
     """울라텍 HP 와 고통스러운 절규(시전 시작/완료/차단자), 소환수 주인만 읽는다."""
     out = {"hp": [], "cry": [], "petOwner": {}, "doomSeen": {}, "doomDied": {}, "weakness": [], "acid": [], "vein": [], "prey": [], "available": False,
            "coilCasts": [], "coilSoak": [], "fang": [], "eggBurst": [], "potions": [],
-           "shell": [], "waveHits": [], "viperSeen": {}, "viperSting": [], "viperStun": [], "rage": []}
+           "shell": [], "waveHits": [], "viperSeen": {}, "viperSting": [], "viperStun": [], "rage": [],
+           "bigEgg": [], "bigEggHatch": []}
     p = Path(raw_path) if raw_path else None
     if p is None or not p.is_file():
         for name in ("raw.log.gz", "raw.log"):
@@ -184,6 +195,7 @@ def scan_raw(raw_path, start_ts: str) -> dict:
     pot_tok = POTION_WORD.encode()
     shell_tok, wave_tok = f",{SHELL},".encode(), f",{WAVE_SPELL},".encode()
     viper_tok, sting_tok, rage_tok = VIPER_NPC.encode(), f",{VIPER_STING},".encode(), f",{UNCHECKED_RAGE},".encode()
+    big_tok, hatch_tok = f",{BIG_EGG_SHELL},".encode(), f",{BIG_EGG_HATCH},".encode()
     opener = gzip.open if str(p).endswith(".gz") else open
     last_hp = -1.0
     with opener(p, "rb") as fh:
@@ -200,7 +212,8 @@ def scan_raw(raw_path, start_ts: str) -> dict:
                        or (pot_tok in raw and b"SPELL_AURA_" in raw))
             is_egg2 = (shell_tok in raw and b"SPELL_AURA_" in raw) or (wave_tok in raw and b",Player-" in raw) \
                 or viper_tok in raw or (sting_tok in raw and b"SPELL_AURA_APPLIED" in raw) \
-                or (rage_tok in raw and b"SPELL_CAST_SUCCESS" in raw)
+                or (rage_tok in raw and b"SPELL_CAST_SUCCESS" in raw) \
+                or (big_tok in raw and b"SPELL_AURA_" in raw) or (hatch_tok in raw and b"SPELL_CAST_START" in raw)
             if not (is_boss or is_cry or is_pet or is_doom or is_weak or is_acid or is_vein or is_prey or is_plan or is_egg2):
                 continue
             line = raw.decode("utf-8", errors="replace").rstrip("\r\n")
@@ -240,6 +253,11 @@ def scan_raw(raw_path, start_ts: str) -> dict:
                     out["viperSting"].append({"sec": round(s, 3), "target": short(f[6])})
                 elif sid == str(VIPER_STUN) and ev == "SPELL_AURA_APPLIED" and f[5].startswith("Player-"):
                     out["viperStun"].append({"sec": round(s, 3), "target": short(f[6])})
+                elif sid == str(BIG_EGG_SHELL) and ev in ("SPELL_AURA_APPLIED", "SPELL_AURA_REMOVED") and f[5].startswith("Player-"):
+                    out["bigEgg"].append({"sec": round(s, 3), "event": ev, "target": short(f[6])})
+                elif sid == str(BIG_EGG_HATCH) and ev == "SPELL_CAST_START":
+                    if not out["bigEggHatch"] or s - out["bigEggHatch"][-1] > 5:
+                        out["bigEggHatch"].append(round(s, 3))
                 elif sid == str(UNCHECKED_RAGE) and ev == "SPELL_CAST_SUCCESS":
                     if not out["rage"] or s - out["rage"][-1] > 1.0:
                         out["rage"].append(round(s, 3))
@@ -642,6 +660,77 @@ def viper_marks(raw: dict) -> list[dict]:
     return sorted(out, key=lambda x: x["stunSec"] if x["stunSec"] is not None else x["sec"])
 
 
+def load_personal_duty() -> dict | None:
+    """GOLD 전용: live/personal_duties.json 의 울라텍 알방 개인 임무. 없으면(BLUE) None."""
+    try:
+        d = json.loads(PERSONAL_DUTIES_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    duty = ((d or {}).get("ulatek") or {}).get("eggRoom")
+    return duty if isinstance(duty, dict) and duty.get("player") else None
+
+
+def big_egg_review(raw: dict, hearts: list, deaths: list, duration: float, duty: dict | None = None) -> dict | None:
+    """V5.3.8 2페(알방) 큰 알(파멸비늘 알 4개): 누가 언제 들고 넣었나 · 4:15 기한 · (GOLD) 개인 임무.
+
+    알방 구간 = 1심장 끝 뒤. 그 전에 전멸했거나 부화 시작이 없으면 None.
+    """
+    hatch = raw.get("bigEggHatch") or []
+    h1_end = None
+    for h in hearts or []:
+        if h.get("endSec") is not None:
+            h1_end = float(h["endSec"])
+            break
+    room_start = h1_end if h1_end is not None else (hatch[0] - 20 if hatch else None)
+    if room_start is None or not hatch:
+        return None
+    deadline = hatch[0] + BIG_EGG_HATCH_TO_DEADLINE if hatch else BIG_EGG_PICK_BY_SEC
+    picks, open_ = [], {}
+    for x in sorted(raw.get("bigEgg") or [], key=lambda x: x["sec"]):
+        if x["event"] == "SPELL_AURA_APPLIED":
+            open_[x["target"]] = len(picks)
+            picks.append({"name": x["target"], "pick": x["sec"], "drop": None})
+        elif x["target"] in open_:
+            picks[open_.pop(x["target"])]["drop"] = x["sec"]
+    late = [p for p in picks if p["pick"] > deadline + 0.5]
+    if duration < hatch[0] + 45 and not picks:
+        return None   # 알방 알 단계 전에 끝남
+    parts = [f"{p['name']} {mmss(p['pick'])}" + (f"→{mmss(p['drop'])}" if p.get("drop") is not None else "") for p in picks]
+    line = (f"알방 큰 알 {len(picks)}/{BIG_EGG_COUNT} (기한 {mmss(deadline)}"
+            + (f" · {mmss(duration)} 전멸" if duration < deadline + 30 else "") + ")"
+            + (" · " + ", ".join(parts) if parts else "")
+            + (f" · 늦음 {', '.join(p['name'] for p in late)}" if late else ""))
+    out = {"deadline": round(deadline, 1), "picks": picks, "late": [p["name"] for p in late]}
+    if duty:
+        who = str(duty.get("player"))
+        by = float(duty.get("bigEggBySec") or deadline)
+        shells = [x for x in (raw.get("shell") or []) if x["target"] == who and x["sec"] >= room_start]
+        first_on = next((x for x in shells if x["event"] == "SPELL_AURA_APPLIED"), None)
+        first_off = next((x for x in shells if first_on and x["event"] == "SPELL_AURA_REMOVED" and x["sec"] >= first_on["sec"]), None)
+        mine = next((p for p in picks if p["name"] == who), None)
+        died = next((d for d in deaths if short(d.get("name")) == who and float(d.get("sec") or 0) >= room_start), None)
+        bits = []
+        if first_on:
+            bits.append(f"첫 알 {mmss(first_on['sec'])}" + (f"→{mmss(first_off['sec'])}" if first_off else ""))
+        else:
+            bits.append("첫 알 안 듦")
+        if mine:
+            gap = float(mine["pick"]) - by
+            bits.append(f"큰 알 {mmss(mine['pick'])} " + ("✓" if gap <= 0.5 else f"늦음 +{gap:.0f}초"))
+        elif died and float(died["sec"]) < by + 0.5:
+            spell = ((died.get("lastHit") or {}).get("spellName") or "").strip()
+            bits.append(f"큰 알 전 사망 {mmss(float(died['sec']))}" + (f"({spell})" if spell else ""))
+        elif duration < by + 0.5:
+            bits.append(f"큰 알 기한 전 전멸 ({mmss(duration)})")
+        else:
+            bits.append(f"큰 알 안 듦 (기한 {mmss(by)})")
+        line = f"{who} 알방: " + " · ".join(bits) + " | " + line
+        out["duty"] = {"player": who, "firstEgg": first_on and first_on["sec"], "firstEggOff": first_off and first_off["sec"],
+                       "bigEgg": mine and mine["pick"], "by": by}
+    out["line"] = line
+    return out
+
+
 def egg_viper_notes(vr: dict | None, limit: int = 6) -> list[str]:
     """V5.3.6 화면 「참고」 줄: 알 든 사람 파도 전부 · 살무사 주시 → 스턴 전부."""
     if not vr:
@@ -976,6 +1065,10 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
                              "waveCarriers": [n for _s, n in vr["waves"]], "bursts": [n for _s, n in vr["bursts"]],
                              "stuns": [{"sec": m["stunSec"], "target": m["target"], "stunned": m["stunned"]} for m in vr.get("marks") or []]}
             notes[:0] = egg_viper_notes(vr)   # 화면 참고 칸은 4줄까지라 알·살무사를 앞에
+        be = big_egg_review(raw, hearts, deaths, duration, load_personal_duty())
+        if be:
+            plan["bigEgg"] = be
+            notes.insert(0, be["line"])
     ac = obs.get("anguishedCry") or {}
     if not raw.get("available") and (ac.get("startCount") or ac.get("completedCount")):
         extra.append(f"절규   시전 {ac.get('startCount', 0)} · 완료(놓침) {ac.get('completedCount', 0)}")
