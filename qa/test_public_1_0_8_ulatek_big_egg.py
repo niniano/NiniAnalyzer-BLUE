@@ -66,5 +66,16 @@ class BigEgg(unittest.TestCase):
         self.assertIn("bigEgg", out["plan"])
 
 
+
+class OnTime(unittest.TestCase):
+    """4:15 이내 = 4:15.x 까지 제때."""
+    def test_four_fifteen_point_six(self):
+        r = raw(big=[(255.6, "SPELL_AURA_APPLIED", "가"), (256.0, "SPELL_AURA_APPLIED", "나")])
+        r["bigEggHatch"] = [174.05]
+        be = U.big_egg_review(r, HEARTS, [], 280.0)
+        self.assertIn("늦음 나", be["line"])
+        self.assertNotIn("늦음 가", be["line"])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -692,7 +692,10 @@ def big_egg_review(raw: dict, hearts: list, deaths: list, duration: float, duty:
             picks.append({"name": x["target"], "pick": x["sec"], "drop": None})
         elif x["target"] in open_:
             picks[open_.pop(x["target"])]["drop"] = x["sec"]
-    late = [p for p in picks if p["pick"] > deadline + 0.5]
+    # V5.3.9: 「4:15 이내」 = 4:15.x 까지 제때 (4:15.6 · 4:15.8 에 든 큰 알도 다른 큰 알과 같이 넣음)
+    def _late_by(t: float, by: float) -> int:
+        return int(float(t)) - int(float(by))
+    late = [p for p in picks if _late_by(p["pick"], deadline) > 0]
     if duration < hatch[0] + 45 and not picks:
         return None   # 알방 알 단계 전에 끝남
     parts = [f"{p['name']} {mmss(p['pick'])}" + (f"→{mmss(p['drop'])}" if p.get("drop") is not None else "") for p in picks]
@@ -709,14 +712,24 @@ def big_egg_review(raw: dict, hearts: list, deaths: list, duration: float, duty:
         first_off = next((x for x in shells if first_on and x["event"] == "SPELL_AURA_REMOVED" and x["sec"] >= first_on["sec"]), None)
         mine = next((p for p in picks if p["name"] == who), None)
         died = next((d for d in deaths if short(d.get("name")) == who and float(d.get("sec") or 0) >= room_start), None)
+        died_before = next((d for d in deaths if short(d.get("name")) == who and float(d.get("sec") or 0) < room_start), None)
         bits = []
-        if first_on:
+        if died_before and not first_on and not mine:
+            spell = ((died_before.get("lastHit") or {}).get("spellName") or "").strip()
+            bits.append(f"알방 전 사망 {mmss(float(died_before['sec']))}" + (f"({spell})" if spell else ""))
+        elif first_on:
             bits.append(f"첫 알 {mmss(first_on['sec'])}" + (f"→{mmss(first_off['sec'])}" if first_off else ""))
         else:
             bits.append("첫 알 안 듦")
-        if mine:
-            gap = float(mine["pick"]) - by
-            bits.append(f"큰 알 {mmss(mine['pick'])} " + ("✓" if gap <= 0.5 else f"늦음 +{gap:.0f}초"))
+        if died_before and not first_on and not mine:
+            pass
+        elif mine:
+            gap = _late_by(mine["pick"], by)
+            bits.append(f"큰 알 {mmss(mine['pick'])} " + ("✓" if gap <= 0 else f"늦음 +{gap}초"))
+            # V5.3.9: 큰 알은 같이 넣는다 · 다른 큰 알보다 5초+ 먼저 놓았으면 표시 (혼자 먼저 놓으면 바로 게걸스러운 파멸비늘)
+            others = sorted(float(p["drop"]) for p in picks if p is not mine and p.get("drop") is not None)
+            if mine.get("drop") is not None and others and others[0] - float(mine["drop"]) >= 5.0:
+                bits.append(f"혼자 먼저 놓음 {mmss(mine['drop'])} (나머지 {mmss(others[0])}~{mmss(others[-1])})")
         elif died and float(died["sec"]) < by + 0.5:
             spell = ((died.get("lastHit") or {}).get("spellName") or "").strip()
             bits.append(f"큰 알 전 사망 {mmss(float(died['sec']))}" + (f"({spell})" if spell else ""))
