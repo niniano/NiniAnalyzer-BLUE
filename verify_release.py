@@ -39,7 +39,7 @@ assert (ROOT/'package_public_release.py').is_file()
 entry=(ROOT/'nini_raid_gui.py').read_text(encoding='utf-8')
 assert 'start_error_notice_poll(app)' in entry
 assert 'maybe_show_first_run(app)' in entry
-assert 'PUBLIC_APP_VERSION = "1.0.6"' in gui
+assert 'PUBLIC_APP_VERSION = "1.0.7"' in gui
 print('STAGE 2.4 RELEASE GATE PASS — first-run guide, local-only error notice and packager')
 
 assert (ROOT/'build_public_windows.py').read_text(encoding='utf-8').find("'--contents-directory', '_internal'") >= 0
@@ -57,7 +57,7 @@ assert '_drop_feign_deaths' in (ROOT/'live/boss_mechanics/engine.py').read_text(
 assert 'def _pull_badge_text' in gui and 'def _public_auto_open_latest_session' in gui
 iss=(ROOT/'installer/NiniAnalyzer_Public.iss').read_text(encoding='utf-8-sig')
 assert 'AppId={{' in iss and 'PrivilegesRequired=lowest' in iss and 'AppUserModelID: "{#AppUserModelID}"' in iss
-assert '#define AppVersion "1.0.6"' in iss
+assert '#define AppVersion "1.0.7"' in iss
 assert 'UninstallDelete' not in iss, 'installer must never delete user raid records'
 print('RC4 GATE PASS — scroll, fonts, feign death, puller, first screen, installer')
 
@@ -138,7 +138,7 @@ print('RC5.3.1 GATE PASS — rogue-only modules removed from the public build')
 # RC5.4: GOLD V5.2.2~V5.2.4 화면·엔진 + 판정 V3.7/V1.9. GOLD 전용(화면 버전 표시·글꼴·사이드바)은 넣지 않는다.
 assert not (ROOT/'live/display_patch.py').exists(), 'GOLD display_patch must not ship'
 _c = (ROOT/'live/coiled_wipe_cause_v1.py').read_text(encoding='utf-8')
-assert 'VERSION = "COILED-WIPE-CAUSE-V3.7"' in _c and 'def soul_link_order(' in _c
+assert re.search(r'VERSION = "COILED-WIPE-CAUSE-V3\.([7-9]|\d\d)"', _c) and 'def soul_link_order(' in _c
 assert re.search(r'VERSION = "ULATEK-CONCLUSION-V(1\.9|[2-9]\.\d+)"', (ROOT/'live/ulatek_conclusion_v1.py').read_text(encoding='utf-8'))  # 1.0.5: V2.0
 _e = (ROOT/'live/boss_mechanics/engine.py').read_text(encoding='utf-8')
 assert 'def _fast_rows_spell(' in _e and 'GRAVEBOUND_DURATION_SEC = 11.0' in _e
@@ -217,3 +217,12 @@ for _p in ('live/display_patch.py', 'live/raid_chronology_index_v37.json', 'live
 for _q in ('kill_review', 'board', 'nullify', 'coiled_accuracy'):
     assert (ROOT/f'qa/test_public_1_0_6_{_q}.py').is_file(), _q
 print('1.0.6 GATE PASS — GOLD V5.2.8~V5.3.3 catch-up (Kith\'ix V1.10, kill review, board, Coiled accuracy)')
+
+# 1.0.7: GOLD V5.3.7 (똬리 V3.8 P1 단두대 붕괴 · 킬 판 결론 · 울라텍 심장 도중 전멸)
+_c7 = (ROOT/'live/coiled_wipe_cause_v1.py').read_text(encoding='utf-8')
+assert 'VERSION = "COILED-WIPE-CAUSE-V3.8"' in _c7 and 'p1_origin' in _c7 and 'def kill_review(' in _c7, '1.0.7: coiled V3.8'
+_u7 = (ROOT/'live/ulatek_conclusion_v1.py').read_text(encoding='utf-8')
+assert 'def _heart_done(h)' in _u7 and '도중 전멸' in _u7 and 'raidplan_ulatek' not in _u7, '1.0.7: ulatek heart cut'
+assert '("1.0.7", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
+assert (ROOT/'qa/test_public_1_0_7_coiled_kill_ulatek_heart.py').is_file()
+print('1.0.7 GATE PASS — Coiled P1 guillotine collapse / kill review, Ulatek heart cut')

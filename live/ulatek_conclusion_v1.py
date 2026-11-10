@@ -707,6 +707,9 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
     hearts = obs.get("heartWindows") or []
     hp = raw.get("hp") or []
     end_hp = hp[-1][1] if hp and result != "kill" else None
+    # V5.3.7: 심장 도중 전멸이면 그 심장 창의 끝 = 전멸 시각. 「종료 HP · 미달」로 읽으면 안 된다 (11/9 월 6트).
+    def _heart_done(h) -> bool:
+        return result == "kill" or (h.get("endSec") is not None and float(h["endSec"]) < duration - 1.0)
     proj = (obs.get("heartProjection") or {}).get("label")
 
     # 1. 어디까지
@@ -715,13 +718,16 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
     if result == "kill":
         reach = f"킬 {mmss(duration)} · 심장 {len(hearts)}회"
     else:
-        reach = (f"{stage_at(duration - 0.5, hearts, p3)} · {len(hearts)}심장 · {mmss(duration)} 전멸"
-                 + (f" · 보스 HP {end_hp:.1f}%" if end_hp is not None else ""))
+        _stage = stage_at(duration - 0.5, hearts, p3)
+        _cut = hearts and not _heart_done(hearts[-1])
+        reach = (f"{_stage}{' 도중' if _cut else ''}" + ("" if _stage == f"{len(hearts)}심장" else f" · {len(hearts)}심장")
+                 + f" · {mmss(duration)} 전멸" + (f" · 보스 HP {end_hp:.1f}%" if end_hp is not None else ""))
 
     # 공략 기준선 (신화)
     h1 = next((h for h in hearts if h.get("index") == 1), None)
     h2 = next((h for h in hearts if h.get("index") == 2), None)
-    h1_hp = float(h1["endBossHpPct"]) if h1 and h1.get("endBossHpPct") is not None else None
+    h1_hp = float(h1["endBossHpPct"]) if h1 and h1.get("endBossHpPct") is not None and _heart_done(h1) else None
+    h1_cut = bool(h1 and not _heart_done(h1))
     h1_short = bool(mythic and h1_hp is not None and h1_hp > HEART1_HP_LINE)
     doom_alive = None
     if raw.get("available") and h2 and h2.get("endSec") is not None and raw.get("doomSeen"):
@@ -883,7 +889,11 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
             bits.append(f"1심장 종료 {h1_hp:.1f}% ({'미달 ' + format(gap, '+.1f') + '%p' if gap > 0 else '66% 통과'})")
         else:
             bits.append(f"1심장 종료 {h1_hp:.1f}%")
-    if h2 and h2.get("endBossHpPct") is not None:
+    if h1_cut:
+        bits.append(f"1심장 도중 전멸 ({mmss(h1.get('startSec'))} 시작 · {float(h1.get('durationSec') or 0):.0f}초 만) · 딜 판정 안 함")
+    if h2 and not _heart_done(h2):
+        bits.append(f"2심장 도중 전멸 ({mmss(h2.get('startSec'))} 시작) · 딜 판정 안 함")
+    elif h2 and h2.get("endBossHpPct") is not None:
         _h2 = float(h2['endBossHpPct'])
         bits.append(f"2심장 종료 {_h2:.1f}%" + ((" ⚠" if _h2 > HEART2_HP_WARN else "") + " (다른 공대 약 40%)" if mythic else ""))
     if doom_alive:

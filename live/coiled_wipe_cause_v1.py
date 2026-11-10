@@ -20,7 +20,7 @@ from collections import Counter
 import re
 from pathlib import Path
 
-VERSION = "COILED-WIPE-CAUSE-V3.7"
+VERSION = "COILED-WIPE-CAUSE-V3.8"
 BOSS_NPC = "-257911-"
 # V3.5: P2부터는 줄잔(257911)이 죽고 사술 군주 말라크라스(259854)가 보스. 사이페에 체력이 다시 차고 막페에서 깎인다.
 MALACRASS_NPC = "-259854-"
@@ -796,7 +796,14 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
                   and DPS_WINDOW[0] <= float(col_start) <= float(p2_entry) + 1.0 and _rup > 0)
     if late_entry:
         in_p2 = False
-    end_hp = hp[-1][1] if hp and (not in_p2) and not late_entry else None
+    # V3.8 (GOLD V5.3.7): P1 단두대 처형 붕괴가 P2 진입(보스 0%)보다 먼저 났으면 P1 실패다.
+    # 11/9 월 2트: 2:13 2단두대 처형 11명 → 1초 뒤 2:14 보스 0% → 예전엔 「P2 · 처형 중심 붕괴」로 적힘.
+    p1_origin = False
+    if (result != "kill" and not late_entry and p2_entry is not None and col_start is not None
+            and float(col_start) <= float(p2_entry) + 0.5 and int(col_spells.get("처형") or 0) >= 3
+            and any(0 <= float(col_start) - float(m.get("sec") or 0) <= 8 for m in (obs.get("guillotineMarkers") or []))):
+        p1_origin, in_p2 = True, False
+    end_hp = hp[-1][1] if hp and (not in_p2) and not late_entry and not p1_origin else None
     # V3.5: P2 이후 전멸은 말라크라스 HP (마지막 표본이 전멸 15초 안일 때만)
     hp2 = raw.get("hp2") or []
     boss_hp = end_hp
@@ -814,6 +821,11 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
         boss_hp = round(sum(boss_parts.values()) / 2.0, 2)   # 막페 진행도 = 두 보스 평균
     if result == "kill":
         reach = f"킬 {mmss(duration)}"
+        _p2e_k = (obs.get("phase2") or {}).get("endSec")
+        if p2_entry is not None:   # V3.8: 킬 판도 단계 시각
+            reach += f" · P2 진입 {mmss(p2_entry)}" + (f" · 사이페 {mmss(_p2e_k)}" if _p2e_k is not None else "")
+    elif p1_origin:
+        reach = f"P1 · {mmss(col_start)} 단두대 붕괴 → {mmss(duration)} 전멸 (붕괴 뒤 {mmss(p2_entry)} 보스 0%)"
     elif late_entry:
         reach = (f"P1 · {mmss(duration)} 전멸 · 보스 0%가 {mmss(p2_entry)} "
                  f"(2:50보다 {float(p2_entry) - P1_LIMIT_SEC:.0f}초 늦음)")
@@ -1032,6 +1044,8 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
     # ---- 4. 딜·힐
     if result == "kill":
         dps = "-"
+    elif p1_origin:
+        dps = f"P1 딜은 충분 (붕괴 뒤 {mmss(p2_entry)} 보스 0% · 다른 공대 {REF_P2_ENTRY_TXT})"
     elif cause["code"] == "DPS_CHECK_FAIL" and late_entry:
         dps = f"딜 부족 · 아슬아슬 ({float(p2_entry) - P1_LIMIT_SEC:.1f}초 늦게 0%)"
     elif in_p2:
@@ -1054,6 +1068,10 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
 
     conf_txt = CONF[cause["confidence"]]
     cause_line = f"{cause['label']} [{conf_txt}]" + (f" · {cause['detail']}" if cause.get("detail") else "")
+    labels = {}
+    if result == "kill":
+        cause_line, dps, cause["next"] = kill_review(deaths, fm, obs, duration, p2_entry, facts)
+        labels = {"전멸 원인": "사망 정리", "다음 풀": "다음 주"}
     return {
         "version": VERSION,
         "tryNo": meta.get("tryNo"),
@@ -1095,7 +1113,52 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
         "wailEvents": resolve_kickers(raw, {r.get("guid"): short(r.get("name")) for r in ((facts or {}).get("roster") or [])}),
         "p2EndSec": (obs.get("phase2") or {}).get("endSec"),
         "stages": coiled_stages(duration, p2_entry if in_p2 else None, (obs.get("phase2") or {}).get("endSec"), result == "kill"),
+        "labels": labels,
+        "p1Origin": p1_origin,
     }
+
+
+def kill_review(deaths: list, fm: dict, obs: dict, duration: float, p2_entry, facts: dict | None) -> tuple[str, str, str]:
+    """V3.8 (GOLD V5.3.7): 킬 판 결론 칸 — 사망 정리 · 단계 시각 비교 · 다음 주 두 가지."""
+    grp: dict = {}
+    for d in deaths:
+        name = _death_spell(d)[1] or "기타"
+        g = grp.setdefault(name, {"n": 0, "secs": [], "who": []})
+        g["n"] += 1
+        g["secs"].append(float(d.get("sec") or 0))
+        g["who"].append(short(d.get("name")))
+    order = sorted(grp.items(), key=lambda kv: (-kv[1]["n"], kv[1]["secs"][0]))
+    if order:
+        summary = f"사망 {len(deaths)}명 · " + " · ".join(
+            f"{lab} {g['n']}명 ({', '.join(f'{w} {mmss(x)}' for w, x in list(zip(g['who'], g['secs']))[:3])}"
+            f"{'…' if g['n'] > 3 else ''})" for lab, g in order)
+    else:
+        summary = "사망 0명"
+    p2_end = (obs.get("phase2") or {}).get("endSec")
+    healers = {short(r.get("name")) for r in ((facts or {}).get("roster") or []) if safe_int(r.get("specID")) in HEALER_SPECS}
+    heal_dead = sorted({short(d.get("name")) for d in deaths if short(d.get("name")) in healers})
+    parts = []
+    if p2_entry is not None:
+        parts.append(f"P2 진입 {mmss(p2_entry)} (다른 공대 {REF_P2_ENTRY_TXT})")
+    if p2_end is not None:
+        parts.append(f"사이페 {mmss(p2_end)} (다른 공대 킬 {REF_SOUL_KILL_TXT})")
+    parts.append(f"킬 {mmss(duration)} (다른 공대 {REF_KILL_TXT.split(' (')[0]})")
+    if heal_dead:
+        parts.append(f"힐러 사망 {', '.join(heal_dead)}")
+    dps = " · ".join(parts)
+    picks = []
+    for lab, g in order:
+        adv = (GUIDE_DEATHS.get(lab) or (None, None))[1]
+        if adv:
+            picks.append(f"{lab} {g['n']}명 → {adv.split(' · ')[0].rstrip('. ')}")
+        elif g["n"] >= 2:
+            picks.append(f"{lab} {g['n']}명 줄이기")
+        if len(picks) >= 2:
+            break
+    if fm.get("sec") is not None and fm.get("label") and not any(str(fm.get("label")) in p for p in picks):
+        picks.append(f"첫 실수 {mmss(fm['sec'])} {fm.get('label')}")
+    nxt = " / ".join(picks[:2]) or "사망 없이 더 빠른 킬: 단계 시각을 다른 공대와 비교."
+    return summary, dps, nxt
 
 
 def coiled_stages(duration, p2_entry, p2_end, kill=False) -> list[dict]:
