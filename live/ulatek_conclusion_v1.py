@@ -670,10 +670,26 @@ def load_personal_duty() -> dict | None:
     except Exception:
         return None
     duty = ((d or {}).get("ulatek") or {}).get("eggRoom")
-    return duty if isinstance(duty, dict) and duty.get("player") else None
+    return duty if isinstance(duty, dict) and (duty.get("player") or duty.get("players")) else None
 
 
-def big_egg_review(raw: dict, hearts: list, deaths: list, duration: float, duty: dict | None = None) -> dict | None:
+def duty_player(duty: dict | None, roster_names=None) -> str | None:
+    """개인 임무를 맡은 내 캐릭터 고르기 (players 목록 중 이 풀에 있는 첫 캐릭터).
+
+    roster 를 모르면 player. 목록 캐릭터가 아무도 없으면 None → 개인 임무 줄 안 씀
+    (다른 캐릭터로 간 날 「첫 알 안 듦」으로 잘못 적히던 것).
+    """
+    if not duty:
+        return None
+    names = [str(x) for x in (duty.get("players") or []) if x] or ([str(duty["player"])] if duty.get("player") else [])
+    if roster_names is None:
+        return names[0] if names else None
+    present = {short(n) for n in roster_names if n}
+    return next((n for n in names if n in present), None)
+
+
+def big_egg_review(raw: dict, hearts: list, deaths: list, duration: float, duty: dict | None = None,
+                   roster_names=None) -> dict | None:
     """V5.3.8 2페(알방) 큰 알(파멸비늘 알 4개): 누가 언제 들고 넣었나 · 4:15 기한 · (GOLD) 개인 임무.
 
     알방 구간 = 1심장 끝 뒤. 그 전에 전멸했거나 부화 시작이 없으면 None.
@@ -729,8 +745,8 @@ def big_egg_review(raw: dict, hearts: list, deaths: list, duration: float, duty:
             + ("".join(f" · {t}" for t in tail)))
     out = {"deadline": round(deadline, 1), "picks": picks, "late": [p["name"] for p in late],
            "unpicked": unpicked, "spawnAt": round(spawn_at, 1), "diedHolding": [p["name"] for p in dead_drop]}
-    if duty:
-        who = str(duty.get("player"))
+    who = duty_player(duty, roster_names)
+    if duty and who:
         by = float(duty.get("bigEggBySec") or deadline)
         shells = [x for x in (raw.get("shell") or []) if x["target"] == who and x["sec"] >= room_start]
         first_on = next((x for x in shells if x["event"] == "SPELL_AURA_APPLIED"), None)
@@ -765,8 +781,10 @@ def big_egg_review(raw: dict, hearts: list, deaths: list, duration: float, duty:
         elif duration < by + 0.5:
             bits.append(f"큰 알 기한 전 전멸 ({mmss(duration)})")
         else:
+            # 4개 다 다른 사람이 들었으면 부화 없음
             bits.append(f"큰 알 안 듦 (기한 {mmss(by)})"
-                        + (f" → {mmss(spawn_at)} 게걸스러운 파멸비늘" if duration >= spawn_at - 0.5 else ""))
+                        + (f" → {mmss(spawn_at)} 게걸스러운 파멸비늘" if unpicked and duration >= spawn_at - 0.5
+                           else (f" · 큰 알 {len(picks)}개 다른 사람이 듦" if len(picks) >= BIG_EGG_COUNT else "")))
         line = f"{who} 알방: " + " · ".join(bits) + " | " + line
         out["duty"] = {"player": who, "firstEgg": first_on and first_on["sec"], "firstEggOff": first_off and first_off["sec"],
                        "bigEgg": mine and mine["pick"], "by": by}
@@ -1108,7 +1126,8 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
                              "waveCarriers": [n for _s, n in vr["waves"]], "bursts": [n for _s, n in vr["bursts"]],
                              "stuns": [{"sec": m["stunSec"], "target": m["target"], "stunned": m["stunned"]} for m in vr.get("marks") or []]}
             notes[:0] = egg_viper_notes(vr)   # 화면 참고 칸은 4줄까지라 알·살무사를 앞에
-        be = big_egg_review(raw, hearts, deaths, duration, load_personal_duty())
+        be = big_egg_review(raw, hearts, deaths, duration, load_personal_duty(),
+                            [r.get("name") for r in ((facts or {}).get("roster") or [])] if (facts or {}).get("roster") else None)
         if be:
             plan["bigEgg"] = be
             notes.insert(0, be["line"])

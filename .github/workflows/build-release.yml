@@ -64,7 +64,7 @@ jobs:
             "test_public_no_drive_leak.py", "test_public_stage2_4_release.py", "test_public_stage2_5_rc3.py",
             "test_public_rc4_fixes.py", "test_public_rc4_2_feign_recheck.py", "test_public_rc4_3_class_color.py",
             "test_public_rc4_4_fonts.py", "test_public_rc5_layout.py", "test_public_rc5_3.py", "test_public_rc5_3_1.py",
-            "test_public_rc5_4*.py", "test_public_rc5_5*.py", "test_public_rc5_6*.py", "test_public_1_0_1*.py", "test_public_1_0_2*.py", "test_public_1_0_3*.py", "test_public_1_0_5*.py", "test_public_1_0_6*.py", "test_public_1_0_7*.py", "test_public_1_0_8*.py", "test_nini_stage2_2_1_gui_regression.py",
+            "test_public_rc5_4*.py", "test_public_rc5_5*.py", "test_public_rc5_6*.py", "test_public_1_0_1*.py", "test_public_1_0_2*.py", "test_public_1_0_3*.py", "test_public_1_0_5*.py", "test_public_1_0_6*.py", "test_public_1_0_7*.py", "test_public_1_0_8*.py", "test_public_1_0_9*.py", "test_nini_stage2_2_1_gui_regression.py",
             "test_b37_5_0_step4_3_live_try_wheel.py", "test_b37_5_0_5_try_wheel_focus_regression.py")
           foreach ($t in $tests) {
             python -m unittest discover -s qa -p $t
