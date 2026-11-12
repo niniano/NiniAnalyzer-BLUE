@@ -206,7 +206,10 @@ class Notes(unittest.TestCase):
     def test_all_carrier_waves_and_stuns_in_notes(self):
         r = U.build(mythic_meta(), mech(), raid(126.0), {}, self.raw())
         notes = r["notes"]
-        self.assertEqual(notes[0], "알 든 사람 부식의 파도 3번 · 가 1:53, 나 1:58, 다 2:00 → 살무사 4마리 (1:54 4)")
+        # 1.0.9: 누가 맞았는지는 「알 운반」 카드로 (참고 줄은 횟수만)
+        self.assertEqual(notes[0], "알 든 사람 부식의 파도 3번 → 살무사 4마리 (1:54 4)")
+        self.assertEqual(U.egg_viper_notes(U.viper_review(self.raw()))[0],
+                         "알 든 사람 부식의 파도 3번 · 가 1:53, 나 1:58, 다 2:00 → 살무사 4마리 (1:54 4)")
         self.assertEqual(notes[1], "살무사 주시→스턴 2번 · 2명 · 2:00 라+바, 2:05 마 주시(스턴 없음)")
         # 무리 안쪽에서 맞은 알 든 사람도 원인에 같이
         self.assertIn("알 든 가·나·다 부식의 파도 1:53 → 살무사 4마리 1:54", r["lines"]["전멸 원인"])

@@ -743,10 +743,50 @@ def big_egg_review(raw: dict, hearts: list, deaths: list, duration: float, duty:
             + (" · " + ", ".join(parts) if parts else "")
             + (f" · 늦음 {', '.join(p['name'] for p in late)}" if late else "")
             + ("".join(f" · {t}" for t in tail)))
+    # V5.4.2: 화면 「참고」 줄은 누가 들었는지 빼고 짧게 (누가 = 「알 운반」 카드)
+    short_line = (f"알방 큰 알 {len(picks)}/{BIG_EGG_COUNT} (기한 {mmss(deadline)}"
+                  + (f" · {mmss(duration)} 전멸" if duration < deadline + 30 else "") + ")"
+                  + (f" · 늦음 {len(late)}" if late else "")
+                  + (f" · 안 든 큰 알 {unpicked}개 → {mmss(spawn_at)} 게걸스러운 파멸비늘" if unpicked and duration >= spawn_at - 0.5 else "")
+                  + (f" · 들고 사망 {len(dead_drop)} → 게걸스러운 파멸비늘" if dead_drop else ""))
     out = {"deadline": round(deadline, 1), "picks": picks, "late": [p["name"] for p in late],
            "unpicked": unpicked, "spawnAt": round(spawn_at, 1), "diedHolding": [p["name"] for p in dead_drop]}
     who = duty_player(duty, roster_names)
-    if duty and who:
+    small_only = bool(duty and who and who in (duty.get("smallEggOnly") or []))
+    if duty and who and small_only:
+        # V5.4.2: 작은 알만 드는 캐릭터 (개인 임무 smallEggOnly) → 큰 알 판정 안 함
+        shells = [x for x in (raw.get("shell") or []) if x["target"] == who and x["sec"] >= room_start - 5.0]
+        spans, on = [], None
+        for x in shells:
+            if x["event"] == "SPELL_AURA_APPLIED":
+                on = x["sec"]
+            elif on is not None:
+                spans.append((on, x["sec"]))
+                on = None
+        if on is not None:
+            spans.append((on, None))
+        died = next((d for d in deaths if short(d.get("name")) == who and float(d.get("sec") or 0) >= room_start - 5.0), None)
+        died_before = next((d for d in deaths if short(d.get("name")) == who and float(d.get("sec") or 0) < room_start - 5.0), None)
+        if died_before and not spans:
+            spell = ((died_before.get("lastHit") or {}).get("spellName") or "").strip()
+            bits = [f"알방 전 사망 {mmss(float(died_before['sec']))}" + (f"({spell})" if spell else "")]
+        elif spans:
+            bits = ["작은 알 " + ", ".join(mmss(a) + (f"→{mmss(b)}" if b is not None else "") for a, b in spans)]
+        elif died:
+            spell = ((died.get("lastHit") or {}).get("spellName") or "").strip()
+            bits = [f"작은 알 전 사망 {mmss(float(died['sec']))}" + (f"({spell})" if spell else "")]
+        elif duration < room_start + 60:
+            bits = [f"작은 알 전 전멸 ({mmss(duration)})"]
+        else:
+            bits = ["작은 알 안 듦"]
+        if died and spans and any(b is not None and abs(float(died["sec"]) - b) <= 1.0 for a, b in spans):
+            spell = ((died.get("lastHit") or {}).get("spellName") or "").strip()
+            bits.append(f"들고 사망 {mmss(float(died['sec']))}" + (f"({spell})" if spell else ""))
+        prefix = f"{who} 알방(작은 알): " + " · ".join(bits)
+        line = prefix + " | " + line
+        short_line = prefix + " | " + short_line
+        out["duty"] = {"player": who, "smallEggOnly": True, "smallEggs": spans}
+    elif duty and who:
         by = float(duty.get("bigEggBySec") or deadline)
         shells = [x for x in (raw.get("shell") or []) if x["target"] == who and x["sec"] >= room_start]
         first_on = next((x for x in shells if x["event"] == "SPELL_AURA_APPLIED"), None)
@@ -786,14 +826,162 @@ def big_egg_review(raw: dict, hearts: list, deaths: list, duration: float, duty:
                         + (f" → {mmss(spawn_at)} 게걸스러운 파멸비늘" if unpicked and duration >= spawn_at - 0.5
                            else (f" · 큰 알 {len(picks)}개 다른 사람이 듦" if len(picks) >= BIG_EGG_COUNT else "")))
         line = f"{who} 알방: " + " · ".join(bits) + " | " + line
+        short_line = f"{who} 알방: " + " · ".join(bits) + " | " + short_line
         out["duty"] = {"player": who, "firstEgg": first_on and first_on["sec"], "firstEggOff": first_off and first_off["sec"],
                        "bigEgg": mine and mine["pick"], "by": by}
     out["line"] = line
+    out["short"] = short_line
     return out
 
 
-def egg_viper_notes(vr: dict | None, limit: int = 6) -> list[str]:
-    """V5.3.6 화면 「참고」 줄: 알 든 사람 파도 전부 · 살무사 주시 → 스턴 전부."""
+EGG_ROUND_GAP_SEC = 25.0         # V5.4.2 알 운반 차수: 집은 시각이 25초 넘게 벌어지면 다음 차 (1차 0:15~0:34 · 2차 1:25~1:56)
+EGG_EARLY_DROP_SEC = 3.0         # 같은 차 다른 사람보다 3초+ 먼저 놓음 (1·2차는 다 같이 넣는다)
+EGG_WIPE_DEATHS = 3              # 알 든 사람 3명+ 이 2초 안에 같이 죽으면 그 차는 전멸로 끝남 (예: 유령의 똬리로 한꺼번에)
+
+
+def egg_carry_review(raw: dict, deaths: list, vr: dict | None, room_start: float | None,
+                     big: dict | None = None, owner: str | None = None, collapse_at: float | None = None) -> dict | None:
+    """V5.4.2 「알 운반」 카드: 차수마다 누가 작은 알(유독한 껍질)을 들었고 어떻게 끝났나 + 큰 알.
+
+    결과: 넣음(표시 없음) · 파도 m:ss · 충돌 m:ss · 사망 m:ss · 먼저 놓음 m:ss · → 살무사 (그 사람이 원인인 살무사 무리).
+    """
+    shell = sorted((raw or {}).get("shell") or [], key=lambda x: x["sec"])
+    if not shell and not (big or {}).get("picks"):
+        return None
+    spans, open_ = [], {}
+    for x in shell:
+        if x["event"] == "SPELL_AURA_APPLIED":
+            open_[x["target"]] = len(spans)
+            spans.append({"name": x["target"], "pick": float(x["sec"]), "drop": None})
+        elif x["target"] in open_:
+            spans[open_.pop(x["target"])]["drop"] = float(x["sec"])
+    death_at: dict = {}
+    for d in deaths or []:
+        death_at.setdefault(short(d.get("name")), []).append(d)
+    waves = list((vr or {}).get("waves") or [])
+    bursts = list((vr or {}).get("bursts") or [])
+    clusters = list((vr or {}).get("clusters") or [])
+    rounds = []
+    for sp in spans:
+        if rounds and sp["pick"] - rounds[-1]["picks"][-1] <= EGG_ROUND_GAP_SEC:
+            rounds[-1]["spans"].append(sp)
+            rounds[-1]["picks"].append(sp["pick"])
+        else:
+            rounds.append({"spans": [sp], "picks": [sp["pick"]]})
+    out_rounds, n_p1 = [], 0
+    for r in rounds:
+        room = room_start is not None and r["picks"][0] >= float(room_start) - 5.0
+        if not room:
+            n_p1 += 1
+        drops = sorted(sp["drop"] for sp in r["spans"] if sp["drop"] is not None)
+        # 넣는 묶음 = 놓은 시각이 4초 안으로 이어진 가장 큰 무리 (2:14 · 2:17 두 번에 나눠 넣어도 한 무리)
+        groups = _clusters(drops, 4.0) if drops else []
+        main = max(groups, key=len) if groups else []
+        main_from = main[0] if main else None
+        main_to = main[-1] if main else None
+        items = []
+        for sp in r["spans"]:
+            a, b, n = sp["pick"], sp["drop"], sp["name"]
+            end = b if b is not None else float("inf")
+            flags = []
+            d = next((d for d in death_at.get(n, []) if b is not None and abs(float(d.get("sec") or 0) - b) <= 1.0), None)
+            if d:
+                spell = ((d.get("lastHit") or {}).get("spellName") or "").strip()
+                flags.append({"kind": "died", "sec": float(d["sec"]), "text": f"사망 {mmss(d['sec'])}" + (f"({spell})" if spell else "")})
+            w = next((s for s, wn in waves if wn == n and a - 0.05 <= s <= end + 0.35), None)
+            if w is not None:
+                flags.append({"kind": "wave", "sec": w, "text": f"파도 {mmss(w)}"})
+            bs = next((s for s, bn in bursts if bn == n and a - 0.05 <= s <= end + 1.0), None)
+            if bs is not None:
+                flags.append({"kind": "burst", "sec": bs, "text": f"충돌 {mmss(bs)}"})
+            if not flags and not room and b is not None and main_from is not None and len(main) >= 3:
+                if main_from - b >= EGG_EARLY_DROP_SEC:
+                    flags.append({"kind": "early", "sec": b, "text": f"먼저 놓음 {mmss(b)}"})
+                elif b - main_to >= 5.0:
+                    flags.append({"kind": "late", "sec": b, "text": f"늦게까지 들고 {mmss(b)}"})
+            viper = next((c for c in clusters if n in (c.get("names") or [])
+                          and c.get("triggerSec") is not None and a - 0.5 <= float(c["triggerSec"]) <= end + 1.0), None)
+            if viper:
+                flags.append({"kind": "viper", "sec": float(viper["sec"]), "text": f"→ 살무사 {mmss(viper['sec'])}"})
+            items.append({"name": n, "pick": round(a, 1), "drop": None if b is None else round(b, 1),
+                          "flags": flags, "owner": bool(owner and n == owner)})
+        # 전멸 순간(붕괴 시작 뒤 · 또는 알 든 사람 여럿이 같이 사망·충돌)에 생긴 것은 「전멸」 하나로 묶는다 (실수 아님)
+        dts = sorted((f["sec"], it["name"]) for it in items for f in it["flags"] if f["kind"] == "died")
+        wipe_at = next((t for i, (t, _n) in enumerate(dts)
+                        if len({n for u, n in dts[i:] if u - t <= 2.0}) >= EGG_WIPE_DEATHS), None)
+        if collapse_at is not None:
+            later = sorted(f["sec"] for it in items for f in it["flags"]
+                           if f["kind"] in ("died", "burst") and f["sec"] >= float(collapse_at) - 1.5)
+            if later and (wipe_at is None or later[0] < wipe_at):
+                wipe_at = later[0]
+        for it in items:
+            if wipe_at is not None:
+                keep = [f for f in it["flags"] if f["sec"] < wipe_at - 1.0]
+                if len(keep) != len(it["flags"]):
+                    keep.append({"kind": "wipe", "sec": wipe_at, "text": f"전멸 {mmss(wipe_at)}"})
+                it["flags"] = keep
+            it["bad"] = any(f["kind"] not in ("wipe",) for f in it["flags"])
+        label = "알방" if room else f"{n_p1}차"
+        items.sort(key=lambda it: (not it["bad"], min([f["sec"] for f in it["flags"]] or [it["pick"]])) if it["bad"] else (True, it["pick"]))
+        out_rounds.append({"label": label, "room": room, "start": round(r["picks"][0], 1), "wipeAt": wipe_at,
+                           "end": round(max(drops), 1) if drops else None,
+                           "count": len(items), "bad": sum(1 for i in items if i["bad"]), "items": items})
+    out = {"rounds": out_rounds}
+    if big and big.get("picks") is not None:
+        late = set(big.get("late") or [])
+        out["big"] = {"deadline": big.get("deadline"), "count": BIG_EGG_COUNT, "unpicked": big.get("unpicked"),
+                      "spawnAt": big.get("spawnAt"),
+                      "items": [{"name": p["name"], "pick": round(float(p["pick"]), 1),
+                                 "drop": None if p.get("drop") is None else round(float(p["drop"]), 1),
+                                 "late": p["name"] in late, "died": p.get("died"), "diedBy": p.get("diedBy") or "",
+                                 "owner": bool(owner and p["name"] == owner)} for p in big["picks"]]}
+    return out
+
+
+def egg_carry_lines(ec: dict | None) -> list[dict]:
+    """V5.4.2 카드 글: [{"head": "1차 0:15", "count": "8명", "parts": [(글, 꼬리표)]}] · 꼬리표 bad/late/ok/owner."""
+    if not ec:
+        return []
+    lines = []
+    for r in ec.get("rounds") or []:
+        parts = []
+        for it in r["items"]:
+            tag = "bad" if it["bad"] else ("wipe" if it["flags"] else ("owner" if it.get("owner") else None))
+            txt = it["name"]
+            if it["flags"]:
+                txt += " " + " ".join(f["text"] for f in it["flags"])
+            elif r["room"] and it.get("owner"):   # 알방 작은 알 시각은 내 캐릭터만 (카드 짧게)
+                txt += f" {mmss(it['pick'])}" + (f"→{mmss(it['drop'])}" if it.get("drop") is not None else "")
+            parts.append((txt, tag))
+        head = f"{r['label']} {mmss(r['start'])}"
+        lines.append({"head": head, "count": f"{r['count']}명" + (f" · 문제 {r['bad']}" if r["bad"] else " ✓"), "parts": parts})
+    big = ec.get("big")
+    if big is not None:
+        parts = []
+        for it in big["items"]:
+            txt = f"{it['name']} {mmss(it['pick'])}" + (f"→{mmss(it['drop'])}" if it.get("drop") is not None else "")
+            if it.get("died") is not None:
+                txt += f" 들고 사망 {mmss(it['died'])}" + (f"({it['diedBy']})" if it.get("diedBy") else "")
+                tag = "bad"
+            elif it.get("late"):
+                txt += " 늦음"
+                tag = "late"
+            else:
+                txt += " ✓"
+                tag = "owner" if it.get("owner") else None
+            parts.append((txt, tag))
+        if big.get("unpicked"):
+            parts.append((f"안 든 큰 알 {big['unpicked']}개 → {mmss(big.get('spawnAt') or 0)} 게걸스러운 파멸비늘", "bad"))
+        lines.append({"head": f"큰 알 기한 {mmss(big.get('deadline') or BIG_EGG_PICK_BY_SEC)}",
+                      "count": f"{len(big['items'])}/{big['count']}", "parts": parts})
+    return lines
+
+
+def egg_viper_notes(vr: dict | None, limit: int = 6, names: bool = True) -> list[str]:
+    """V5.3.6 화면 「참고」 줄: 알 든 사람 파도 전부 · 살무사 주시 → 스턴 전부.
+
+    V5.4.2 names=False: 누가 맞았는지는 「알 운반」 카드에 있으니 횟수만 (참고 칸 짧게).
+    """
     if not vr:
         return []
     out = []
@@ -801,11 +989,13 @@ def egg_viper_notes(vr: dict | None, limit: int = 6) -> list[str]:
     total = sum(c["count"] for c in cl)
     waves = vr.get("waves") or []
     head = f"알 든 사람 부식의 파도 {len(waves)}번"
-    if waves:
+    if waves and names:
         head += " · " + ", ".join(f"{n} {mmss(s)}" for s, n in waves[:limit]) + (f" 외 {len(waves) - limit}" if len(waves) > limit else "")
     bursts = vr.get("bursts") or []
-    if bursts:
+    if bursts and names:
         head += " · 알 충돌 " + "·".join(sorted({n for _s, n in bursts})[:4]) + f" {mmss(bursts[0][0])}"
+    elif bursts:
+        head += f" · 알 충돌 {len({round(s) for s, _n in bursts})}번"
     head += f" → 살무사 {total}마리 (" + " · ".join(f"{mmss(c['sec'])} {c['count']}" for c in cl[:limit]) + (" …" if len(cl) > limit else "") + ")"
     out.append(head)
     marks = [m for m in vr.get("marks") or [] if m.get("stunned") or m.get("target")]
@@ -1125,12 +1315,21 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
                              "trigger": (vchain or {}).get("trigger"), "names": (vchain or {}).get("names") or [],
                              "waveCarriers": [n for _s, n in vr["waves"]], "bursts": [n for _s, n in vr["bursts"]],
                              "stuns": [{"sec": m["stunSec"], "target": m["target"], "stunned": m["stunned"]} for m in vr.get("marks") or []]}
-            notes[:0] = egg_viper_notes(vr)   # 화면 참고 칸은 4줄까지라 알·살무사를 앞에
-        be = big_egg_review(raw, hearts, deaths, duration, load_personal_duty(),
-                            [r.get("name") for r in ((facts or {}).get("roster") or [])] if (facts or {}).get("roster") else None)
+            notes[:0] = egg_viper_notes(vr, names=False)   # 화면 참고 칸은 4줄까지라 알·살무사를 앞에 · 누가 = 알 운반 카드
+        duty = load_personal_duty()
+        roster_names = [r.get("name") for r in ((facts or {}).get("roster") or [])] if (facts or {}).get("roster") else None
+        be = big_egg_review(raw, hearts, deaths, duration, duty, roster_names)
         if be:
             plan["bigEgg"] = be
-            notes.insert(0, be["line"])
+            notes.insert(0, be.get("short") or be["line"])
+        # V5.4.2 「알 운반」 카드 (오른쪽 기믹 수행 체크 칸 아래): 차수마다 누가 들었나 · 큰 알
+        h1_end = next((float(h["endSec"]) for h in hearts or [] if h.get("endSec") is not None), None)
+        hatch = raw.get("bigEggHatch") or []
+        room_start = h1_end if h1_end is not None else (hatch[0] - 20 if hatch else None)
+        ec = egg_carry_review(raw, deaths, vr, room_start, be, duty_player(duty, roster_names),
+                              _col0 if result != "kill" else None)
+        if ec:
+            plan["eggCarry"] = ec
     ac = obs.get("anguishedCry") or {}
     if not raw.get("available") and (ac.get("startCount") or ac.get("completedCount")):
         extra.append(f"절규   시전 {ac.get('startCount', 0)} · 완료(놓침) {ac.get('completedCount', 0)}")

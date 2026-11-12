@@ -3,7 +3,7 @@ from __future__ import annotations
 import os, sys, subprocess
 from pathlib import Path
 ROOT = Path(__file__).resolve().parent
-VERSION = "1.0.8"
+VERSION = "1.0.9"
 
 def build_command(root=ROOT, python=None, data_sep=None):
     root=Path(root)

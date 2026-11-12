@@ -39,7 +39,7 @@ assert (ROOT/'package_public_release.py').is_file()
 entry=(ROOT/'nini_raid_gui.py').read_text(encoding='utf-8')
 assert 'start_error_notice_poll(app)' in entry
 assert 'maybe_show_first_run(app)' in entry
-assert 'PUBLIC_APP_VERSION = "1.0.8"' in gui
+assert 'PUBLIC_APP_VERSION = "1.0.9"' in gui
 print('STAGE 2.4 RELEASE GATE PASS — first-run guide, local-only error notice and packager')
 
 assert (ROOT/'build_public_windows.py').read_text(encoding='utf-8').find("'--contents-directory', '_internal'") >= 0
@@ -57,7 +57,7 @@ assert '_drop_feign_deaths' in (ROOT/'live/boss_mechanics/engine.py').read_text(
 assert 'def _pull_badge_text' in gui and 'def _public_auto_open_latest_session' in gui
 iss=(ROOT/'installer/NiniAnalyzer_Public.iss').read_text(encoding='utf-8-sig')
 assert 'AppId={{' in iss and 'PrivilegesRequired=lowest' in iss and 'AppUserModelID: "{#AppUserModelID}"' in iss
-assert '#define AppVersion "1.0.8"' in iss
+assert '#define AppVersion "1.0.9"' in iss
 assert 'UninstallDelete' not in iss, 'installer must never delete user raid records'
 print('RC4 GATE PASS — scroll, fonts, feign death, puller, first screen, installer')
 
@@ -193,7 +193,7 @@ print('1.0.3 GATE PASS — onboarding / whats-new cards')
 _u = (ROOT/'live/ulatek_conclusion_v1.py').read_text(encoding='utf-8')
 assert 'VERSION = "ULATEK-CONCLUSION-V2.0"' in _u and 'def viper_review(' in _u, '1.0.5: egg carry -> viper chain'
 assert 'VIPER_STUN = 1303414' in _u and 'def viper_marks(' in _u and 'def egg_viper_notes(' in _u, '1.0.5: viper mark -> landing stun notes'
-assert 'notes[:0] = egg_viper_notes(vr)' in _u, '1.0.5: egg/viper notes shown first'
+assert 'notes[:0] = egg_viper_notes(vr' in _u, '1.0.5: egg/viper notes shown first'
 assert 'raidplan_ulatek' not in _u
 assert '("1.0.5", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8'), '1.0.5: whats-new entry'
 assert (ROOT/'qa/test_public_1_0_5_ulatek_viper.py').is_file()
@@ -234,3 +234,12 @@ assert not (ROOT/'live/personal_duties.json').exists(), '1.0.8: personal duties 
 assert '("1.0.8", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
 assert (ROOT/'qa/test_public_1_0_8_ulatek_big_egg.py').is_file()
 print('1.0.8 GATE PASS — Ulatek egg room big eggs (4:15)')
+
+# 1.0.9: GOLD V5.4.1~V5.4.2 울라텍 「알 운반」 카드 (누가 알을 들었나) · 참고 줄 짧게 · 개인 임무 캐릭터 고르기
+_u9 = (ROOT/'live/ulatek_conclusion_v1.py').read_text(encoding='utf-8')
+assert 'def egg_carry_review(' in _u9 and 'def egg_carry_lines(' in _u9 and 'def duty_player(' in _u9, '1.0.9: egg carry card data'
+assert 'def _egg_card(' in (ROOT/'live/v43_layout.py').read_text(encoding='utf-8'), '1.0.9: egg carry card'
+assert not (ROOT/'live/personal_duties.json').exists(), '1.0.9: personal duties stay GOLD-only'
+assert '("1.0.9", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
+assert (ROOT/'qa/test_public_1_0_9_egg_card.py').is_file()
+print('1.0.9 GATE PASS — Ulatek egg carry card')

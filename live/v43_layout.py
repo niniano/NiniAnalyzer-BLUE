@@ -553,6 +553,7 @@ def _show_five(app, row):
     name = _BOSS_MODULES.get(enc)
     key = _row_key(row)
     box_rows = None
+    _egg_card(app, [])   # V5.4.2: 다른 트라이로 가면 알 운반 카드는 먼저 숨김 (울라텍 결론이 오면 다시 채움)
     kill_on = False
     if name and key and not _managed(v40) and st["five"].get(key) != {}:
         kill_on = _kill_glance(app, row)   # V5.2.8: 킬 판도 결론 칸 (예전 칸은 「판정 상세 펼치기」)
@@ -600,6 +601,7 @@ def _show_five(app, row):
             except Exception:
                 pass
             names = _name_colors(row)
+            _egg_card(app, result.get("_eggCarry") or [], names)
             for k, txt in rows.items():
                 _set_text(txt, result.get(k) or "-")
                 _paint_names(txt, names)
@@ -635,6 +637,88 @@ def _show_five(app, row):
                 app._v40_visible_key = None
             except Exception:
                 pass
+
+
+EGG_TAG_COLORS = {"bad": "RED", "late": "ORANGE", "wipe": "STATE_INACTIVE"}
+
+
+def _egg_card(app, lines, names=None) -> None:
+    """V5.4.2 울라텍 「알 운반」 카드: 차수마다 누가 알을 들었나 (문제 = 빨강 · 늦음 = 주황 · 전멸 중 = 회색).
+
+    오른쪽 「기믹 수행 체크」 카드 칸 아래에 두 칸 너비로 붙인다. 줄이 없으면(다른 보스 · 알 단계 전) 숨긴다.
+    """
+    st = app._v43
+    card = st.get("egg_card")
+    if not lines:
+        if card is not None:
+            try:
+                card[0].grid_remove()
+            except Exception:
+                pass
+        return
+    T = _theme()
+    try:
+        from nini_wcl_gui import FONT_BODY  # type: ignore
+    except Exception:
+        FONT_BODY = "TkDefaultFont"
+    if card is None:
+        body = None
+        for c in (getattr(app, "b3641_try_cards", {}) or {}).values():
+            if c.get("frame") is not None:
+                body = c["frame"].master
+                break
+        if body is None:
+            box = getattr(app, "b3739_cards_box", None)
+            body = getattr(box, "body", None)
+        if body is None:
+            return
+        try:
+            frame = T.RoundBox(body, fill=T.CARD_BG, outline=T.CARD_BORDER, radius=8, padx=10, pady=8)
+            inner = frame.inner
+        except Exception:
+            frame = inner = tk.Frame(body, bg=T.CARD_BG)
+        head = tk.Frame(inner, bg=T.CARD_BG)
+        head.pack(fill="x")
+        tk.Label(head, text="알 운반 · 누가 들었나", bg=T.CARD_BG, fg=T.TEXT, font=(FONT_BODY, 10, "bold"),
+                 anchor="w").pack(side="left", padx=(_px(app, 4), 0))
+        tk.Label(head, text="빨강 문제 · 주황 늦음 · 회색 전멸 중", bg=T.CARD_BG, fg=T.MUTED, font=(FONT_BODY, 8),
+                 anchor="e").pack(side="right")
+        txt = tk.Text(inner, height=1, wrap="word", bg=T.CARD_BG, fg=T.TEXT, bd=0, relief="flat", highlightthickness=0,
+                      font=(FONT_BODY, 10), cursor="arrow", padx=_px(app, 4), pady=_px(app, 2),
+                      selectbackground=T.CARD_BG, insertwidth=0, takefocus=0, spacing1=_px(app, 3))
+        txt.tag_configure("head", foreground=T.MUTED, font=(FONT_BODY, 9, "bold"))
+        txt.tag_configure("count", foreground=T.MUTED, font=(FONT_BODY, 9))
+        txt.tag_configure("owner", font=(FONT_BODY, 10, "bold"))
+        for tag, attr in EGG_TAG_COLORS.items():
+            txt.tag_configure(tag, foreground=getattr(T, attr, T.MUTED))
+        txt.pack(fill="x", expand=True)
+        txt.configure(state="disabled")
+        txt.bind("<Configure>", lambda e, t=txt: _fit_text(t), add="+")
+        card = st["egg_card"] = (frame, txt)
+    frame, txt = card
+    txt.configure(state="normal")
+    txt.delete("1.0", "end")
+    for i, ln in enumerate(lines):
+        if i:
+            txt.insert("end", "\n")
+        txt.insert("end", f"{ln.get('head', '')}  ", "head")
+        txt.insert("end", f"{ln.get('count', '')}\n", "count")
+        for j, (part, tag) in enumerate(ln.get("parts") or []):
+            if j:
+                txt.insert("end", " · ", "count")
+            txt.insert("end", str(part), tag) if tag else txt.insert("end", str(part))
+    txt.configure(state="disabled")
+    m = _v45()
+    if names and m is not None:
+        try:
+            m.colorize_text_widget(txt, names, font=(FONT_BODY, 10))
+        except Exception:
+            pass
+    try:
+        frame.grid(row=50, column=0, columnspan=CARD_COLS, sticky="nsew", padx=_px(app, 3), pady=_px(app, 3))
+    except Exception:
+        pass
+    _fit_text(txt)
 
 
 def _set_labels(app, labels: dict) -> None:
@@ -684,6 +768,9 @@ def _compute(app, mod, key, row) -> None:
         lines["_notes"] = [str(x) for x in (out.get("notes") or [])][:4]
         lines["_labels"] = dict(out.get("labels") or {})   # V5.2.8: 킬 판 칸 이름 (사망 정리 · 다음 주)
         lines["_checks"] = list(out.get("checks") or [])   # V5.2.9: 엔진 판정 없는 보스의 기믹 수행 체크 칸
+        # V5.4.2: 울라텍 「알 운반」 카드 (누가 알을 들었나 · 오른쪽 기믹 수행 체크 칸 아래)
+        ec = (out.get("plan") or {}).get("eggCarry")
+        lines["_eggCarry"] = mod.egg_carry_lines(ec) if (ec and hasattr(mod, "egg_carry_lines")) else []
     except Exception:
         lines = {}
     try:
