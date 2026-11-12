@@ -459,15 +459,34 @@ def _five_box(app):
     return st["five_box"]
 
 
+_LINESPACE: dict = {}
+
+
+def _linespace(t) -> int:
+    key = str(t.cget("font"))
+    if key not in _LINESPACE:
+        from tkinter import font as tkfont
+        _LINESPACE[key] = max(1, int(tkfont.Font(root=t, font=t.cget("font")).metrics("linespace")))
+    return _LINESPACE[key]
+
+
 def _fit_text(t):
     # V5.2.2: 그 칸 하나만 줄 수를 다시 센다 (-update). 예전처럼 창 전체를
     # update_idletasks 로 다시 그리지 않으므로 화면이 위에서부터 차례로 그려지지 않는다.
+    # V5.4.3: 줄 수가 아니라 글 전체 높이(픽셀)로 맞춘다. 이름(11pt)·굵은 기믹 이름이 섞인 줄은
+    # 기본 글꼴 한 줄보다 높아서, 줄 수로만 맞추면 마지막 줄이 잘려 스크롤해야 보였다 (Windows 배율에서 특히).
     try:
         if int(t.winfo_width()) <= 1:
             return  # 아직 폭이 없으면 <Configure> 때 다시 맞춘다
         n = int(t.tk.call(t._w, "count", "-update", "-displaylines", "1.0", "end"))
+        try:
+            ypix = int(t.tk.call(t._w, "count", "-ypixels", "1.0", "end"))
+            n = max(n, -(-ypix // _linespace(t)))
+        except Exception:
+            pass
         if n and int(t.cget("height")) != n:
             t.configure(height=n)
+        t.yview_moveto(0)
     except Exception:
         pass
 
@@ -511,6 +530,7 @@ def _paint_names(txt, names):
         m.colorize_text_widget(txt, names, font=(FONT_BODY, 11))
     except Exception:
         pass
+    _fit_text(txt)   # V5.4.3: 이름 글꼴이 들어가면 줄 높이·줄바꿈이 바뀐다 → 다시 맞춤
 
 
 def _set_stages(app, frame, stages):
