@@ -249,4 +249,7 @@ _v10 = (ROOT/'live/v43_layout.py').read_text(encoding='utf-8')
 assert '"-ypixels"' in _v10 and 'def _linespace(' in _v10, '1.0.10: fit text by pixels'
 assert '("1.0.10", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
 assert (ROOT/'qa/test_public_1_0_10_fit_text.py').is_file()
-print('1.0.10 GATE PASS — text rows not clipped')
+assert (ROOT/'live/v544_glance.py').is_file() and '_show_glance(app' in _v10, '1.0.10: glance'
+assert "--hidden-import=live.v544_glance" in (ROOT/'build_public_windows.py').read_text(encoding='utf-8'), '1.0.10: glance in frozen build'
+assert (ROOT/'qa/test_public_1_0_10_glance.py').is_file()
+print('1.0.10 GATE PASS — text rows not clipped · glance')

@@ -427,9 +427,16 @@ def _five_box(app):
     box = tk.Frame(parent, bg=T.PANEL_BG)
     stages = tk.Frame(box, bg=T.PANEL_BG)
     stages.pack(fill="x", pady=(0, _px(app, 6)))
+    # V5.4.4: 한눈에 보기 (무너진 순서 칩 · 숫자 카드 · 다음 풀 한 줄) → 5줄 문장과 참고는 「자세히」 안
+    glance = tk.Frame(box, bg=T.PANEL_BG)
+    toggle = tk.Label(box, text="", bg=T.PANEL_BG, fg=T.BLUE, font=(FONT_BODY, 9), cursor="hand2", anchor="w")
+    details = tk.Frame(box, bg=T.PANEL_BG)
+    details.pack(fill="x")
+    toggle.bind("<Button-1>", lambda e: _toggle_details(app))
+    st["five_glance"] = (glance, toggle, details)
     rows = {}
     for key in FIVE_KEYS:
-        r = tk.Frame(box, bg=T.PANEL_BG)
+        r = tk.Frame(details, bg=T.PANEL_BG)
         r.pack(fill="x", pady=(_px(app, 1), _px(app, 2)))
         _lab = tk.Label(r, text=key, bg=T.PANEL_BG, fg=T.MUTED, font=(FONT_TITLE, 10), width=8, anchor="nw")
         _lab.pack(side="left", anchor="n")
@@ -447,7 +454,7 @@ def _five_box(app):
         txt.bind("<Configure>", lambda e, t=txt: _fit_text(t), add="+")
         rows[key] = txt
     # V5.0 「참고」 줄: 모듈이 notes 를 줄 때만 보인다 (키식스 무효화·탱 교대·공포 중 면역기 · 울라텍 늦은 절규)
-    note_row = tk.Frame(box, bg=T.PANEL_BG)
+    note_row = tk.Frame(details, bg=T.PANEL_BG)
     tk.Label(note_row, text="참고", bg=T.PANEL_BG, fg=T.MUTED, font=(FONT_TITLE, 10), width=8, anchor="nw").pack(side="left", anchor="n")
     note_txt = tk.Text(note_row, height=1, wrap="word", bg=T.PANEL_BG, fg=T.ORANGE, bd=0, relief="flat", highlightthickness=0,
                        font=(FONT_BODY, 10), cursor="arrow", padx=0, pady=0, selectbackground=T.PANEL_BG, insertwidth=0, takefocus=0)
@@ -603,6 +610,7 @@ def _show_five(app, row):
             box, rows, stage_frame = box_rows
             _set_stages(app, stage_frame, [])
             _set_labels(app, {})
+            _show_glance(app, None)
             for k, txt in rows.items():
                 _set_text(txt, "불러오는 중…" if k == FIVE_KEYS[0] else "")
             note = st.get("five_note")
@@ -625,6 +633,7 @@ def _show_five(app, row):
             for k, txt in rows.items():
                 _set_text(txt, result.get(k) or "-")
                 _paint_names(txt, names)
+            _show_glance(app, result.get("_glance"))
             note = st.get("five_note")
             if note is not None:
                 notes = result.get("_notes") or []
@@ -657,6 +666,137 @@ def _show_five(app, row):
                 app._v40_visible_key = None
             except Exception:
                 pass
+
+
+GLANCE_TONES = {   # 칩 · 카드 색 (배경, 테두리, 글)
+    "red": ("#3a1d1d", "#7a3434", "#f3b0aa"), "orange": ("#3a2a16", "#d9963d", "#f0c890"),
+    "end": ("#262b33", "#3a414b", "#e8eaed"), "green": ("#1f2a22", "#2f5a3c", "#9fe0b8"),
+}
+VALUE_TONES = {"red": "RED", "orange": "ORANGE", "green": "GREEN", "muted": "MUTED"}
+
+
+def _toggle_details(app) -> None:
+    st = app._v43
+    st["five_open"] = not st.get("five_open")
+    _apply_details(app)
+
+
+def _apply_details(app) -> None:
+    st = app._v43
+    glance, toggle, details = st["five_glance"]
+    has = bool(glance.winfo_children()) and glance.winfo_manager() != ""
+    if not has:
+        toggle.pack_forget()
+        if not details.winfo_manager():
+            details.pack(fill="x")
+        return
+    opened = bool(st.get("five_open"))
+    toggle.configure(text=("자세히 접기 ▴" if opened else "자세히 펼치기 ▾") + "   어디까지 · 첫 실수 · 전멸 원인 · 딜·힐 · 다음 풀 · 참고")
+    if not toggle.winfo_manager():
+        toggle.pack(fill="x", pady=(_px(app, 2), _px(app, 4)), after=glance)
+    if opened and not details.winfo_manager():
+        details.pack(fill="x", after=toggle)
+    elif not opened and details.winfo_manager():
+        details.pack_forget()
+
+
+def _flow(frame, items, gap) -> None:
+    """칩을 왼쪽부터 줄 바꿈하며 놓는다 (창 폭이 바뀌면 다시)."""
+    def place(_e=None):
+        width = max(1, int(frame.winfo_width()))
+        x = y = row_h = 0
+        for w in items:
+            w.update_idletasks()
+            ww, wh = int(w.winfo_reqwidth()), int(w.winfo_reqheight())
+            if x and x + ww > width:
+                x, y = 0, y + row_h + gap
+                row_h = 0
+            w.place(x=x, y=y)
+            x += ww + gap
+            row_h = max(row_h, wh)
+        frame.configure(height=y + row_h)
+    frame.bind("<Configure>", place)
+    place()
+
+
+def _show_glance(app, g) -> None:
+    """V5.4.4 「한눈에 보기」: 무너진 순서 칩 → 숫자 카드 → 다음 풀 한 줄. g 가 없으면(판정 제외 · 계산 중) 예전 5줄."""
+    st = app._v43
+    if "five_glance" not in st:
+        return
+    glance, toggle, details = st["five_glance"]
+    for w in glance.winfo_children():
+        w.destroy()
+    if not g or not (g.get("chain") or g.get("stats")):
+        glance.pack_forget()
+        _apply_details(app)
+        return
+    T = _theme()
+    try:
+        from nini_wcl_gui import FONT_BODY  # type: ignore
+    except Exception:
+        FONT_BODY = "TkDefaultFont"
+    if not glance.winfo_manager():
+        if details.winfo_manager():
+            glance.pack(fill="x", before=details)
+        elif toggle.winfo_manager():
+            glance.pack(fill="x", before=toggle)
+        else:
+            glance.pack(fill="x")
+    chain = g.get("chain") or []
+    if chain:
+        tk.Label(glance, text="무너진 순서 (뿌리 → 전멸)" if len(chain) > 1 else "결과", bg=T.PANEL_BG, fg=T.MUTED,
+                 font=(FONT_BODY, 8), anchor="w").pack(fill="x")
+        flow = tk.Frame(glance, bg=T.PANEL_BG, height=_px(app, 44))
+        flow.pack(fill="x", pady=(_px(app, 2), _px(app, 8)))
+        items = []
+        for i, c in enumerate(chain):
+            if i:
+                items.append(tk.Label(flow, text="→", bg=T.PANEL_BG, fg=T.MUTED, font=(FONT_BODY, 12)))
+            bg, bd, fg = GLANCE_TONES.get(c.get("tone") or "end", GLANCE_TONES["end"])
+            chip = tk.Frame(flow, bg=bg, highlightthickness=1, highlightbackground=bd, highlightcolor=bd)
+            top = " · ".join(x for x in (c.get("t"), c.get("title") if c.get("title") not in ("전멸", "킬") else "") if x)
+            if c.get("conf"):
+                top += f"  [{c['conf']}]"
+            if top:
+                tk.Label(chip, text=top, bg=bg, fg=T.MUTED, font=(FONT_BODY, 8), anchor="w").pack(fill="x", padx=_px(app, 8), pady=(_px(app, 4), 0))
+            tk.Label(chip, text=c.get("text") or "", bg=bg, fg=fg, font=(FONT_BODY, 10, "bold"), anchor="w").pack(
+                fill="x", padx=_px(app, 8), pady=(0 if top else _px(app, 4), _px(app, 5)))
+            items.append(chip)
+        _flow(flow, items, _px(app, 6))
+    stats = g.get("stats") or []
+    if stats:
+        grid = tk.Frame(glance, bg=T.PANEL_BG)
+        grid.pack(fill="x", pady=(0, _px(app, 8)))
+        subs = []
+        for i, c in enumerate(stats):
+            card = tk.Frame(grid, bg=T.CARD_BG, highlightthickness=1, highlightbackground=T.CARD_BORDER)
+            card.grid(row=0, column=i, sticky="nsew", padx=(0 if i == 0 else _px(app, 3), 0))
+            grid.columnconfigure(i, weight=1, uniform="v544stats")
+            tk.Label(card, text=c.get("k") or "", bg=T.CARD_BG, fg=T.MUTED, font=(FONT_BODY, 8), anchor="w").pack(
+                fill="x", padx=_px(app, 7), pady=(_px(app, 5), 0))
+            fg = getattr(T, VALUE_TONES.get(c.get("tone") or "", "TEXT"), T.TEXT)
+            tk.Label(card, text=c.get("v") or "-", bg=T.CARD_BG, fg=fg, font=(FONT_BODY, 13, "bold"), anchor="w").pack(
+                fill="x", padx=_px(app, 7))
+            sub = tk.Label(card, text=c.get("s") or "", bg=T.CARD_BG, fg=T.MUTED, font=(FONT_BODY, 8), anchor="w", justify="left")
+            sub.pack(fill="x", padx=_px(app, 7), pady=(0, _px(app, 5)))
+            subs.append(sub)
+
+        def wrap(_e=None, subs=subs, grid=grid, n=len(stats)):
+            w = max(60, int(grid.winfo_width() / max(1, n)) - _px(app, 18))
+            for lab in subs:
+                lab.configure(wraplength=w)
+        grid.bind("<Configure>", wrap, add="+")
+    if g.get("next"):
+        bg, bd, fg = GLANCE_TONES["green"]
+        nx = tk.Frame(glance, bg=bg, highlightthickness=1, highlightbackground=bd)
+        nx.pack(fill="x", pady=(0, _px(app, 2)))
+        tk.Label(nx, text=g.get("nextLabel") or "다음 풀", bg=bg, fg=T.GREEN, font=(FONT_BODY, 8), anchor="w").pack(
+            fill="x", padx=_px(app, 9), pady=(_px(app, 5), 0))
+        lab = tk.Label(nx, text=g["next"], bg=bg, fg=T.TEXT, font=(FONT_BODY, 11, "bold"), anchor="w", justify="left")
+        lab.pack(fill="x", padx=_px(app, 9), pady=(0, _px(app, 6)))
+        nx.bind("<Configure>", lambda e, l=lab: l.configure(wraplength=max(120, e.width - _px(app, 20))), add="+")
+    _apply_details(app)
 
 
 EGG_TAG_COLORS = {"bad": "RED", "late": "ORANGE", "wipe": "STATE_INACTIVE"}
@@ -789,6 +929,16 @@ def _compute(app, mod, key, row) -> None:
         lines["_labels"] = dict(out.get("labels") or {})   # V5.2.8: 킬 판 칸 이름 (사망 정리 · 다음 주)
         lines["_checks"] = list(out.get("checks") or [])   # V5.2.9: 엔진 판정 없는 보스의 기믹 수행 체크 칸
         # V5.4.2: 울라텍 「알 운반」 카드 (누가 알을 들었나 · 오른쪽 기믹 수행 체크 칸 아래)
+        try:   # V5.4.4 한눈에 보기 (모든 보스 · 결론 5줄에서 뽑기만)
+            from live import v544_glance as _g
+            import json as _json
+            _facts = {}
+            _fp = Path(key) / "raid_facts.json"
+            if _fp.is_file():
+                _facts = _json.loads(_fp.read_text(encoding="utf-8"))
+            lines["_glance"] = _g.build(out, _facts, row.get("result"))
+        except Exception:
+            lines["_glance"] = None
         ec = (out.get("plan") or {}).get("eggCarry")
         lines["_eggCarry"] = mod.egg_carry_lines(ec) if (ec and hasattr(mod, "egg_carry_lines")) else []
     except Exception:
