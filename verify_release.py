@@ -39,7 +39,7 @@ assert (ROOT/'package_public_release.py').is_file()
 entry=(ROOT/'nini_raid_gui.py').read_text(encoding='utf-8')
 assert 'start_error_notice_poll(app)' in entry
 assert 'maybe_show_first_run(app)' in entry
-assert 'PUBLIC_APP_VERSION = "1.0.10"' in gui
+assert 'PUBLIC_APP_VERSION = "1.0.11"' in gui
 print('STAGE 2.4 RELEASE GATE PASS — first-run guide, local-only error notice and packager')
 
 assert (ROOT/'build_public_windows.py').read_text(encoding='utf-8').find("'--contents-directory', '_internal'") >= 0
@@ -57,7 +57,7 @@ assert '_drop_feign_deaths' in (ROOT/'live/boss_mechanics/engine.py').read_text(
 assert 'def _pull_badge_text' in gui and 'def _public_auto_open_latest_session' in gui
 iss=(ROOT/'installer/NiniAnalyzer_Public.iss').read_text(encoding='utf-8-sig')
 assert 'AppId={{' in iss and 'PrivilegesRequired=lowest' in iss and 'AppUserModelID: "{#AppUserModelID}"' in iss
-assert '#define AppVersion "1.0.10"' in iss
+assert '#define AppVersion "1.0.11"' in iss
 assert 'UninstallDelete' not in iss, 'installer must never delete user raid records'
 print('RC4 GATE PASS — scroll, fonts, feign death, puller, first screen, installer')
 
@@ -253,3 +253,14 @@ assert (ROOT/'live/v544_glance.py').is_file() and '_show_glance(app' in _v10, '1
 assert "--hidden-import=live.v544_glance" in (ROOT/'build_public_windows.py').read_text(encoding='utf-8'), '1.0.10: glance in frozen build'
 assert (ROOT/'qa/test_public_1_0_10_glance.py').is_file()
 print('1.0.10 GATE PASS — text rows not clipped · glance')
+
+# 1.0.11: GOLD V5.4.5 한눈에 보기 다듬기 (둥근 칩 · 한 줄 무너진 순서 · 굵은 화살표 · 버튼 하나 · 오피격 → 같이 맞음)
+_v11 = (ROOT/'live/v43_layout.py').read_text(encoding='utf-8')
+assert 'def _chain_row(' in _v11 and 'def _arrow(' in _v11 and 'T.RoundBox(parent' in _v11, '1.0.11: rounded one-row chain'
+assert '("오피격", "같이 맞음")' in _v11, '1.0.11: overcall wording'
+assert 'st["b31_btn"] = None' in _v11 and '_round_button(parent, text="B31' not in _v11, '1.0.11: B31 detail button removed'
+assert 'st.get("five_active")' in _v11, '1.0.11: one details toggle'
+assert '_END_ONLY' in (ROOT/'live/v544_glance.py').read_text(encoding='utf-8'), '1.0.11: one end chip'
+assert '("1.0.11", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
+assert (ROOT/'qa/test_public_1_0_11_glance_layout.py').is_file()
+print('1.0.11 GATE PASS — glance rounded one-row chain · one toggle')

@@ -10,11 +10,13 @@ from __future__ import annotations
 
 import re
 
-VERSION = "V5.4.4-GLANCE"
+VERSION = "V5.4.5-GLANCE"
 
 _TIME = re.compile(r"(?<![\d:])(\d{1,2}:\d{2})(?![\d:])")
 _CONF = re.compile(r"\s*\[(확정|추정|미확정)\]\s*")
-_STAGE_PREFIX = re.compile(r"^(?:\d페|[0-9]심장|P\d|사이페|막페|2페\(알방\)|1페|2페|3페)(?:\([^)]*\))?\s+")
+# V5.4.5: 「n심장」은 지우지 않는다 (「1심장 종료 보스 67.3%」 → 「종료 보스 67.3%」로 뜻이 사라졌음)
+_STAGE_PREFIX = re.compile(r"^(?:\d페|P\d|사이페|막페|2페\(알방\)|1페|2페|3페)(?:\([^)]*\))?\s+")
+_END_ONLY = re.compile(r"^(?:전멸|전멸 붕괴|붕괴|전멸 시작)$")
 CHIP_MAX = 30          # 칩 한 개 글자 수 (넘으면 …)
 NEXT_MAX = 70          # 다음 풀 한 줄 글자 수
 CHAIN_MAX = 4          # 칩 개수 (전멸 칩 빼고)
@@ -65,6 +67,7 @@ def _step(text: str) -> dict | None:
         body = re.sub(r"(^|\s)" + re.escape(t) + r"(?=\s|$)", " ", body)
     body = re.sub(r"^붕괴\s+", "", body.strip())
     body = _STAGE_PREFIX.sub("", body).strip(" ·")
+    body = re.sub(r"(?<=\S)·(?=\S)", " · ", body)   # V5.4.5: 「가·나」 이름 묶음도 칩 안에서 줄바꿈되게
     return {"t": t, "text": _clip(body, CHIP_MAX)} if body else None
 
 
@@ -92,6 +95,10 @@ def chain(lines: dict, kill: bool, duration: float | None, cause: dict | None = 
             st["t"] = mmss(cause["sec"])
         if i == 0 and out and st["t"] is not None and out[0].get("t") == st["t"]:
             continue   # 원인 첫 단계 = 첫 실수 (같은 시각 · 같은 사건)
+        if _END_ONLY.match(st["text"]):
+            continue   # V5.4.5: 글이 「전멸」뿐인 단계는 끝 칩과 같다 (전멸 칩 두 번 방지)
+        if any(c["text"] == st["text"] for c in out):
+            continue   # V5.4.5: 첫 실수와 같은 글(「원인 미확인 (알 운반 밖)」 두 번) 은 한 번만
         out.append({**st, "title": "", "tone": "orange" if out else "red", "conf": conf if not out else None})
         if len(out) >= CHAIN_MAX:
             break
