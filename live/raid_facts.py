@@ -420,6 +420,33 @@ def _is_pet_or_guardian(guid: str | None, flags_value) -> bool:
     return str(guid or "").startswith("Pet-") or bool(flags & (TYPE_PET | TYPE_GUARDIAN))
 
 
+# V5.4.6: 적에게 걸지만 전투를 걸지 않는 주문 — 풀러(선풀) 후보에서 뺀다.
+# (사용자 11/15: 「정신의 위안」 4.7초 전 시전이 풀러로 찍힘. 위안은 인식 범위만 줄이고 어그로를 끌지 않는다.)
+NON_AGGRO_SPELL_IDS = {
+    453,      # 정신의 위안 (Mind Soothe)
+    1725,     # 혼란 (Distract)
+    6770,     # 기절시키기 (Sap)
+    257284,   # 사냥꾼의 징표 (Hunter's Mark)
+    1543,     # 조명탄 (Flare)
+    2096,     # 정신의 눈 (Mind Vision)
+    6197,     # 독수리의 눈 (Eagle Eye)
+    1462,     # 야수 지식 (Beast Lore)
+}
+NON_AGGRO_SPELL_NAMES = {
+    "정신의 위안", "mind soothe", "혼란", "distract", "기절시키기", "sap", "사냥꾼의 징표", "hunter's mark",
+    "조명탄", "flare", "정신의 눈", "mind vision", "독수리의 눈", "eagle eye",
+}
+
+
+def _non_aggro_spell(spell_id, spell_name) -> bool:
+    try:
+        if int(spell_id) in NON_AGGRO_SPELL_IDS:
+            return True
+    except (TypeError, ValueError):
+        pass
+    return str(spell_name or "").strip().strip('"').lower() in NON_AGGRO_SPELL_NAMES
+
+
 def _pull_candidate_kind(event: str, fields: list[str], extra_start: int) -> str | None:
     if event in DAMAGE_EVENTS:
         return "damage"
@@ -611,6 +638,8 @@ def _extract_preroll_evidence(
                 local_pet_name[dest_guid] = names_by_guid.get(source_guid) or _clean_name(source_name)
 
             pull_kind = _pull_candidate_kind(event, fields, extra_start)
+            if pull_kind and _non_aggro_spell(spell_id, spell_name):
+                pull_kind = None   # V5.4.6: 어그로 없는 주문은 풀러 근거가 아님
             source_is_player = _is_player_guid(source_guid)
             source_is_pet = _is_pet_or_guardian(source_guid, source_flags) or source_guid in local_pet_owner
             owner_guid = source_guid if source_is_player else local_pet_owner.get(source_guid)
@@ -818,6 +847,8 @@ def extract_raid_facts(raw_path: Path | str, encounter: dict, death_lookback_sec
             # auras (e.g. taunt) are also valid evidence.  Player-controlled pets and
             # guardians are candidates too.
             pull_kind = _pull_candidate_kind(event, fields, extra_start)
+            if pull_kind and _non_aggro_spell(spell_id, spell_name):
+                pull_kind = None   # V5.4.6: 어그로 없는 주문은 풀러 근거가 아님
             source_is_player = _is_player_guid(source_guid)
             source_is_pet = _is_pet_or_guardian(source_guid, source_flags) or source_guid in pet_owner_guid
             owner_guid = source_guid if source_is_player else pet_owner_guid.get(source_guid)

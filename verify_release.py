@@ -263,4 +263,6 @@ assert 'st.get("five_active")' in _v11, '1.0.11: one details toggle'
 assert '_END_ONLY' in (ROOT/'live/v544_glance.py').read_text(encoding='utf-8'), '1.0.11: one end chip'
 assert '("1.0.11", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
 assert (ROOT/'qa/test_public_1_0_11_glance_layout.py').is_file()
+assert 'def _non_aggro_spell(' in (ROOT/'live/raid_facts.py').read_text(encoding='utf-8'), '1.0.11: non-aggro spells are not pull evidence'
+assert (ROOT/'qa/test_public_1_0_11_non_aggro_pull.py').is_file()
 print('1.0.11 GATE PASS — glance rounded one-row chain · one toggle')
