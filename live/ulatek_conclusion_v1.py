@@ -1108,9 +1108,13 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
                  + (" [확정]" if vchain.get("trigger") in ("wave", "burst") else " [추정]"))
         first_kind = EGG_VIPER_KIND
     elif (fm.get("kind") == "unchecked_rage" and fm.get("sec") is not None and _col0 is not None
-          and float(fm["sec"]) < float(_col0) - FIRST_MISTAKE_WINDOW_SEC and result != "kill"):
+          and (float(fm["sec"]) < float(_col0) - FIRST_MISTAKE_WINDOW_SEC or float(fm["sec"]) > float(_col0))
+          and result != "kill"):
         # 1:16 · 1:25 처럼 붕괴보다 한참 앞선 막을 수 없는 분노는 첫 실수로 치지 않는다 (참고로만)
+        # V5.4.9: 붕괴가 이미 시작된 뒤(붕괴 1:11 · 분노 1:15)의 분노도 결과이지 첫 실수가 아니다
+        rage_after = float(fm["sec"]) > float(_col0)
         near_fail = [f for f in (obs.get("verifiedFailures") or []) if f.get("sec") is not None
+                     and f.get("kind") != "unchecked_rage"
                      and float(_col0) - FIRST_MISTAKE_WINDOW_SEC <= float(f["sec"]) <= float(_col0) + 1.0]
         if near_fail:
             nf = near_fail[0]
@@ -1125,7 +1129,8 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
         else:
             first = f"붕괴({mmss(_col0)}) 20초 안 확정 실패 없음"
             first_kind = None
-        first += f" (막을 수 없는 분노 {mmss(fm['sec'])}는 붕괴보다 한참 앞이라 참고만)"
+        first += (f" (막을 수 없는 분노 {mmss(fm['sec'])}는 붕괴가 시작된 뒤라 결과로 봄)" if rage_after
+                  else f" (막을 수 없는 분노 {mmss(fm['sec'])}는 붕괴보다 한참 앞이라 참고만)")
 
     # 3. 전멸 원인
     collapse = (raid or {}).get("collapse") or {}

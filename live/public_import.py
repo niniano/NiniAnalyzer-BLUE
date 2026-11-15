@@ -93,6 +93,28 @@ def renumber_tries(boss_dirs) -> int:
     return changed
 
 
+def renumber_recent_sessions(storage_root: Path | str, dates: int = 2) -> int:
+    """가장 최근 날짜 폴더(기본 2개)의 모든 보스에 대해 Try 번호를 시간순으로 맞춘다.
+
+    채우기가 도는 동안 실시간 풀이 번호를 받으면 같은 번호가 두 번 생길 수 있었다
+    (채우기가 아직 21번까지만 저장했을 때 시작한 실시간 풀이 22번을 받고, 채우기가 끝난 뒤에도 그대로 남음).
+    풀이 저장될 때마다 · 채우기가 끝날 때마다 불러서 번호를 늘 시간순으로 둔다. 바뀐 것이 없으면 아무것도 쓰지 않는다.
+    """
+    root = Path(storage_root)
+    try:
+        date_dirs = sorted((x for x in root.iterdir() if x.is_dir() and not x.name.startswith("_")),
+                           key=lambda x: x.name, reverse=True)[:max(1, int(dates))]
+    except OSError:
+        return 0
+    boss_dirs = []
+    for date_dir in date_dirs:
+        try:
+            boss_dirs.extend(x for x in date_dir.iterdir() if x.is_dir())
+        except OSError:
+            pass
+    return renumber_tries(boss_dirs)
+
+
 def import_public_combat_log(log_file: Path | str, storage_root: Path | str, progress=None, cancel_event=None,
                              *, player=None, tracked_players=None, raid_only: bool = True,
                              active_dir_name: str | None = None, only_if_missing: bool = False,

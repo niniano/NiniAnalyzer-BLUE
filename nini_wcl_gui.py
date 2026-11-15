@@ -7807,11 +7807,25 @@ class App(tk.Tk):
                         total[key] += int(result.get(key) or 0)
                     if not result.get("nothingMissing"):
                         total["replayed"] += 1
+                # 채우기 도중에 시작한 실시간 풀이 받은 번호까지 포함해 한 번 더 시간순으로 (채운 것이 없어도)
+                from live.public_import import renumber_recent_sessions
+                total["renumbered"] += int(renumber_recent_sessions(storage_root) or 0)
                 self.msgq.put(("backfill_done", total))
             except Exception as exc:
                 total["error"] = str(exc)
                 self.msgq.put(("backfill_error", total))
         threading.Thread(target=worker, name="NiniBackfillMissed", daemon=True).start()
+
+    def _renumber_after_live_pull(self):
+        """실시간 풀의 판정이 끝날 때마다 Try 번호를 시간순으로 확인한다 (보통은 바뀌는 것이 없다)."""
+        if self.live_monitor is None or getattr(self, "_backfill_running", False):
+            return   # 채우기가 도는 중이면 채우기가 끝날 때 한꺼번에
+        try:
+            from live.public_import import renumber_recent_sessions
+            if renumber_recent_sessions(Path(self.live_monitor.storage_root), dates=1):
+                self._backfill_refresh_rows()
+        except Exception:
+            pass
 
     def _backfill_refresh_rows(self):
         """채운 풀이 목록에 바로 보이게: 저장 기록을 다시 읽고 Try 번호를 맞춘다."""
@@ -7847,7 +7861,7 @@ class App(tk.Tk):
         self._backfill_running = False
         data = data if isinstance(data, dict) else {"error": str(data)}
         imported = int(data.get("imported") or 0)
-        if imported:
+        if imported or int(data.get("renumbered") or 0):
             self._backfill_refresh_rows()   # 다시 매긴 Try 번호 반영
         if kind == "backfill_error":
             note = f"놓친 트라이 채우기 실패 · {data.get('error')}" + (f" (그 전에 {imported}개 채움)" if imported else "")
@@ -8269,6 +8283,7 @@ class App(tk.Tk):
                 )
             self._refresh_live_recent()
         elif kind == "facts_ready":
+            self._renumber_after_live_pull()
             enc = event.get("encounter") or {}
             self._append_live_log(
                 ("[RAID] 공대 복기 완료" if self.raid_public_mode else f"[FACT] 완료 · {enc.get('factsPlayer') or '?'} · {Path(enc.get('factsTxt')).name if enc.get('factsTxt') else 'facts.txt'}"),
@@ -11133,13 +11148,26 @@ class App(tk.Tk):
                 _dup_key = (_ctx[:4], _row.get("tryNo"))
                 duplicate_try_counts[_dup_key] = duplicate_try_counts.get(_dup_key, 0) + 1
 
+            # 같은 날 · 같은 보스는 전문화가 달라도 한 묶음으로, 시간순으로 놓는다.
+            # 묶음을 누르면 가장 많이 쓴 전문화의 보스 화면을 열고, 다른 전문화로 한 Try 에는 전문화 이름을 붙인다.
+            spec_counts = {}
+            for _row in (live_rows or []):
+                _ctx = self._live_context_key(_row)
+                spec_counts.setdefault(_ctx[:4], {})
+                spec_counts[_ctx[:4]][_ctx] = spec_counts[_ctx[:4]].get(_ctx, 0) + 1
+            main_context = {base: max(found, key=found.get) for base, found in spec_counts.items()}
+            boss_by_base = {}
+            for _key, _iid in boss_nodes.items():
+                boss_by_base.setdefault(tuple(_key[:4]), _iid)
+            spec_names = {}   # 공개판은 전문화를 구분하지 않는다 (묶음 키에 전문화 없음)
+
             orphan_nodes = {}
             for n, row in enumerate(live_rows or []):
                 context_key = self._live_context_key(row)
                 date = context_key[2] or "날짜 미상"
-                parent = boss_nodes.get(context_key)
+                parent = boss_nodes.get(context_key) or boss_by_base.get(tuple(context_key[:4]))
                 if parent is None:
-                    orphan_key = (*context_key, row.get("name"))
+                    orphan_key = (tuple(context_key[:4]), row.get("name"))
                     parent = orphan_nodes.get(orphan_key)
                     if parent is None:
                         date_parent = date_nodes.get(date)
@@ -11150,7 +11178,7 @@ class App(tk.Tk):
                             date_parent, "end", iid=parent,
                             text=f"{row.get('name','?')} · {_ui_difficulty_name(row)}".rstrip(" ·"), open=True,
                         )
-                        self.nav_tree_payload[parent] = ("live_boss", context_key)
+                        self.nav_tree_payload[parent] = ("live_boss", main_context.get(tuple(context_key[:4]), context_key))
                         orphan_nodes[orphan_key] = parent
                 is_fake = self._live_row_is_fake(row)
                 is_reset = self._live_row_is_reset(row)
@@ -11164,6 +11192,10 @@ class App(tk.Tk):
                 iid = f"nav-live-{n}"
                 duplicate = duplicate_try_counts.get((context_key[:4], row.get("tryNo")), 0) > 1
                 clock = f" · {self._live_start_clock(row)}" if duplicate else ""
+                if (len(spec_counts.get(tuple(context_key[:4]), {})) > 1
+                        and context_key != main_context.get(tuple(context_key[:4])) and len(context_key) > 4
+                        and context_key[4] is not None):
+                    clock += f" · {spec_names.get(context_key[4], context_key[4])}"
                 tags = ("excluded",) if (is_reset or is_fake) else ()
                 self.nav_tree.insert(
                     parent, "end", iid=iid, tags=tags, image=self._b3797_dot(result),

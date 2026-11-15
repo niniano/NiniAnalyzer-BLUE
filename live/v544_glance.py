@@ -164,9 +164,12 @@ def boss_cards(lines: dict, out: dict, deaths: list) -> list[dict]:
         stunned = [n for s in stuns for n in s.get("stunned") or []]
         big = (plan.get("bigEgg") or {})
         egg_sub = f"파도 {waves}" + (f" · 큰 알 {len(big.get('picks') or [])}/4" if big else "")
+        # V5.4.9: 첫 실수가 「알 놓침 [추정]」인데 카드가 ✓ 로 나오던 것 → 「놓침 추정」
+        dropped = (not bad) and "알 놓침" in str(lines.get("첫 실수") or "")
         return [
-            {"k": "알 운반", "v": f"문제 {bad}" if bad else ("✓" if ec else "-"), "s": egg_sub if ec else "알 단계 전",
-             "tone": "red" if bad else ("green" if ec else None)},
+            {"k": "알 운반", "v": f"문제 {bad}" if bad else ("놓침 추정" if dropped else ("✓" if ec else "-")),
+             "s": egg_sub if ec else "알 단계 전",
+             "tone": "red" if bad else ("orange" if dropped else ("green" if ec else None))},
             {"k": "살무사 스턴", "v": f"{len(stunned)}명", "s": _clip(", ".join(f"{n} {mmss(s.get('sec'))}" for s in stuns[:2] for n in (s.get('stunned') or [])[:1]), 26),
              "tone": "orange" if stunned else None},
         ]
@@ -209,7 +212,12 @@ def next_line(lines: dict) -> str:
     if not t or t == "-":
         return ""
     t = re.sub(r"\s*\([^)]*\)", "", t)          # 괄호 설명은 「자세히」에
-    t = re.split(r" / | · |\. |; ", t)[0]
+    parts = re.split(r" / | · |\. |; ", t)
+    t = parts[0]
+    # V5.4.9: 첫 실수가 「알 충돌」(알 든 사람끼리 부딪힘)이면 「파도 피하기」가 아니라 「알끼리 3미터」가 그 풀의 한 가지
+    if "알 충돌" in str(lines.get("첫 실수") or ""):
+        if any(x.strip().startswith("알끼리") for x in parts):
+            t = "알 든 사람끼리 3미터 떨어지기"
     t = t.strip().rstrip(".")
     return _clip(t, NEXT_MAX)
 

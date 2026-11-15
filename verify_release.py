@@ -278,4 +278,7 @@ assert '_backfill_missed_start("live-start")' in gui and '_active_backfill' in g
 assert 'def _backfill_missed_progress(' in gui and '_all_logs_newest_first()' in gui and '놓친 트라이 없음' in gui, '1.0.13: backfill progress · all logs of the day'
 assert '("1.0.13", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
 assert (ROOT/'qa/test_public_1_0_13_backfill_missed.py').is_file()
+assert 'def renumber_recent_sessions(' in _pi13 and '_renumber_after_live_pull()' in gui, '1.0.13: numbering stays chronological'
+assert 'rage_after' in (ROOT/'live/ulatek_conclusion_v1.py').read_text(encoding='utf-8'), '1.0.13: rage after collapse is not the first mistake'
+assert (ROOT/'qa/test_public_1_0_13_numbering_and_glance.py').is_file()
 print('1.0.13 GATE PASS — backfill missed pulls')
