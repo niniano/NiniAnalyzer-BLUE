@@ -7726,31 +7726,51 @@ class App(tk.Tk):
         실시간 감시는 켠 시점 뒤의 풀만 잡는다. 분석기를 껐다 켜거나(업데이트) 감시를 늦게 켜면
         그 사이 풀이 비었다 (그날 풀 가운데 뒤쪽 몇 개만 남음). 감시 시작 때 뒤에서 조용히 채운다.
         놓친 풀이 없으면 로그 재생 없이 바로 끝난다. 실시간 감시와 임시 폴더를 따로 쓴다.
+        그날 전투 로그를 모두 보고, 풀 하나를 채울 때마다 목록에 바로 보여 준다.
         """
         if self.live_monitor is None or getattr(self, "_backfill_running", False):
             return
         if getattr(self, "_public_import_running", False) or getattr(self, "_public_migration_running", False):
             return
         if getattr(self, "_saved_reanalysis_running", False) or getattr(self, "_identity_audit_running", False):
-            if _tries < 60:   # 기존 기록 확인이 끝난 뒤에 (같은 트라이를 두 군데서 분석하지 않게)
-                try:
-                    self.after(3000, lambda: self._backfill_missed_start(reason, _tries + 1))
-                except Exception:
-                    pass
+            # 기존 기록 확인이 끝난 뒤에 (같은 트라이를 두 군데서 분석하지 않게). 끝날 때까지 기다린다 —
+            # 예전에는 3분 뒤 말없이 그만둬서, 업데이트 직후처럼 재분석이 길면 채우기가 아예 안 돌았다.
+            if _tries == 0:
+                self.status_var.set("기존 기록 확인이 끝나면 놓친 트라이를 채웁니다")
+            try:
+                self.after(3000, lambda: self._backfill_missed_start(reason, _tries + 1))
+            except Exception:
+                pass
             return
         monitor = self.live_monitor
+        # 그날 전투 로그를 모두 본다: 공대 도중에 와우를 껐다 켜면 로그 파일이 새로 생기므로
+        # 가장 최근 파일만 보면 앞 파일의 풀을 못 채운다. (가장 최근 파일 기준 36시간 안 · 많아야 6개 · 오래된 것부터)
+        logs = []
         try:
-            log = getattr(monitor.tailer, "current_file", None) or monitor.tailer.latest_file()
+            newest_first = list(monitor.tailer._all_logs_newest_first())
+            current = getattr(monitor.tailer, "current_file", None)
+            if current is not None and Path(current) not in newest_first:
+                newest_first.insert(0, Path(current))
+            if newest_first:
+                newest = newest_first[0].stat().st_mtime
+                for path in newest_first[:6]:
+                    try:
+                        if newest - path.stat().st_mtime <= 36 * 3600 and path.is_file():
+                            logs.append(Path(path))
+                    except OSError:
+                        pass
+            logs.reverse()
         except Exception:
-            log = None
-        if log is None or not Path(log).is_file():
+            logs = []
+        if not logs:
             return
-        log = Path(log)
         storage_root = Path(monitor.storage_root)
         public = bool(self.raid_public_mode)
         player = None if public else self.current_player
         tracked = None if public else CHARACTERS
         self._backfill_running = True
+        self._backfill_seen = 0
+        self.status_var.set(f"놓친 트라이 확인 중 · 전투 로그 {len(logs)}개")
 
         def live_keys():
             keys = set()
@@ -7767,29 +7787,34 @@ class App(tk.Tk):
             return keys
 
         def worker():
+            total = {"imported": 0, "skipped": 0, "errors": 0, "renumbered": 0, "logs": len(logs), "replayed": 0}
             try:
                 from live.public_import import import_public_combat_log
-                result = import_public_combat_log(
-                    log, storage_root,
-                    progress=lambda payload: self.msgq.put(("backfill_progress", payload)),
-                    player=player, tracked_players=tracked, raid_only=public,
-                    active_dir_name="_active_backfill", only_if_missing=True, extra_keys=live_keys,
-                )
-                self.msgq.put(("backfill_done", result))
+                for index, log in enumerate(logs, 1):
+                    done_before = total["imported"]
+
+                    def progress(payload, index=index, done_before=done_before):
+                        row = dict(payload or {})
+                        row["imported"] = done_before + int(row.get("imported") or 0)
+                        row["logIndex"], row["logCount"] = index, len(logs)
+                        self.msgq.put(("backfill_progress", row))
+                    result = import_public_combat_log(
+                        log, storage_root, progress=progress,
+                        player=player, tracked_players=tracked, raid_only=public,
+                        active_dir_name="_active_backfill", only_if_missing=True, extra_keys=live_keys,
+                    )
+                    for key in ("imported", "skipped", "errors", "renumbered"):
+                        total[key] += int(result.get(key) or 0)
+                    if not result.get("nothingMissing"):
+                        total["replayed"] += 1
+                self.msgq.put(("backfill_done", total))
             except Exception as exc:
-                self.msgq.put(("backfill_error", str(exc)))
+                total["error"] = str(exc)
+                self.msgq.put(("backfill_error", total))
         threading.Thread(target=worker, name="NiniBackfillMissed", daemon=True).start()
 
-    def _backfill_missed_finish(self, kind, data):
-        self._backfill_running = False
-        if kind == "backfill_error":
-            self._append_live_log(f"[놓친 트라이 채우기] 실패: {data}", "wipe")
-            return
-        data = data if isinstance(data, dict) else {}
-        imported = int(data.get("imported") or 0)
-        if not imported:
-            return
-        # 화면이 들고 있는 최근 풀 행의 Try 번호도 다시 매긴 번호로 맞춘다 (저장 폴더 기준).
+    def _backfill_refresh_rows(self):
+        """채운 풀이 목록에 바로 보이게: 저장 기록을 다시 읽고 Try 번호를 맞춘다."""
         try:
             fresh = {str(r.get("storageDir") or ""): r.get("tryNo")
                      for r in self.live_monitor.saved_rows(migrate_identity=False)}
@@ -7799,7 +7824,42 @@ class App(tk.Tk):
                     row["tryNo"] = fresh[key]
         except Exception:
             pass
-        self._refresh_live_recent(force_storage_reload=True)
+        self._live_storage_loaded = False     # 저장 기록을 반드시 다시 읽게
+        self._b3750_live_refresh_sig = None   # 「바뀐 것 없음」 건너뛰기를 한 번 풀어 목록을 다시 그림
+        try:
+            self._refresh_live_recent(force_storage_reload=True)
+        except Exception:
+            pass
+
+    def _backfill_missed_progress(self, payload):
+        payload = payload if isinstance(payload, dict) else {}
+        imported = int(payload.get("imported") or 0)
+        if int(payload.get("lines") or 0) and float(payload.get("percent") or 0) < 100:
+            many = int(payload.get("logCount") or 1) > 1
+            where = f" · 로그 {int(payload.get('logIndex') or 1)}/{int(payload.get('logCount') or 1)}" if many else ""
+            self.status_var.set(f"놓친 트라이 채우는 중{where} · {float(payload.get('percent') or 0):.0f}% · 채운 트라이 {imported}개")
+        if imported > int(getattr(self, "_backfill_seen", 0) or 0):
+            # 풀 하나가 채워질 때마다 목록에 바로 (예전에는 전부 끝난 뒤에야 한꺼번에 나타났다)
+            self._backfill_seen = imported
+            self._backfill_refresh_rows()
+
+    def _backfill_missed_finish(self, kind, data):
+        self._backfill_running = False
+        data = data if isinstance(data, dict) else {"error": str(data)}
+        imported = int(data.get("imported") or 0)
+        if imported:
+            self._backfill_refresh_rows()   # 다시 매긴 Try 번호 반영
+        if kind == "backfill_error":
+            note = f"놓친 트라이 채우기 실패 · {data.get('error')}" + (f" (그 전에 {imported}개 채움)" if imported else "")
+            self.status_var.set(note)
+            self._append_live_log(f"[놓친 트라이 채우기] {note}", "wipe")
+            return
+        logs = int(data.get("logs") or 1)
+        if not imported:
+            note = f"놓친 트라이 없음 · 전투 로그 {logs}개 확인"
+            self.status_var.set(note)
+            self._append_live_log(f"[놓친 트라이 채우기] {note}", "info")
+            return
         errors = int(data.get("errors") or 0)
         note = f"놓친 트라이 {imported}개를 채웠습니다" + (f" · 판정 오류 {errors}개" if errors else "")
         self.status_var.set(note)
@@ -10045,9 +10105,7 @@ class App(tk.Tk):
                     self.status_var.set(f"기존 세션 복사 오류 · {data}")
                     continue
                 if kind == "backfill_progress":
-                    payload = data if isinstance(data, dict) else {}
-                    if int(payload.get("lines") or 0) and float(payload.get("percent") or 0) < 100:
-                        self.status_var.set(f"놓친 트라이 채우는 중 · {float(payload.get('percent') or 0):.0f}% · 새 트라이 {int(payload.get('imported') or 0)}개")
+                    self._backfill_missed_progress(data)
                     continue
                 if kind in ("backfill_done", "backfill_error"):
                     self._backfill_missed_finish(kind, data)

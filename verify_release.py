@@ -275,6 +275,7 @@ print('1.0.12 GATE PASS — non-aggro spells are not pull evidence')
 _pi13 = (ROOT/'live/public_import.py').read_text(encoding='utf-8')
 assert 'def renumber_tries(' in _pi13 and 'def missing_pull_count(' in _pi13 and 'only_if_missing' in _pi13, '1.0.13: backfill import'
 assert '_backfill_missed_start("live-start")' in gui and '_active_backfill' in gui, '1.0.13: backfill on live start'
+assert 'def _backfill_missed_progress(' in gui and '_all_logs_newest_first()' in gui and '놓친 트라이 없음' in gui, '1.0.13: backfill progress · all logs of the day'
 assert '("1.0.13", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
 assert (ROOT/'qa/test_public_1_0_13_backfill_missed.py').is_file()
 print('1.0.13 GATE PASS — backfill missed pulls')
