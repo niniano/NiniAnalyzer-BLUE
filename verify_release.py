@@ -39,7 +39,7 @@ assert (ROOT/'package_public_release.py').is_file()
 entry=(ROOT/'nini_raid_gui.py').read_text(encoding='utf-8')
 assert 'start_error_notice_poll(app)' in entry
 assert 'maybe_show_first_run(app)' in entry
-assert 'PUBLIC_APP_VERSION = "1.0.12"' in gui
+assert 'PUBLIC_APP_VERSION = "1.0.13"' in gui
 print('STAGE 2.4 RELEASE GATE PASS — first-run guide, local-only error notice and packager')
 
 assert (ROOT/'build_public_windows.py').read_text(encoding='utf-8').find("'--contents-directory', '_internal'") >= 0
@@ -57,7 +57,7 @@ assert '_drop_feign_deaths' in (ROOT/'live/boss_mechanics/engine.py').read_text(
 assert 'def _pull_badge_text' in gui and 'def _public_auto_open_latest_session' in gui
 iss=(ROOT/'installer/NiniAnalyzer_Public.iss').read_text(encoding='utf-8-sig')
 assert 'AppId={{' in iss and 'PrivilegesRequired=lowest' in iss and 'AppUserModelID: "{#AppUserModelID}"' in iss
-assert '#define AppVersion "1.0.12"' in iss
+assert '#define AppVersion "1.0.13"' in iss
 assert 'UninstallDelete' not in iss, 'installer must never delete user raid records'
 print('RC4 GATE PASS — scroll, fonts, feign death, puller, first screen, installer')
 
@@ -270,3 +270,11 @@ assert 'def _non_aggro_spell(' in (ROOT/'live/raid_facts.py').read_text(encoding
 assert '("1.0.12", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
 assert (ROOT/'qa/test_public_1_0_12_non_aggro_pull.py').is_file()
 print('1.0.12 GATE PASS — non-aggro spells are not pull evidence')
+
+# 1.0.13: GOLD V5.4.7 놓친 트라이 채우기 (감시 시작 때 저장 안 된 풀 채움 · Try 번호 시간순)
+_pi13 = (ROOT/'live/public_import.py').read_text(encoding='utf-8')
+assert 'def renumber_tries(' in _pi13 and 'def missing_pull_count(' in _pi13 and 'only_if_missing' in _pi13, '1.0.13: backfill import'
+assert '_backfill_missed_start("live-start")' in gui and '_active_backfill' in gui, '1.0.13: backfill on live start'
+assert '("1.0.13", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
+assert (ROOT/'qa/test_public_1_0_13_backfill_missed.py').is_file()
+print('1.0.13 GATE PASS — backfill missed pulls')

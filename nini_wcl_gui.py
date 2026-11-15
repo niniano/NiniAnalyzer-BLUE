@@ -255,7 +255,7 @@ PIPELINE = WORKDIR / "nini_wcl_pipeline.py"
 ENGINE = WORKDIR / "engine"
 CHARACTERS = ()  # PUBLIC: private character registry disabled
 DEFAULT_PLAYER = ""  # PUBLIC: no default personal identity
-PUBLIC_APP_VERSION = "1.0.12"
+PUBLIC_APP_VERSION = "1.0.13"
 WCL_DIFFICULTY_MAP = {15: 4, 16: 5, 233: 5}
 
 STATUS_RANK = {"경고": 4, "주의": 3, "표본부족": 2, "정상": 1, "비교전용": 0}
@@ -1272,6 +1272,7 @@ class App(tk.Tk):
         # worker after player-identity migration.  Raw parsing never blocks Tk.
         self._saved_reanalysis_started = False
         self._saved_reanalysis_running = False
+        self._backfill_running = False
         self._feign_recheck_running = False
         self._saved_reanalysis_total = 0
         self._saved_reanalysis_done = 0
@@ -7719,6 +7720,91 @@ class App(tk.Tk):
                 self.msgq.put(("public_import_error", str(exc)))
         threading.Thread(target=worker, name="NiniPublicRaidImport", daemon=True).start()
 
+    def _backfill_missed_start(self, reason="", _tries=0):
+        """V5.4.7: 지금 쓰는 전투 로그에서 아직 저장 안 된 풀(놓친 트라이)을 채운다.
+
+        실시간 감시는 켠 시점 뒤의 풀만 잡는다. 분석기를 껐다 켜거나(업데이트) 감시를 늦게 켜면
+        그 사이 풀이 비었다 (그날 풀 가운데 뒤쪽 몇 개만 남음). 감시 시작 때 뒤에서 조용히 채운다.
+        놓친 풀이 없으면 로그 재생 없이 바로 끝난다. 실시간 감시와 임시 폴더를 따로 쓴다.
+        """
+        if self.live_monitor is None or getattr(self, "_backfill_running", False):
+            return
+        if getattr(self, "_public_import_running", False) or getattr(self, "_public_migration_running", False):
+            return
+        if getattr(self, "_saved_reanalysis_running", False) or getattr(self, "_identity_audit_running", False):
+            if _tries < 60:   # 기존 기록 확인이 끝난 뒤에 (같은 트라이를 두 군데서 분석하지 않게)
+                try:
+                    self.after(3000, lambda: self._backfill_missed_start(reason, _tries + 1))
+                except Exception:
+                    pass
+            return
+        monitor = self.live_monitor
+        try:
+            log = getattr(monitor.tailer, "current_file", None) or monitor.tailer.latest_file()
+        except Exception:
+            log = None
+        if log is None or not Path(log).is_file():
+            return
+        log = Path(log)
+        storage_root = Path(monitor.storage_root)
+        public = bool(self.raid_public_mode)
+        player = None if public else self.current_player
+        tracked = None if public else CHARACTERS
+        self._backfill_running = True
+
+        def live_keys():
+            keys = set()
+            try:
+                rows = list(monitor.tracker.recent) + ([monitor.tracker.current] if monitor.tracker.current else [])
+            except Exception:
+                rows = []
+            for row in rows:
+                try:
+                    keys.add((str((row or {}).get("startTimestamp") or "").strip(),
+                              int(row.get("encounterID")), int(row.get("difficultyID"))))
+                except Exception:
+                    pass
+            return keys
+
+        def worker():
+            try:
+                from live.public_import import import_public_combat_log
+                result = import_public_combat_log(
+                    log, storage_root,
+                    progress=lambda payload: self.msgq.put(("backfill_progress", payload)),
+                    player=player, tracked_players=tracked, raid_only=public,
+                    active_dir_name="_active_backfill", only_if_missing=True, extra_keys=live_keys,
+                )
+                self.msgq.put(("backfill_done", result))
+            except Exception as exc:
+                self.msgq.put(("backfill_error", str(exc)))
+        threading.Thread(target=worker, name="NiniBackfillMissed", daemon=True).start()
+
+    def _backfill_missed_finish(self, kind, data):
+        self._backfill_running = False
+        if kind == "backfill_error":
+            self._append_live_log(f"[놓친 트라이 채우기] 실패: {data}", "wipe")
+            return
+        data = data if isinstance(data, dict) else {}
+        imported = int(data.get("imported") or 0)
+        if not imported:
+            return
+        # 화면이 들고 있는 최근 풀 행의 Try 번호도 다시 매긴 번호로 맞춘다 (저장 폴더 기준).
+        try:
+            fresh = {str(r.get("storageDir") or ""): r.get("tryNo")
+                     for r in self.live_monitor.saved_rows(migrate_identity=False)}
+            for row in list(self.live_monitor.tracker.recent):
+                key = str((row or {}).get("storageDir") or "")
+                if key and fresh.get(key) is not None:
+                    row["tryNo"] = fresh[key]
+        except Exception:
+            pass
+        self._refresh_live_recent(force_storage_reload=True)
+        errors = int(data.get("errors") or 0)
+        note = f"놓친 트라이 {imported}개를 채웠습니다" + (f" · 판정 오류 {errors}개" if errors else "")
+        self.status_var.set(note)
+        self._append_live_log(f"[놓친 트라이 채우기] {note} · Try 번호 다시 매김 {int(data.get('renumbered') or 0)}개", "info")
+
     def pick_latest(self):
         # 현재 선택 캐릭터 기준으로 실제 포함된 최신 로그를 다시 탐색.
         self._switch_to_player_log(
@@ -7995,6 +8081,7 @@ class App(tk.Tk):
             self._handle_live_event(event)
         self._refresh_live_snapshot()
         self._schedule_live_poll()
+        self._backfill_missed_start("live-start")   # 1.0.13: 감시를 켜기 전에 지나간 풀 채우기
 
     def stop_live_monitor(self):
         if getattr(self, "_live_start_pending", False):
@@ -8484,7 +8571,7 @@ class App(tk.Tk):
             self._live_storage_loaded = True
             self._live_storage_revision = monitor_revision
         persisted_rows = list(getattr(self, "live_persisted_rows", []) or [])
-        if not getattr(self, '_public_migration_running', False):
+        if not getattr(self, '_public_migration_running', False) and not getattr(self, '_backfill_running', False):
             self._start_saved_identity_audit(persisted_rows)
             self._start_saved_reanalysis(persisted_rows)
 
@@ -9956,6 +10043,14 @@ class App(tk.Tk):
                 if kind == "public_migration_error":
                     self._public_migration_running = False
                     self.status_var.set(f"기존 세션 복사 오류 · {data}")
+                    continue
+                if kind == "backfill_progress":
+                    payload = data if isinstance(data, dict) else {}
+                    if int(payload.get("lines") or 0) and float(payload.get("percent") or 0) < 100:
+                        self.status_var.set(f"놓친 트라이 채우는 중 · {float(payload.get('percent') or 0):.0f}% · 새 트라이 {int(payload.get('imported') or 0)}개")
+                    continue
+                if kind in ("backfill_done", "backfill_error"):
+                    self._backfill_missed_finish(kind, data)
                     continue
                 if kind == "public_import_progress":
                     if self._public_import_running:
