@@ -34,7 +34,7 @@ class Chain(unittest.TestCase):
         self.assertTrue(ch[0]["text"].startswith("1심장 종료 보스 67.3%"))
 
     def test_name_join_spaced(self):
-        out = dict(BASE, lines=dict(BASE["lines"], **{"첫 실수": "1페 2:01 알 든 가나다라·마바사아 부식의 파도 2:01 [확정]"}))
+        out = dict(BASE, lines=dict(BASE["lines"], **{"첫 실수": "1페 1:20 알 든 가나다라·마바사아 부식의 파도 1:20 [확정]"}))
         ch = G.build(out, {"deaths": []}, "Wipe")["chain"]
         self.assertEqual(ch[0]["text"], "알 든 가나다라 · 마바사아 부식의 파도")
 

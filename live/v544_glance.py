@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import re
 
-VERSION = "V5.4.5-GLANCE"
+VERSION = "V5.4.10-GLANCE"
 
 _TIME = re.compile(r"(?<![\d:])(\d{1,2}:\d{2})(?![\d:])")
 _CONF = re.compile(r"\s*\[(확정|추정|미확정)\]\s*")
@@ -102,9 +102,51 @@ def chain(lines: dict, kill: bool, duration: float | None, cause: dict | None = 
         out.append({**st, "title": "", "tone": "orange" if out else "red", "conf": conf if not out else None})
         if len(out) >= CHAIN_MAX:
             break
+    out = _in_time_order(out)
     if out and not out[0].get("title"):
         out[0]["title"] = "뿌리"
     return out + [end]
+
+
+def _secs(t):
+    m = re.match(r"^(\d+):(\d{2})$", str(t or ""))
+    return int(m.group(1)) * 60 + int(m.group(2)) if m else None
+
+
+def _in_time_order(chips: list[dict]) -> list[dict]:
+    """V5.4.10: 칩을 시각 순서로 (11/16 울라텍: 「4:37 첫 실수 → (시각 없음) → 4:30」처럼 거꾸로 나오던 것).
+
+    · 시각이 없는 칩은 바로 뒤 칩의 시각을 쓴다 (「유체 광폭 산성 배출 → 산성 배출 3명 (4:30)」의 앞 단계)
+    · 그래도 시각이 없으면 앞 칩 바로 뒤에 둔다 · 같은 시각이면 원래 순서 · 「N회」 요약 칩도 제자리
+    · 「첫 실수」 칩이 뒤로 가면 맨 앞 칩은 「뿌리」 (첫 실수 표시는 그 칩에 그대로)
+    """
+    if len(chips) < 2:
+        return chips
+    nxt = None
+    for chip in reversed(chips):
+        if chip.get("t"):
+            nxt = chip["t"]
+        elif nxt:
+            chip["t"] = nxt
+    keyed, last = [], -1
+    for i, chip in enumerate(chips):
+        sec = _secs(chip.get("t"))
+        if re.search(r"\d+회", str(chip.get("text") or "")):
+            sec = None   # 「산성 배출 1회 (첫 1:20)」 같은 횟수 요약은 그 자리에 둔다 (시각은 첫 발생일 뿐)
+        last = sec if sec is not None else last
+        keyed.append(((sec if sec is not None else last), i, chip))
+    ordered = [c for _, _, c in sorted(keyed, key=lambda x: (x[0], x[1]))]
+    if ordered[0] is not chips[0]:
+        for chip in ordered:
+            if chip.get("title") == "뿌리":
+                chip["title"] = ""
+        if ordered[0].get("title") != "첫 실수":
+            ordered[0]["title"] = ""
+        ordered[0]["tone"] = "red"
+        for chip in ordered[1:]:
+            if chip.get("title") != "첫 실수":
+                chip["tone"] = "orange"
+    return ordered
 
 
 def _hp(lines: dict, out: dict):
