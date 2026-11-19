@@ -39,7 +39,7 @@ assert (ROOT/'package_public_release.py').is_file()
 entry=(ROOT/'nini_raid_gui.py').read_text(encoding='utf-8')
 assert 'start_error_notice_poll(app)' in entry
 assert 'maybe_show_first_run(app)' in entry
-assert 'PUBLIC_APP_VERSION = "1.0.14"' in gui
+assert 'PUBLIC_APP_VERSION = "1.0.15"' in gui
 print('STAGE 2.4 RELEASE GATE PASS — first-run guide, local-only error notice and packager')
 
 assert (ROOT/'build_public_windows.py').read_text(encoding='utf-8').find("'--contents-directory', '_internal'") >= 0
@@ -57,7 +57,7 @@ assert '_drop_feign_deaths' in (ROOT/'live/boss_mechanics/engine.py').read_text(
 assert 'def _pull_badge_text' in gui and 'def _public_auto_open_latest_session' in gui
 iss=(ROOT/'installer/NiniAnalyzer_Public.iss').read_text(encoding='utf-8-sig')
 assert 'AppId={{' in iss and 'PrivilegesRequired=lowest' in iss and 'AppUserModelID: "{#AppUserModelID}"' in iss
-assert '#define AppVersion "1.0.14"' in iss
+assert '#define AppVersion "1.0.15"' in iss
 assert 'UninstallDelete' not in iss, 'installer must never delete user raid records'
 print('RC4 GATE PASS — scroll, fonts, feign death, puller, first screen, installer')
 
@@ -191,7 +191,7 @@ print('1.0.3 GATE PASS — onboarding / whats-new cards')
 
 # 1.0.5: 울라텍 신화 알 운반 → 살무사 (GOLD V5.2.7 · V5.3.6) · 1.0.4 태그는 1.0.3 커밋에 남아 있어 건너뜀
 _u = (ROOT/'live/ulatek_conclusion_v1.py').read_text(encoding='utf-8')
-assert 'VERSION = "ULATEK-CONCLUSION-V2.0"' in _u and 'def viper_review(' in _u, '1.0.5: egg carry -> viper chain'
+assert 'VERSION = "ULATEK-CONCLUSION-V2.' in _u and 'def viper_review(' in _u, '1.0.5: egg carry -> viper chain'
 assert 'VIPER_STUN = 1303414' in _u and 'def viper_marks(' in _u and 'def egg_viper_notes(' in _u, '1.0.5: viper mark -> landing stun notes'
 assert 'notes[:0] = egg_viper_notes(vr' in _u, '1.0.5: egg/viper notes shown first'
 assert 'raidplan_ulatek' not in _u
@@ -288,3 +288,11 @@ assert 'def _in_time_order(' in (ROOT/'live/v544_glance.py').read_text(encoding=
 assert '("1.0.14", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
 assert (ROOT/'qa/test_public_1_0_14_chain_order.py').is_file()
 print('1.0.14 GATE PASS — chain chips in time order')
+
+# 1.0.15: GOLD V5.4.11 큰 알 → 공포의 포효 연쇄 · 붕괴 뒤 절규 · 근접 공격 출처 · 큰 알 NSRT 알림 줄 · 마지막 트라이 따라가기
+_u = (ROOT/'live/ulatek_conclusion_v1.py').read_text(encoding='utf-8')
+assert 'DEVOURING_ROAR = 1305775' in _u and 'def big_egg_timeline_line(' in _u and 'def _melee_source(' in _u, '1.0.15: ulatek roar/melee/egg line'
+assert 'self._select_live_row_by_key(completed_key)' in gui, '1.0.15: follow latest try'
+assert '("1.0.15", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
+assert (ROOT/'qa/test_public_1_0_15_big_egg_roar_and_follow.py').is_file()
+print('1.0.15 GATE PASS — big egg roar chain · follow latest try')

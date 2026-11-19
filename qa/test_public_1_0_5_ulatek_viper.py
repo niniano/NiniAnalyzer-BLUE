@@ -173,7 +173,7 @@ class FirstMistake(unittest.TestCase):
 
 class Version(unittest.TestCase):
     def test_version(self):
-        self.assertEqual(U.VERSION, "ULATEK-CONCLUSION-V2.0")
+        self.assertEqual(U.VERSION, "ULATEK-CONCLUSION-V2.1")
 
 class ScanStun(unittest.TestCase):
     def test_reads_landing_stun(self):

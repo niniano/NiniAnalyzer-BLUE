@@ -255,7 +255,7 @@ PIPELINE = WORKDIR / "nini_wcl_pipeline.py"
 ENGINE = WORKDIR / "engine"
 CHARACTERS = ()  # PUBLIC: private character registry disabled
 DEFAULT_PLAYER = ""  # PUBLIC: no default personal identity
-PUBLIC_APP_VERSION = "1.0.14"
+PUBLIC_APP_VERSION = "1.0.15"
 WCL_DIFFICULTY_MAP = {15: 4, 16: 5, 233: 5}
 
 STATUS_RANK = {"경고": 4, "주의": 3, "표본부족": 2, "정상": 1, "비교전용": 0}
@@ -8314,6 +8314,13 @@ class App(tk.Tk):
             for warning in enc.get("raidSeriesWarnings") or []:
                 self._append_live_log(f"[SERIES WARN] {warning}", "wipe")
             completed_key = self._live_row_key(enc)
+            # 1.0.15: 감시 중 트라이 복기가 끝나면 무조건 그 트라이로 넘어간다 (스위치 없음 ·
+            # 지난 트라이는 눌러서 보면 되고, 다음 트라이가 끝나면 다시 마지막으로).
+            # 놓친 트라이 채우기(backfill) · 저장 로그 다시 분석 중에는 화면을 옮기지 않는다.
+            if not getattr(self, "_backfill_running", False) and not getattr(self, "_saved_reanalysis_running", False):
+                self._refresh_live_recent()
+                if self._select_live_row_by_key(completed_key):
+                    return
             selected_key = getattr(self, "live_selected_key", None)
             if selected_key is None:
                 # Keep the old convenience for an untouched Live view, but never

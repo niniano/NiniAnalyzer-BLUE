@@ -23,8 +23,9 @@ class BigEgg(unittest.TestCase):
     def test_general_line(self):
         r = raw(big=[(247.3, "SPELL_AURA_APPLIED", "가"), (249.3, "SPELL_AURA_REMOVED", "가")])
         be = U.big_egg_review(r, HEARTS, [], 258.7)
-        self.assertEqual(be["deadline"], 255.1)
-        self.assertEqual(be["line"], "알방 큰 알 1/4 (기한 4:15 · 4:18 전멸) · 가 4:07→4:09")
+        # 1.0.15: 판정 기준 = NSRT 알림 (들기 4:12 · 마지막 4:19)
+        self.assertEqual(be["deadline"], 259.1)
+        self.assertEqual(be["line"], "알방 큰 알 1/4 (들기 알림 4:12 · 마지막 4:19 · 4:18 전멸) · 가 4:07→4:09")
         self.assertNotIn("duty", be)
 
     def test_late_pick(self):
@@ -68,9 +69,9 @@ class BigEgg(unittest.TestCase):
 
 
 class OnTime(unittest.TestCase):
-    """4:15 이내 = 4:15.x 까지 제때."""
+    """1.0.15: 마지막 알림 4:19 이내 = 4:19.x 까지 제때 (전에는 4:15)."""
     def test_four_fifteen_point_six(self):
-        r = raw(big=[(255.6, "SPELL_AURA_APPLIED", "가"), (256.0, "SPELL_AURA_APPLIED", "나")])
+        r = raw(big=[(259.6, "SPELL_AURA_APPLIED", "가"), (260.0, "SPELL_AURA_APPLIED", "나")])
         r["bigEggHatch"] = [174.05]
         be = U.big_egg_review(r, HEARTS, [], 280.0)
         self.assertIn("늦음 나", be["line"])
