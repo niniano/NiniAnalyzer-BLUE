@@ -7,7 +7,7 @@ raw.log 에서는 울라텍 HP, 절규(차단자·징표), 약화된 파멸비�
 
 공략 기준 (인벤 「신화 울라텍 공략」 + 「맹독심연 7,8넴 공략」(10/14 너프 후), 사용자 제공 2026-10-21):
   1심장 종료 보스 HP 마지노선 66% · 2심장에 약화된 파멸비늘을 심장에 붙여 녹인다(그렇게 해도 보스 약 40%)
-  알은 3:50(늦어도 4:00)까지 가마솥, 큰 알은 4:27까지 · 절규 차단은 별·다야·엑스·해골 4조
+  알은 3:50(늦어도 4:00)까지 가마솥, 큰 알은 4:18에 집어 4:30쯤 가마솥 (1.0.17) · 절규 차단은 별·다야·엑스·해골 4조
   유체(역병비늘)가 오래 살면 광폭 → 「산성 배출」 · 절규는 2짤이 심장·파도와 겹쳐 가장 어려움(원딜 커버)
 
     어디까지 · 첫 실수 · 전멸 원인 · 딜(심장 진도) · 다음 풀  (+ 심장 · 절규 줄)
@@ -20,7 +20,7 @@ import json
 from collections import Counter
 from pathlib import Path
 
-VERSION = "ULATEK-CONCLUSION-V2.1"
+VERSION = "ULATEK-CONCLUSION-V2.2"
 BOSS_NPC = "-257758-"
 CRY = 1305650
 UNCHECKED_RAGE = 1301007
@@ -40,12 +40,12 @@ CONF = {"verified": "확정", "likely": "추정", "unknown": "미확정"}
 HEART1_HP_LINE = 66.0           # 「심장딜 마지노선을 66% 정도로」
 HEART2_HP_REF = 40.0            # 공략 「그렇게해도 40퍼」 · 다른 공대 6:00~7:00 전멸 HP 38~44%와 일치
 HEART2_HP_WARN = 45.0           # 2심장 종료가 이보다 높으면 ⚠ (판정 원인으로는 안 씀)
-EGG_SMALL_SEC, EGG_SMALL_MAX_SEC, EGG_BIG_SEC = 230, 240, 267   # 3:50 / 4:00 / 4:27
+EGG_SMALL_SEC, EGG_SMALL_MAX_SEC, EGG_BIG_SEC = 230, 240, 270   # 3:50 / 4:00 / 4:30 (1.0.17 공대 공략: 4:30쯤 넣기 · 전에는 4:27)
 DOOMSCALE_NPC = "-269200-"      # 약화된 파멸비늘 (공개 신화 표본 절규 시전자)
 ACID = 1313531                  # 산성 배출 · 유체(Blightscale Rawling)가 쓰면 광폭 = 실패 신호, 3페 비명꾼(Shrieker)이 쓰면 정상
 RAWLING_NPC = "-261874-"        # 역병비늘 유체 (WCL 이벤트: 킬에서는 유체 산성 배출 0, 전멸 4:57·6:31 풀에서 유체가 시전)
 SHRIEKER_NPC = "-273577-"       # 역병비늘 비명꾼 (3페, 킬에서도 8:36~9:16 산성 배출 정상)
-EGG_DEFECT_LATE_SEC = 268       # 결함: 약화 첫 적용 · 다른 공대 킬 4:24·4:25, 전멸 풀 4:30·4:31 → 4:28 넘으면 늦음
+EGG_DEFECT_LATE_SEC = 271       # 결함: 약화 첫 적용 · 공대 공략 4:30쯤 → 4:31 넘으면 늦음 (1.0.17 · 전에는 4:28)
 WEAKNESS = 1303410              # 결함: 약화 · 큰 알 가마솥 신호 (WCL 다른 공대 5풀 모두 4:24~4:31 시작, 공략 4:27과 일치)
 MARKERS = {1: "별", 2: "동그라미", 4: "다야", 8: "세모", 16: "달", 32: "네모", 64: "엑스", 128: "해골"}
 GUIDE_GROUPS = ("별", "다야", "엑스", "해골")
@@ -107,7 +107,7 @@ BIG_EGG_HATCH_TO_DEADLINE = 85.0   # 11/9 월 6트: 부화 시작 2:54.0~2:54.1 
 BIG_EGG_HATCH_TO_SPAWN = 90.8
 # V5.4.11: 큰 알 판정은 공대 NSRT 알림 기준 (4:05 준비 · 4:12 「큰 알 들기!」 · 4:19 「큰 알 마지막 - 5초 뒤 부화」)
 #   부화 시작(2:54) 기준 +78초 = 들기 알림 · +85초 = 마지막 알림(이때까지 들면 제때 · 위 DEADLINE) · +90.8초 = 게걸스러운 파멸비늘
-BIG_EGG_HATCH_TO_PICK_ALERT = 78.0
+BIG_EGG_HATCH_TO_PICK_ALERT = 84.0   # 1.0.17 공대 공략: 4:18에 큰 알 집기 (전에는 들기 알림 4:12 = +78)
 # V5.4.11: 안 든 큰 알 → 게걸스러운 파멸비늘이 「공포의 포효」(1305775, 2.5초 시전) → 공대 공포
 DEVOURING_ROAR = 1305775
 ROAR_MIN_HITS = 3
@@ -132,7 +132,7 @@ NEXT = {
     "heart1_dps": "1심장 66% 미달: 작쫄은 기력 보충용이라 광딸 금지, 심장 구간엔 심장 타겟 딜 집중.",
     "doomscale_alive": "약화된 파멸비늘을 심장에 최대한 붙여 파킹(웅덩이 감수)하고 2심장 동안 심장 타겟 광.",
     "calcified_corpse": "뱀의 물어뜯기 만료 전에 흡수 담당이 받으세요 (석회화한 시체 0명).",
-    "big_egg_unpicked": "큰 알 4개 다 집기: 4:12 「큰 알 들기!」 알림에 담당 4명 바로 출발 · 4:19 마지막 알림 때 남은 알은 가까운 사람이 집기 (안 집은 알은 4:24 게걸스러운 파멸비늘 → 공포의 포효).",
+    "big_egg_unpicked": "큰 알 4개 다 집기: 4:18에 담당 4명이 집기 · 4:19 마지막 알림 때 남은 알은 가까운 사람이 집기 (안 집은 알은 4:24 게걸스러운 파멸비늘 → 공포의 포효) · 4:30쯤 가마솥.",
     "ooze_melee": "유체가 사람을 때리고 있음: 탱이 유체를 모아 잡고 · 유체 찍딜 콜(피 많은 유체 먼저) · 광폭 「산성 배출」엔 배정 CC.",
     "egg_viper": "알 든 사람은 파도 피하기가 최우선 (꼬리 파도 방향 미리 · 이동기 아끼기) · 알끼리 3미터 · 살무사 주시 대상은 공대에서 떨어지고 나머지는 착지 자리 피하기 (석화의 독침 스턴).",
 }
@@ -755,7 +755,7 @@ def big_egg_review(raw: dict, hearts: list, deaths: list, duration: float, duty:
     dead_drop = [p for p in picks if p.get("died") is not None]
     if dead_drop:
         tail.append("들고 사망 → 그 자리 게걸스러운 파멸비늘 " + ", ".join(f"{p['name']} {mmss(p['died'])}" for p in dead_drop))
-    alert = f"들기 알림 {mmss(deadline - (BIG_EGG_HATCH_TO_DEADLINE - BIG_EGG_HATCH_TO_PICK_ALERT))} · 마지막 {mmss(deadline)}"
+    alert = f"들기 {mmss(deadline - (BIG_EGG_HATCH_TO_DEADLINE - BIG_EGG_HATCH_TO_PICK_ALERT))} · 마지막 {mmss(deadline)}"
     line = (f"알방 큰 알 {len(picks)}/{BIG_EGG_COUNT} ({alert}"
             + (f" · {mmss(duration)} 전멸" if duration < deadline + 30 else "") + ")"
             + (" · " + ", ".join(parts) if parts else "")
@@ -1089,7 +1089,7 @@ def big_egg_timeline_line(be: dict | None, weakness: list) -> str | None:
     elif drops:
         put = min(drops)
     late_put = put is not None and put > EGG_DEFECT_LATE_SEC
-    txt = (f"큰 알 들기 알림 {mmss(be.get('pickAlert') or 0)} → 실제 {mmss(p0)}" + (f"~{mmss(p1)}" if int(p1) != int(p0) else "")
+    txt = (f"큰 알 들기 {mmss(be.get('pickAlert') or 0)} → 실제 {mmss(p0)}" + (f"~{mmss(p1)}" if int(p1) != int(p0) else "")
            + f" · 마지막 알림 {mmss(be.get('deadline') or 0)}"
            + (f" (늦음 {', '.join(be['late'])})" if be.get("late") else "")
            + f" · 부화 {mmss(be.get('spawnAt') or 0)}")
@@ -1097,7 +1097,7 @@ def big_egg_timeline_line(be: dict | None, weakness: list) -> str | None:
         txt += f" · 안 든 알 {be['unpicked']}개"
     if put is not None:
         txt += f" · 넣음 {mmss(put)}" + (f"~{mmss(max(drops))}" if drops and int(max(drops)) > int(put) else "")
-        txt += (" ⚠ 늦음" if late_put else " ✅") + " (공략 4:27 · 다른 공대 킬 4:24~4:25)"
+        txt += (" ⚠ 늦음" if late_put else " ✅") + " (공략 4:30쯤)"
     return txt
 
 
@@ -1303,8 +1303,8 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
         cause["next"] = NEXT["acid_purge"]
     elif egg_late and duration < float((h2 or {}).get("endSec") or 330) + 30:
         cause = {"group": "큰 알 가마솥 늦음", "code": "EGG_LATE", "confidence": "likely",
-                 "label": f"큰 알 가마솥 {mmss(raw['weakness'][0]['sec'])} (공략 4:27까지) → {stage_at(duration - 0.5, hearts, p3)} {mmss(duration)} 전멸"}
-        cause["next"] = "작은 알은 3:50(늦어도 4:00), 큰 알은 4:15쯤 집어 4:27까지 가마솥에. 남쪽방 출발 데드라인을 정하세요."
+                 "label": f"큰 알 가마솥 {mmss(raw['weakness'][0]['sec'])} (공략 4:30쯤) → {stage_at(duration - 0.5, hearts, p3)} {mmss(duration)} 전멸"}
+        cause["next"] = "작은 알은 3:50(늦어도 4:00), 큰 알은 4:18에 집어 4:30쯤 가마솥에. 남쪽방 출발 데드라인을 정하세요."
     elif doom_alive and doom_alive["alive"] and duration > float(h2["endSec"]):
         cause = {"group": "파멸비늘 미처치", "code": "DOOMSCALE_ALIVE", "confidence": "likely",
                  "label": f"약화된 파멸비늘 {doom_alive['alive']}/{doom_alive['total']}마리 2심장 끝까지 생존 → {stage_at(duration - 0.5, hearts, p3)} {mmss(duration)} 전멸"}
@@ -1406,7 +1406,7 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
     elif wk and mythic:
         late = float(wk[0]["sec"]) > EGG_DEFECT_LATE_SEC
         extra.append(f"알     큰 알 가마솥(결함: 약화) 첫 {mmss(wk[0]['sec'])}" + (" ⚠ 늦음" if late else " ✅")
-                     + " (공략 4:27 · 다른 공대 킬 4:24~4:25)")
+                     + " (공략 4:30쯤)")
     # V1.9 공대 공략 판정 (신화 공략이라 신화에서만)
     plan = {}
     if raw.get("available") and mythic:

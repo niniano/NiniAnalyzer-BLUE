@@ -39,7 +39,7 @@ assert (ROOT/'package_public_release.py').is_file()
 entry=(ROOT/'nini_raid_gui.py').read_text(encoding='utf-8')
 assert 'start_error_notice_poll(app)' in entry
 assert 'maybe_show_first_run(app)' in entry
-assert 'PUBLIC_APP_VERSION = "1.0.16"' in gui
+assert 'PUBLIC_APP_VERSION = "1.0.17"' in gui
 print('STAGE 2.4 RELEASE GATE PASS — first-run guide, local-only error notice and packager')
 
 assert (ROOT/'build_public_windows.py').read_text(encoding='utf-8').find("'--contents-directory', '_internal'") >= 0
@@ -57,7 +57,7 @@ assert '_drop_feign_deaths' in (ROOT/'live/boss_mechanics/engine.py').read_text(
 assert 'def _pull_badge_text' in gui and 'def _public_auto_open_latest_session' in gui
 iss=(ROOT/'installer/NiniAnalyzer_Public.iss').read_text(encoding='utf-8-sig')
 assert 'AppId={{' in iss and 'PrivilegesRequired=lowest' in iss and 'AppUserModelID: "{#AppUserModelID}"' in iss
-assert '#define AppVersion "1.0.16"' in iss
+assert '#define AppVersion "1.0.17"' in iss
 assert 'UninstallDelete' not in iss, 'installer must never delete user raid records'
 print('RC4 GATE PASS — scroll, fonts, feign death, puller, first screen, installer')
 
@@ -311,3 +311,10 @@ assert '_wcal_ui.install_auto(self, lambda: self._public_log_dir)' in gui, '1.0.
 assert '("1.0.16", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
 assert (ROOT/'qa/test_public_1_0_16_wow_calendar.py').is_file()
 print('1.0.16 GATE PASS — WoW calendar to Google (opt-in)')
+
+# 1.0.17: GOLD V5.4.13 울라텍 큰 알 공대 공략 = 4:18 집기 · 4:30쯤 가마솥 (4:31 넘으면 늦음)
+_u17=(ROOT/'live/ulatek_conclusion_v1.py').read_text(encoding='utf-8')
+assert 'VERSION = "ULATEK-CONCLUSION-V2.2"' in _u17 and 'EGG_DEFECT_LATE_SEC = 271' in _u17 and 'BIG_EGG_HATCH_TO_PICK_ALERT = 84.0' in _u17, '1.0.17: big egg 4:18 / 4:30'
+assert '("1.0.17", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
+assert (ROOT/'qa/test_public_1_0_17_big_egg_plan.py').is_file()
+print('1.0.17 GATE PASS — big egg plan 4:18 / 4:30')

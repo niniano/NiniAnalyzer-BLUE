@@ -75,11 +75,11 @@ class EggCarry(unittest.TestCase):
         lines = U.egg_carry_lines(ec)
         self.assertEqual(lines[0]["parts"][0], ("가 3:42→3:54", "owner"))   # 알방 시각은 내 캐릭터만
         self.assertEqual(lines[0]["parts"][1], ("나", None))
-        self.assertEqual(lines[1]["head"], "큰 알 들기 4:12 · 마지막 4:19")
+        self.assertEqual(lines[1]["head"], "큰 알 들기 4:18 · 마지막 4:19")
         self.assertEqual(lines[1]["count"], "2/4")
         self.assertEqual(lines[1]["parts"][1], ("라 4:21 늦음", "late"))
         # 참고 줄(short)은 누가 들었는지 빼고 짧게 · 예전 line 은 그대로
-        self.assertEqual(be["short"], "알방 큰 알 2/4 (들기 알림 4:12 · 마지막 4:19 · 4:40 전멸) · 늦음 1 · 안 든 큰 알 2개 → 4:24 게걸스러운 파멸비늘")
+        self.assertEqual(be["short"], "알방 큰 알 2/4 (들기 4:18 · 마지막 4:19 · 4:40 전멸) · 늦음 1 · 안 든 큰 알 2개 → 4:24 게걸스러운 파멸비늘")
         self.assertIn("다 4:14", be["line"])
 
 
