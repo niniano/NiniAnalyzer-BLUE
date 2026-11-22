@@ -20,7 +20,7 @@ import json
 from collections import Counter
 from pathlib import Path
 
-VERSION = "ULATEK-CONCLUSION-V2.2"
+VERSION = "ULATEK-CONCLUSION-V2.3"
 BOSS_NPC = "-257758-"
 CRY = 1305650
 UNCHECKED_RAGE = 1301007
@@ -117,6 +117,11 @@ VIPER_MARK_TO_STUN = (3.5, 7.0)
 VIPER_TRIGGER_SEC = 6.0          # 원인 → 살무사 출현 (실측 0.1~5.9초)
 VIPER_CLUSTER_SEC = 4.0
 VIPER_DROP_SEC = 1.0             # 파도·충돌이 없을 때: 살무사 1초 안쪽 직전에 알(유독한 껍질)이 사라진 사람 (44트 중 27무리)
+# 1.0.18: 알이 깨지면 공대 전체에 「부패한 막」(1301268)이 한 번에 걸린다 (실측 73번 중 68번이 같은 순간 알 든 사람의 유독한 껍질이
+#   사라짐 · 가마솥에 넣을 때는 안 걸림) → 0.1~6초 뒤 살무사. 껍질이 안 사라졌는데 걸리면 아무도 안 든 알이 깨진 것.
+EGG_MEMBRANE = 1301268
+MEMBRANE_MIN_HITS = 5
+MEMBRANE_TO_VIPER_SEC = 12.0   # 살무사는 처음 기록(주시 · 공격)이 늦게 찍히기도 함 (실측: 막 4:37 → 첫 기록 4:47)
 VIPER_BEFORE_COLLAPSE_SEC = 25.0 # 살무사가 붕괴 25초 안쪽에서 먼저 나오면 붕괴 원인으로 본다
 FIRST_MISTAKE_WINDOW_SEC = 20.0  # 첫 실수(막을 수 없는 분노)는 붕괴 20초 안쪽만
 POTION_H2_SEC, POTION_H2_LATE_SEC = 286, 290      # 4:46 (+4초 여유)
@@ -132,6 +137,7 @@ NEXT = {
     "heart1_dps": "1심장 66% 미달: 작쫄은 기력 보충용이라 광딸 금지, 심장 구간엔 심장 타겟 딜 집중.",
     "doomscale_alive": "약화된 파멸비늘을 심장에 최대한 붙여 파킹(웅덩이 감수)하고 2심장 동안 심장 타겟 광.",
     "calcified_corpse": "뱀의 물어뜯기 만료 전에 흡수 담당이 받으세요 (석회화한 시체 0명).",
+    "egg_ground": "바닥에 알 남기지 않기: 아무도 안 든 알이 깨지면 공대 전체 「부패한 막」 + 살무사 · 알 담당 인원과 순서 확인 · 비는 알은 가까운 사람이 바로 줍기.",
     "big_egg_unpicked": "큰 알 4개 다 집기: 4:18에 담당 4명이 집기 · 4:19 마지막 알림 때 남은 알은 가까운 사람이 집기 (안 집은 알은 4:24 게걸스러운 파멸비늘 → 공포의 포효) · 4:30쯤 가마솥.",
     "ooze_melee": "유체가 사람을 때리고 있음: 탱이 유체를 모아 잡고 · 유체 찍딜 콜(피 많은 유체 먼저) · 광폭 「산성 배출」엔 배정 CC.",
     "egg_viper": "알 든 사람은 파도 피하기가 최우선 (꼬리 파도 방향 미리 · 이동기 아끼기) · 알끼리 3미터 · 살무사 주시 대상은 공대에서 떨어지고 나머지는 착지 자리 피하기 (석화의 독침 스턴).",
@@ -177,7 +183,7 @@ def scan_raw(raw_path, start_ts: str) -> dict:
     out = {"hp": [], "cry": [], "petOwner": {}, "doomSeen": {}, "doomDied": {}, "weakness": [], "acid": [], "vein": [], "prey": [], "available": False,
            "coilCasts": [], "coilSoak": [], "fang": [], "eggBurst": [], "potions": [],
            "shell": [], "waveHits": [], "viperSeen": {}, "viperSting": [], "viperStun": [], "rage": [],
-           "bigEgg": [], "bigEggHatch": [], "roar": []}
+           "bigEgg": [], "bigEggHatch": [], "roar": [], "membrane": []}
     p = Path(raw_path) if raw_path else None
     if p is None or not p.is_file():
         for name in ("raw.log.gz", "raw.log"):
@@ -208,6 +214,7 @@ def scan_raw(raw_path, start_ts: str) -> dict:
     viper_tok, sting_tok, rage_tok = VIPER_NPC.encode(), f",{VIPER_STING},".encode(), f",{UNCHECKED_RAGE},".encode()
     big_tok, hatch_tok = f",{BIG_EGG_SHELL},".encode(), f",{BIG_EGG_HATCH},".encode()
     roar_tok = f",{DEVOURING_ROAR},".encode()
+    memb_tok = f",{EGG_MEMBRANE},".encode()
     opener = gzip.open if str(p).endswith(".gz") else open
     last_hp = -1.0
     with opener(p, "rb") as fh:
@@ -226,7 +233,8 @@ def scan_raw(raw_path, start_ts: str) -> dict:
                 or viper_tok in raw or (sting_tok in raw and b"SPELL_AURA_APPLIED" in raw) \
                 or (rage_tok in raw and b"SPELL_CAST_SUCCESS" in raw) \
                 or (big_tok in raw and b"SPELL_AURA_" in raw) or (hatch_tok in raw and b"SPELL_CAST_START" in raw) \
-                or (roar_tok in raw and (b"SPELL_CAST_SUCCESS" in raw or b"SPELL_AURA_APPLIED" in raw))
+                or (roar_tok in raw and (b"SPELL_CAST_SUCCESS" in raw or b"SPELL_AURA_APPLIED" in raw)) \
+                or (memb_tok in raw and b"SPELL_AURA_APPLIED" in raw)
             if not (is_boss or is_cry or is_pet or is_doom or is_weak or is_acid or is_vein or is_prey or is_plan or is_egg2):
                 continue
             line = raw.decode("utf-8", errors="replace").rstrip("\r\n")
@@ -278,6 +286,11 @@ def scan_raw(raw_path, start_ts: str) -> dict:
                         out["roar"][-1]["hits"] += 1
                     else:
                         out["roar"].append({"sec": round(s, 3), "hits": 1})
+                elif sid == str(EGG_MEMBRANE) and ev == "SPELL_AURA_APPLIED" and f[5].startswith("Player-"):
+                    if out["membrane"] and s - out["membrane"][-1]["sec"] <= 0.3:
+                        out["membrane"][-1]["hits"] += 1
+                    else:
+                        out["membrane"].append({"sec": round(s, 3), "hits": 1})
                 elif sid == str(UNCHECKED_RAGE) and ev == "SPELL_CAST_SUCCESS":
                     if not out["rage"] or s - out["rage"][-1] > 1.0:
                         out["rage"].append(round(s, 3))
@@ -623,6 +636,7 @@ def viper_review(raw: dict) -> dict | None:
     bursts = [(x["sec"], x["target"]) for x in raw.get("eggBurst") or []
               if x.get("event") == "SPELL_AURA_APPLIED" and x.get("target") and x["target"] != "nil"]
     drops = [(x["sec"], x["target"]) for x in raw.get("shell") or [] if x["event"] == "SPELL_AURA_REMOVED"]
+    membs = [float(m["sec"]) for m in raw.get("membrane") or [] if int(m.get("hits") or 0) >= MEMBRANE_MIN_HITS]
     out = []
     for grp in _clusters(seen, VIPER_CLUSTER_SEC):
         t = grp[0]
@@ -630,10 +644,16 @@ def viper_review(raw: dict) -> dict | None:
         wv = [(s, n) for s, n in waves if t - VIPER_TRIGGER_SEC <= s <= grp[-1] + 0.5]
         bs = [(s, n) for s, n in bursts if t - VIPER_TRIGGER_SEC <= s <= grp[-1] + 0.5]
         dr = [(s, n) for s, n in drops if t - VIPER_DROP_SEC <= s <= t + 0.3]
+        mb = [m for m in membs if t - MEMBRANE_TO_VIPER_SEC <= m <= t + 0.3]
+        br = [(s, n) for s, n in drops if any(abs(s - m) <= 0.3 for m in mb)]
         if wv:
             kind, names, tsec = "wave", sorted({n for _s, n in wv}), wv[0][0]
         elif bs:
             kind, names, tsec = "burst", sorted({n for _s, n in bs}), bs[0][0]
+        elif br:   # 1.0.18 알 든 사람의 알이 깨짐 (껍질 사라짐 + 공대 전체 부패한 막)
+            kind, names, tsec = "break", sorted({n for _s, n in br}), br[0][0]
+        elif mb and not dr:   # 1.0.18 껍질 사라진 사람 없이 부패한 막 = 아무도 안 든 알이 깨짐
+            kind, names, tsec = "ground", [], mb[-1]
         elif dr:
             kind, names, tsec = "drop", sorted({n for _s, n in dr}), dr[0][0]
         else:
@@ -1039,6 +1059,10 @@ def _trigger_txt(c: dict) -> str:
         return f"알 충돌 {'·'.join(c['names'][:3])} {mmss(c['triggerSec'])}"
     if c.get("trigger") == "drop":
         return f"알 든 {'·'.join(c['names'][:3])} 알 놓침 {mmss(c['triggerSec'])} (물·피격?)"
+    if c.get("trigger") == "break":
+        return f"알 든 {'·'.join(c['names'][:3])} 알 깨짐 {mmss(c['triggerSec'])} (공대 전체 부패한 막)"
+    if c.get("trigger") == "ground":
+        return f"아무도 안 든 알 깨짐 {mmss(c['triggerSec'])} (공대 전체 부패한 막)"
     return "원인 미확인 (알 운반 밖)"
 
 
@@ -1193,7 +1217,7 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
     elif vchain:
         t0 = vchain["triggerSec"] if vchain.get("triggerSec") is not None else vchain["sec"]
         first = (f"{stage_at(t0, hearts, p3)} {mmss(t0)} {_trigger_txt(vchain)} → 살무사 {mmss(vchain['sec'])}"
-                 + (" [확정]" if vchain.get("trigger") in ("wave", "burst") else " [추정]"))
+                 + (" [확정]" if vchain.get("trigger") in ("wave", "burst", "break") else " [추정]"))
         first_kind = EGG_VIPER_KIND
     elif (fm.get("sec") is not None and _col0 is not None and result != "kill" and (
             (fm.get("kind") == "unchecked_rage"
@@ -1250,10 +1274,10 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
             top_txt = f" {_spell_txt(top, deaths, col_start)} {n}명"
         rage_mid = [t for t in (raw.get("rage") or []) if vchain["sec"] <= t <= float(col_start) + 1.0]
         cause = {"group": EGG_VIPER_KIND, "code": "EGG_VIPER",
-                 "confidence": "verified" if vchain.get("trigger") in ("wave", "burst") else "likely",
+                 "confidence": "verified" if vchain.get("trigger") in ("wave", "burst", "break") else "likely",
                  "label": (f"{_trigger_txt(vchain)} → 살무사 {vchain['count']}마리 {mmss(vchain['sec'])} → 붕괴{top_txt} ({mmss(col_start)})"
                            + (f" · 그 사이 막을 수 없는 분노 {len(rage_mid)}회" if rage_mid else "")),
-                 "next": NEXT["egg_viper"]}
+                 "next": NEXT["egg_ground"] if vchain.get("trigger") == "ground" else NEXT["egg_viper"]}
     elif spells:
         top, n = max(spells.items(), key=lambda kv: kv[1])
         near = [f for f in failures if f.get("sec") is not None and col_start is not None
