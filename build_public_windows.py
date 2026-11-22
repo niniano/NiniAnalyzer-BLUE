@@ -3,7 +3,7 @@ from __future__ import annotations
 import os, sys, subprocess
 from pathlib import Path
 ROOT = Path(__file__).resolve().parent
-VERSION = "1.0.15"
+VERSION = "1.0.16"
 
 def build_command(root=ROOT, python=None, data_sep=None):
     root=Path(root)
@@ -33,6 +33,11 @@ def build_command(root=ROOT, python=None, data_sep=None):
         path=root/source
         if not path.exists(): raise FileNotFoundError(path)
         args.extend(['--add-data', f'{path}{data_sep}{target}'])
+    # 1.0.16: 구글 캘린더 연결용 OAuth 클라이언트 (데스크톱 앱). 저장소에는 없고 GitHub Actions 가
+    # Secret NINI_GOOGLE_CLIENT_JSON 으로 빌드 직전에 만든다. 없으면 빼고 빌드 (창에서 .ics 내보내기만).
+    client=root/'live'/'wow_calendar_client.json'
+    if client.is_file():
+        args.extend(['--add-data', f'{client}{data_sep}live'])
     args += ['--hidden-import=public_errorlog','--hidden-import=public_first_run',
              '--hidden-import=live.public_import','--hidden-import=live.reanalysis',
              '--hidden-import=live.raid_review','--hidden-import=live.boss_mechanics.engine',
@@ -49,7 +54,9 @@ def build_command(root=ROOT, python=None, data_sep=None):
              '--hidden-import=live.v52_screen',
              # 1.0.6: GOLD V5.2.8~V5.3.3 따라잡기 (킬 판 결론 · 기믹 수행 체크 보드 · 똬리 P1 단두대 소킹 · 전환 지연 관측)
              '--hidden-import=live.v528_review','--hidden-import=live.v529_board','--hidden-import=live.v544_glance','--hidden-import=live.raid_coiled_brief_v43',
-             '--hidden-import=live.boss_mechanics.coiled_p1_closeout',str(root/'nini_raid_gui.py')]
+             '--hidden-import=live.boss_mechanics.coiled_p1_closeout',
+             # 1.0.16: WoW 달력 → 구글 캘린더
+             '--hidden-import=live.wow_calendar_sync','--hidden-import=live.wow_calendar_ui',str(root/'nini_raid_gui.py')]
     return args
 
 def main():

@@ -255,7 +255,7 @@ PIPELINE = WORKDIR / "nini_wcl_pipeline.py"
 ENGINE = WORKDIR / "engine"
 CHARACTERS = ()  # PUBLIC: private character registry disabled
 DEFAULT_PLAYER = ""  # PUBLIC: no default personal identity
-PUBLIC_APP_VERSION = "1.0.15"
+PUBLIC_APP_VERSION = "1.0.16"
 WCL_DIFFICULTY_MAP = {15: 4, 16: 5, 233: 5}
 
 STATUS_RANK = {"경고": 4, "주의": 3, "표본부족": 2, "정상": 1, "비교전용": 0}
@@ -1603,6 +1603,18 @@ class App(tk.Tk):
                 font=(FONT_BODY, 10), outer="#181d23"
             )
             self.settings_sidebar_btn.pack(side="bottom", fill="x", pady=_px((0, 5)), before=self._nav_wrap)
+            # 1.0.16: WoW 달력 초대 → 구글 캘린더 (live/wow_calendar_ui.py · 기본 꺼짐 · 창에서 켬)
+            self.wow_calendar_sidebar_btn = None
+            try:
+                from live import wow_calendar_ui as _wcal_ui
+                self.wow_calendar_sidebar_btn = RoundButton(
+                    sidebar, text="WoW 달력 → 구글", command=lambda: _wcal_ui.open_window(self, lambda: self._public_log_dir),
+                    font=(FONT_BODY, 10), outer="#181d23"
+                )
+                self.wow_calendar_sidebar_btn.pack(side="bottom", fill="x", pady=_px((0, 5)), before=self._nav_wrap)
+                _wcal_ui.install_auto(self, lambda: self._public_log_dir)
+            except Exception:
+                self.wow_calendar_sidebar_btn = None
             source_btns.pack(side="bottom", fill="x", before=self._nav_wrap)
             self.archive_sidebar_btn = None
         else:

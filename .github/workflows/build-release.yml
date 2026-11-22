@@ -64,12 +64,26 @@ jobs:
             "test_public_no_drive_leak.py", "test_public_stage2_4_release.py", "test_public_stage2_5_rc3.py",
             "test_public_rc4_fixes.py", "test_public_rc4_2_feign_recheck.py", "test_public_rc4_3_class_color.py",
             "test_public_rc4_4_fonts.py", "test_public_rc5_layout.py", "test_public_rc5_3.py", "test_public_rc5_3_1.py",
-            "test_public_rc5_4*.py", "test_public_rc5_5*.py", "test_public_rc5_6*.py", "test_public_1_0_1*.py", "test_public_1_0_2*.py", "test_public_1_0_3*.py", "test_public_1_0_5*.py", "test_public_1_0_6*.py", "test_public_1_0_7*.py", "test_public_1_0_8*.py", "test_public_1_0_9*.py", "test_public_1_0_10*.py", "test_public_1_0_11*.py", "test_public_1_0_12*.py", "test_public_1_0_13*.py", "test_public_1_0_14*.py", "test_public_1_0_15*.py", "test_nini_stage2_2_1_gui_regression.py",
+            "test_public_rc5_4*.py", "test_public_rc5_5*.py", "test_public_rc5_6*.py", "test_public_1_0_1*.py", "test_public_1_0_2*.py", "test_public_1_0_3*.py", "test_public_1_0_5*.py", "test_public_1_0_6*.py", "test_public_1_0_7*.py", "test_public_1_0_8*.py", "test_public_1_0_9*.py", "test_public_1_0_10*.py", "test_public_1_0_11*.py", "test_public_1_0_12*.py", "test_public_1_0_13*.py", "test_public_1_0_14*.py", "test_public_1_0_15*.py", "test_public_1_0_16*.py", "test_nini_stage2_2_1_gui_regression.py",
             "test_b37_5_0_step4_3_live_try_wheel.py", "test_b37_5_0_5_try_wheel_focus_regression.py")
           foreach ($t in $tests) {
             python -m unittest discover -s qa -p $t
             if ($LASTEXITCODE) { Write-Host "::error::QA failed: $t"; exit 1 }
           }
+
+      - name: Google calendar client (optional)
+        # 1.0.16: WoW 달력 → 구글 캘린더 연결 정보. Settings → Secrets and variables → Actions 의
+        #         Secret NINI_GOOGLE_CLIENT_JSON (구글 클라우드 「데스크톱 앱」 OAuth 클라이언트 JSON 내용 그대로).
+        #         없으면 건너뜀 → 그 빌드는 .ics 내보내기만 (구글 연결 버튼은 JSON 직접 고르기)
+        env:
+          NINI_GOOGLE_CLIENT_JSON: ${{ secrets.NINI_GOOGLE_CLIENT_JSON }}
+        run: |
+          if ($env:NINI_GOOGLE_CLIENT_JSON) {
+            $j = $env:NINI_GOOGLE_CLIENT_JSON | ConvertFrom-Json
+            if (-not $j.installed.client_id) { throw "NINI_GOOGLE_CLIENT_JSON is not a Desktop-app OAuth client (installed.client_id missing)" }
+            [IO.File]::WriteAllText("live\wow_calendar_client.json", $env:NINI_GOOGLE_CLIENT_JSON, (New-Object Text.UTF8Encoding $false))
+            Write-Host "Google calendar client bundled"
+          } else { Write-Host "::warning::NINI_GOOGLE_CLIENT_JSON not set - build without Google calendar client" }
 
       - name: Build EXE folder + ZIP
         run: |

@@ -1,5 +1,7 @@
 # 비밀값 · 개인 기록 · 빌드 결과는 올리지 않음
 .env
+# 1.0.16: 구글 캘린더 OAuth 클라이언트 (빌드 때 Secret 으로 만듦)
+live/wow_calendar_client.json
 *.env
 data/live_sessions/
 data/archive*/

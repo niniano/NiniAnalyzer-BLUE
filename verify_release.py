@@ -39,7 +39,7 @@ assert (ROOT/'package_public_release.py').is_file()
 entry=(ROOT/'nini_raid_gui.py').read_text(encoding='utf-8')
 assert 'start_error_notice_poll(app)' in entry
 assert 'maybe_show_first_run(app)' in entry
-assert 'PUBLIC_APP_VERSION = "1.0.15"' in gui
+assert 'PUBLIC_APP_VERSION = "1.0.16"' in gui
 print('STAGE 2.4 RELEASE GATE PASS — first-run guide, local-only error notice and packager')
 
 assert (ROOT/'build_public_windows.py').read_text(encoding='utf-8').find("'--contents-directory', '_internal'") >= 0
@@ -57,7 +57,7 @@ assert '_drop_feign_deaths' in (ROOT/'live/boss_mechanics/engine.py').read_text(
 assert 'def _pull_badge_text' in gui and 'def _public_auto_open_latest_session' in gui
 iss=(ROOT/'installer/NiniAnalyzer_Public.iss').read_text(encoding='utf-8-sig')
 assert 'AppId={{' in iss and 'PrivilegesRequired=lowest' in iss and 'AppUserModelID: "{#AppUserModelID}"' in iss
-assert '#define AppVersion "1.0.15"' in iss
+assert '#define AppVersion "1.0.16"' in iss
 assert 'UninstallDelete' not in iss, 'installer must never delete user raid records'
 print('RC4 GATE PASS — scroll, fonts, feign death, puller, first screen, installer')
 
@@ -212,7 +212,8 @@ assert 'from live.v529_board import add_guide_pairs' in _g and 'from live.v528_r
 assert '"p1_guillotine_soak"' in _g and 'def _coiled_hf4_factual_glance(' in _g
 assert 'from .coiled_p1_closeout import analyze' in (ROOT/'live/boss_mechanics/engine.py').read_text(encoding='utf-8')
 assert 233 in __import__('ast').literal_eval((ROOT/'live/session_summary.py').read_text(encoding='utf-8').split('RAID_DIFFICULTIES = ', 1)[1].split('\n', 1)[0])
-for _p in ('live/display_patch.py', 'live/raid_chronology_index_v37.json', 'live/wow_calendar_sync.py'):
+# 1.0.16: live/wow_calendar_sync.py 는 이제 BLUE 에도 들어감 (아래 1.0.16 GATE)
+for _p in ('live/display_patch.py', 'live/raid_chronology_index_v37.json'):
     assert not (ROOT/_p).exists(), f'GOLD-only file found: {_p}'
 for _q in ('kill_review', 'board', 'nullify', 'coiled_accuracy'):
     assert (ROOT/f'qa/test_public_1_0_6_{_q}.py').is_file(), _q
@@ -296,3 +297,17 @@ assert 'self._select_live_row_by_key(completed_key)' in gui, '1.0.15: follow lat
 assert '("1.0.15", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
 assert (ROOT/'qa/test_public_1_0_15_big_egg_roar_and_follow.py').is_file()
 print('1.0.15 GATE PASS — big egg roar chain · follow latest try')
+
+# 1.0.16: GOLD V5.2.6~V5.4.12 WoW 달력 → 구글 캘린더 (기본 꺼짐 · 이 앱이 만든 캘린더만 · OAuth 클라이언트는 빌드 때 Secret)
+_wc=(ROOT/'live/wow_calendar_sync.py').read_text(encoding='utf-8')
+assert 'SCOPE = "https://www.googleapis.com/auth/calendar.app.created"' in _wc, '1.0.16: app-created calendars only'
+assert '"enabled": False' in _wc and 'BUNDLED_CLIENT' in _wc and 'def mark_expired(' in _wc, '1.0.16: off by default · bundled client · expiry'
+assert 'S.data_dir(public_home())' in (ROOT/'live/wow_calendar_ui.py').read_text(encoding='utf-8'), '1.0.16: per-user data folder'
+assert not (ROOT/'live/wow_calendar_client.json').exists() or 'live/wow_calendar_client.json' in (ROOT/'.gitignore').read_text(encoding='utf-8')
+assert 'live/wow_calendar_client.json' in (ROOT/'.gitignore').read_text(encoding='utf-8'), '1.0.16: client json never committed'
+assert 'NINI_GOOGLE_CLIENT_JSON' in (ROOT/'.github/workflows/build-release.yml').read_text(encoding='utf-8')
+assert "'--hidden-import=live.wow_calendar_ui'" in (ROOT/'build_public_windows.py').read_text(encoding='utf-8')
+assert '_wcal_ui.install_auto(self, lambda: self._public_log_dir)' in gui, '1.0.16: sidebar + auto sync'
+assert '("1.0.16", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
+assert (ROOT/'qa/test_public_1_0_16_wow_calendar.py').is_file()
+print('1.0.16 GATE PASS — WoW calendar to Google (opt-in)')
