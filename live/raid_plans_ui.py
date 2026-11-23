@@ -85,10 +85,11 @@ class PlanWindow:
         label(box, "울라텍 신화 · 알방", 11, T.ORANGE, True).pack(fill="x", pady=(12, 0))
         row("큰 알 집기", self.v_pick, "예) 4:18")
         row("큰 알 넣기", self.v_put, "예) 4:30 · 1초 넘으면 늦음")
-        label(box, "남쪽 구역 (큰 알 + 보호막 알 2개)", 10).pack(fill="x", pady=(10, 0))
+        label(box, "남쪽 구역 (큰 알 + 보호막 알 2개) · 우리 공대가 하는 방식을 고르세요. "
+                   "고르지 않아도 트라이마다 「실제 1번처럼 / 2번처럼」은 로그로 보여 줍니다.", 10).pack(fill="x", pady=(10, 0))
         for value, text in (("", "정하지 않음"),
-                            ("shield_first", "1번 · 보호막 알 먼저 깨고 든 다음 큰 알 (유체는 가마솥에 넣을 때)"),
-                            ("big_first", "2번 · 큰 알 먼저 (보호막 알 → 산란무리 → 남쪽에서 유체)")):
+                            ("shield_first", "1번 · " + RP.SOUTH_DESC["shield_first"]),
+                            ("big_first", "2번 · " + RP.SOUTH_DESC["big_first"])):
             tk.Radiobutton(box, text=text, value=value, variable=self.v_south, bg=T.PAGE_BG, fg=T.TEXT,
                            selectcolor=T.PAGE_BG, activebackground=T.PAGE_BG, font=(FONT, 9), anchor="w",
                            justify="left").pack(fill="x")

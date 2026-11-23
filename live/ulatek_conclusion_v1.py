@@ -1194,6 +1194,15 @@ def south_review(raw: dict, duration: float, plan: dict | None = None) -> dict |
     acid = [a for a in raw.get("acid") or [] if a.get("kind") == "start" and a.get("src") in ooze_ids]
     acid_n = len({a["src"] for a in acid})
     dead = sorted(float(o["died"]) for _g, o in ooze if o.get("died") is not None)
+    # 실제로 한 방식 (로그로 판단 · 계획과 상관없이)
+    if swarm and not broken:
+        actual = "big_first"
+    elif broken and not swarm:
+        actual = "shield_first"
+    elif broken and swarm:
+        actual = "mixed"
+    else:
+        actual = None
     tactic = (plan or {}).get("south")
     verdict = None
     if tactic == "shield_first":
@@ -1209,6 +1218,10 @@ def south_review(raw: dict, duration: float, plan: dict | None = None) -> dict |
             line += (f" · 처치 {len(dead)}/{len(ooze)}" + (f" {mmss(dead[0])}~{mmss(dead[-1])}" if dead else ""))
             if acid_n:
                 line += f" · 광폭(산성 배출) {acid_n}마리 ⚠"
+    if actual:
+        line += " | 실제 " + ({"big_first": "2번처럼 (보호막 알 안 깨고 큰 알 먼저)",
+                               "shield_first": "1번처럼 (보호막 알 먼저 깸)",
+                               "mixed": "섞임 (보호막 알 일부만 깨고 큰 알)"}[actual])
     if tactic:
         line += f" | 계획 {RP.SOUTH_TACTICS[tactic]}"
         if verdict == "bad" and tactic == "shield_first":
@@ -1217,7 +1230,7 @@ def south_review(raw: dict, duration: float, plan: dict | None = None) -> dict |
             line += " ✅"
     return {"eggs": len(eggs), "broken": len(broken), "carried": len(carried), "swarm": len(swarm),
             "swarmAt": swarm[0] if swarm else None, "ooze": len(ooze), "oozeDead": len(dead), "oozeEnraged": acid_n,
-            "tactic": tactic, "verdict": verdict, "line": line}
+            "tactic": tactic, "actual": actual, "verdict": verdict, "line": line}
 
 
 def big_egg_timeline_line(be: dict | None, weakness: list, plan: dict | None = None) -> str | None:

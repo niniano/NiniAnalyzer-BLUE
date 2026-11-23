@@ -120,7 +120,7 @@ class South(unittest.TestCase):
         sr = U.south_review(brood_raw(False, False, False), 340.0, self.BIG)
         self.assertEqual((sr["eggs"], sr["broken"], sr["swarm"], sr["ooze"], sr["oozeDead"]), (4, 0, 4, 4, 4))
         self.assertEqual(sr["line"], "보호막 알 4개 · 깸 0 → 큰 알 집을 때 산란무리 4 (4:16) → 유체 4 (4:23) · 처치 4/4 4:50~4:53"
-                                     " | 계획 2번 큰 알 먼저 ✅")
+                                     " | 실제 2번처럼 (보호막 알 안 깨고 큰 알 먼저) | 계획 2번 큰 알 먼저 ✅")
 
     def test_big_first_enrage(self):
         sr = U.south_review(brood_raw(False, False, True), 340.0, self.BIG)
@@ -129,7 +129,7 @@ class South(unittest.TestCase):
 
     def test_shield_first_ok(self):
         sr = U.south_review(brood_raw(True, True, False), 340.0, self.SHIELD)
-        self.assertEqual(sr["line"], "보호막 알 4개 · 깸 4 (4:08~4:11) · 듦 4 | 계획 1번 보호막 알 먼저 ✅")
+        self.assertEqual(sr["line"], "보호막 알 4개 · 깸 4 (4:08~4:11) · 듦 4 | 실제 1번처럼 (보호막 알 먼저 깸) | 계획 1번 보호막 알 먼저 ✅")
 
     def test_shield_first_missed(self):
         sr = U.south_review(brood_raw(False, False, False), 340.0, self.SHIELD)
@@ -140,6 +140,14 @@ class South(unittest.TestCase):
         sr = U.south_review(brood_raw(False, False, True), 340.0, None)
         self.assertIsNone(sr["verdict"])
         self.assertNotIn("계획", sr["line"])
+        self.assertEqual(sr["actual"], "big_first")   # 계획이 없어도 로그로 실제 방식은 보여 줌
+        self.assertIn("실제 2번처럼", sr["line"])
+
+    def test_mixed(self):
+        r = brood_raw(False, False, False)
+        r["brood"]["eggs"]["S0"]["shieldOff"] = 249.0
+        sr = U.south_review(r, 340.0, None)
+        self.assertEqual(sr["actual"], "mixed")
 
     def test_never_reached_south(self):
         r = brood_raw(False, False, False)
