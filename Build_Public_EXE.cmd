@@ -103,6 +103,9 @@ if errorlevel 1 goto FAIL
 echo [CHECK] 1.0.19 raid plans south zone...
 py -3 -m unittest discover -s qa -p "test_public_1_0_19*.py" -v
 if errorlevel 1 goto FAIL
+echo [CHECK] 1.0.20 dpapi secrets...
+py -3 -m unittest discover -s qa -p "test_public_1_0_20*.py" -v
+if errorlevel 1 goto FAIL
 echo [CHECK] Try mouse-wheel GUI regressions...
 py -3 -m unittest discover -s qa -p test_nini_stage2_2_1_gui_regression.py -v
 if errorlevel 1 goto FAIL
@@ -118,8 +121,8 @@ if errorlevel 1 goto FAIL
 call "%~dp0Build_Installer_Only.cmd" nopause
 if errorlevel 1 goto FAIL
 echo.
-echo [DONE] dist\NiniAnalyzer_Public_1.0.19_Setup_Windows_x64.exe   (give this to guild members)
-echo [DONE] dist\NiniAnalyzer_Public_1.0.19_Windows_x64_SAFE_FOLDER.zip   (portable, optional)
+echo [DONE] dist\NiniAnalyzer_Public_1.0.20_Setup_Windows_x64.exe   (give this to guild members)
+echo [DONE] dist\NiniAnalyzer_Public_1.0.20_Windows_x64_SAFE_FOLDER.zip   (portable, optional)
 pause
 exit /b 0
 :FAIL

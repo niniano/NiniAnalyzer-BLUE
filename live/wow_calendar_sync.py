@@ -7,7 +7,8 @@ NiniTools 2.5.8 「계정 달력」이 모은 캐릭별 달력 초대를 SavedVa
 - 애드온은 인터넷을 못 쓰므로, 게임을 끄거나 /reload 해서 NiniTools.lua가 저장된 뒤에 반영된다.
 - 구글 권한은 calendar.app.created (이 앱이 만든 캘린더만 만들고 고칠 수 있음) 하나만 쓴다.
   다른 캘린더·일정은 읽지도 고치지도 못한다.
-- 로그인 정보는 이 PC의 NiniAnalyzer 데이터 폴더 data/wow_calendar/ 안에만 둔다 (google_token.json).
+- 로그인 정보는 이 PC의 NiniAnalyzer 데이터 폴더 data/wow_calendar/ 안에만 둔다 (google_token).
+  1.0.20: Windows 면 DPAPI 암호화 XML(google_token.xml · 이 PC·이 Windows 계정에서만 풀림)로 저장 · 예전 평문 .json 은 처음 읽을 때 옮기고 확인되면 지움.
   구글 연결용 앱 정보(OAuth 클라이언트)는 설치 파일에 들어 있고 (빌드할 때 넣음 · 저장소에는 없음),
   직접 만든 클라이언트 JSON을 고르면 그것을 먼저 쓴다.
 - 표준 라이브러리만 쓴다 (urllib · http.server).
@@ -442,9 +443,49 @@ def _installed(raw: Any) -> dict | None:
     return inst if isinstance(inst, dict) and inst.get("client_id") else None
 
 
+def load_secret_json(ddir: Path, stem: str, default: Any = None) -> Any:
+    """1.0.20 비밀 JSON 읽기: {stem}.xml (DPAPI) → 없으면 {stem}.json (평문 · Windows 면 XML 로 옮기고 확인되면 지움)."""
+    from live import dpapi_secret as D
+    ddir = Path(ddir)
+    xml = ddir / f"{stem}.xml"
+    if xml.is_file() and D.available():
+        try:
+            vals = D.read(xml) or {}
+            return json.loads(vals["json"]) if "json" in vals else default
+        except Exception:
+            return default
+    plain = ddir / f"{stem}.json"
+    obj = load_json(plain, default)
+    if obj is not default and isinstance(obj, (dict, list)) and D.available():
+        try:
+            if D.write_verified(xml, {"json": json.dumps(obj, ensure_ascii=False)}):
+                plain.unlink()
+        except Exception:
+            pass
+    return obj
+
+
+def save_secret_json(ddir: Path, stem: str, obj: Any) -> Path:
+    """1.0.20 비밀 JSON 저장: Windows 면 {stem}.xml (DPAPI) · 남은 평문 {stem}.json 은 지움. 아니면 예전처럼 .json."""
+    from live import dpapi_secret as D
+    ddir = Path(ddir)
+    text = json.dumps(obj, ensure_ascii=False, indent=1)
+    if D.available():
+        xml = ddir / f"{stem}.xml"
+        if D.write_verified(xml, {"json": text}):
+            (ddir / f"{stem}.json").unlink(missing_ok=True)
+            return xml
+    _atomic_write(ddir / f"{stem}.json", text)
+    return ddir / f"{stem}.json"
+
+
+def has_secret(ddir: Path, stem: str) -> bool:
+    return (Path(ddir) / f"{stem}.xml").is_file() or (Path(ddir) / f"{stem}.json").is_file()
+
+
 def load_client(ddir: Path) -> dict | None:
-    """직접 고른 클라이언트(data/wow_calendar/google_client.json) → 없으면 설치 파일에 든 것."""
-    return _installed(load_json(ddir / "google_client.json", None)) or _installed(load_json(BUNDLED_CLIENT, None))
+    """직접 고른 클라이언트(data/wow_calendar/google_client) → 없으면 설치 파일에 든 것."""
+    return _installed(load_secret_json(ddir, "google_client", None)) or _installed(load_json(BUNDLED_CLIENT, None))
 
 
 def has_bundled_client() -> bool:
@@ -460,7 +501,7 @@ def install_client_file(ddir: Path, src: Path) -> dict:
     inst = raw["installed"]
     if not inst.get("client_id"):
         raise CalendarSyncError("client_id가 없습니다")
-    _atomic_write(ddir / "google_client.json", json.dumps(raw, ensure_ascii=False, indent=1))
+    save_secret_json(ddir, "google_client", raw)
     return inst
 
 
@@ -550,23 +591,25 @@ def oauth_login(ddir: Path, open_browser: Callable[[str], Any], transport: Trans
                                   "grant_type": "authorization_code", "code_verifier": verifier}, transport)
     if not tok.get("refresh_token"):
         raise CalendarSyncError("구글이 갱신 토큰을 주지 않았습니다. 구글 계정 보안 설정에서 이 앱 연결을 지운 뒤 다시 연결해 주세요")
-    _atomic_write(ddir / "google_token.json", json.dumps(tok, indent=1))
+    save_secret_json(ddir, "google_token", tok)
     return tok
 
 
 def mark_expired(ddir: Path) -> None:
-    """끊긴 토큰은 지우지 않고 google_token.expired.json 으로 옮겨 둔다 (연결 안 됨으로 보이게)."""
-    tok = Path(ddir) / "google_token.json"
-    if tok.is_file():
-        os.replace(tok, Path(ddir) / EXPIRED_TOKEN)
+    """끊긴 토큰은 지우지 않고 google_token.expired.(xml|json) 으로 옮겨 둔다 (연결 안 됨으로 보이게)."""
+    for ext in ("xml", "json"):
+        tok = Path(ddir) / f"google_token.{ext}"
+        if tok.is_file():
+            os.replace(tok, Path(ddir) / f"google_token.expired.{ext}")
 
 
 def was_expired(ddir: Path) -> bool:
-    return (Path(ddir) / EXPIRED_TOKEN).is_file() and not (Path(ddir) / "google_token.json").is_file()
+    d = Path(ddir)
+    return ((d / EXPIRED_TOKEN).is_file() or (d / "google_token.expired.xml").is_file()) and not has_secret(d, "google_token")
 
 
 def is_connected(ddir: Path) -> bool:
-    tok = load_json(ddir / "google_token.json", None)
+    tok = load_secret_json(ddir, "google_token", None)
     return bool(isinstance(tok, dict) and tok.get("refresh_token") and load_client(ddir))
 
 
@@ -575,7 +618,7 @@ class GoogleCalendar:
         self.ddir = Path(ddir)
         self.transport = transport
         self.client = load_client(self.ddir)
-        self.token = load_json(self.ddir / "google_token.json", None)
+        self.token = load_secret_json(self.ddir, "google_token", None)
         if not self.client or not isinstance(self.token, dict) or not self.token.get("refresh_token"):
             raise CalendarSyncError("구글 캘린더가 연결되지 않았습니다 (「구글 연결」을 먼저 눌러 주세요)")
         self.calls = 0
@@ -591,7 +634,7 @@ class GoogleCalendar:
             raise
         new.setdefault("refresh_token", self.token["refresh_token"])
         self.token = new
-        _atomic_write(self.ddir / "google_token.json", json.dumps(new, indent=1))
+        save_secret_json(self.ddir, "google_token", new)
 
     def request(self, method: str, path: str, body: dict | None = None, params: dict | None = None) -> tuple[int, dict]:
         if float(self.token.get("expires_at") or 0) < time.time():
