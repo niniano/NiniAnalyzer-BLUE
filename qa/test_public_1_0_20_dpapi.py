@@ -103,5 +103,18 @@ class Calendar(FakeDpapi):
         self.assertEqual(S.load_client(self.dir)["client_secret"], "cs")
 
 
+
+@unittest.skipUnless(sys.platform == "win32", "진짜 DPAPI 는 Windows 에서만")
+class RealDpapi(unittest.TestCase):
+    """Windows 에서 진짜 CryptProtectData/CryptUnprotectData 로 왕복."""
+
+    def test_real_roundtrip(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "real.xml"
+            self.assertTrue(D.write_verified(p, {"k": "값-123", "s": "<&>"}))
+            self.assertNotIn("값-123", p.read_text(encoding="utf-8"))
+            self.assertEqual(D.read(p), {"k": "값-123", "s": "<&>"})
+
+
 if __name__ == "__main__":
     unittest.main()

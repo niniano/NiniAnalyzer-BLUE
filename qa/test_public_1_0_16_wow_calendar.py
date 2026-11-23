@@ -124,6 +124,21 @@ NiniToolsDB = {
 '''
 
 
+
+# 1.0.20: Windows 에서는 비밀값이 DPAPI XML 로 옮겨짐 → 이 테스트는 예전 평문 .json 흐름을 보므로 DPAPI 를 끈다
+#   (DPAPI 흐름은 test_v5416_dpapi_secrets / qa test_public_1_0_20_dpapi)
+from live import dpapi_secret as _dpapi  # noqa: E402
+_DPAPI_WAS = _dpapi._available
+
+
+def setUpModule():
+    _dpapi._available = False
+
+
+def tearDownModule():
+    _dpapi._available = _DPAPI_WAS
+
+
 class FakeGoogle:
     """구글 캘린더 API 흉내: 캘린더 · 일정 저장, 토큰 만료·401 재현."""
 
