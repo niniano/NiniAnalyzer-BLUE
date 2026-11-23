@@ -206,6 +206,9 @@ def boss_cards(lines: dict, out: dict, deaths: list) -> list[dict]:
         stunned = [n for s in stuns for n in s.get("stunned") or []]
         big = (plan.get("bigEgg") or {})
         egg_sub = f"파도 {waves}" + (f" · 큰 알 {len(big.get('picks') or [])}/4" if big else "")
+        south = plan.get("south") or {}
+        if south.get("verdict") == "bad":   # 1.0.19 남쪽 구역 (보호막 알 남김 · 남쪽 유체 광폭)
+            egg_sub += " · 남쪽 ⚠"
         # V5.4.9: 첫 실수가 「알 놓침 [추정]」인데 카드가 ✓ 로 나오던 것 → 「놓침 추정」
         dropped = (not bad) and "알 놓침" in str(lines.get("첫 실수") or "")
         return [

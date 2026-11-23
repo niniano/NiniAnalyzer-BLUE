@@ -3,7 +3,7 @@ from __future__ import annotations
 import os, sys, subprocess
 from pathlib import Path
 ROOT = Path(__file__).resolve().parent
-VERSION = "1.0.18"
+VERSION = "1.0.19"
 
 def build_command(root=ROOT, python=None, data_sep=None):
     root=Path(root)
@@ -56,7 +56,7 @@ def build_command(root=ROOT, python=None, data_sep=None):
              '--hidden-import=live.v528_review','--hidden-import=live.v529_board','--hidden-import=live.v544_glance','--hidden-import=live.raid_coiled_brief_v43',
              '--hidden-import=live.boss_mechanics.coiled_p1_closeout',
              # 1.0.16: WoW 달력 → 구글 캘린더
-             '--hidden-import=live.wow_calendar_sync','--hidden-import=live.wow_calendar_ui',str(root/'nini_raid_gui.py')]
+             '--hidden-import=live.wow_calendar_sync','--hidden-import=live.wow_calendar_ui','--hidden-import=live.raid_plans','--hidden-import=live.raid_plans_ui',str(root/'nini_raid_gui.py')]
     return args
 
 def main():

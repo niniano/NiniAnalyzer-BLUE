@@ -255,7 +255,7 @@ PIPELINE = WORKDIR / "nini_wcl_pipeline.py"
 ENGINE = WORKDIR / "engine"
 CHARACTERS = ()  # PUBLIC: private character registry disabled
 DEFAULT_PLAYER = ""  # PUBLIC: no default personal identity
-PUBLIC_APP_VERSION = "1.0.18"
+PUBLIC_APP_VERSION = "1.0.19"
 WCL_DIFFICULTY_MAP = {15: 4, 16: 5, 233: 5}
 
 STATUS_RANK = {"경고": 4, "주의": 3, "표본부족": 2, "정상": 1, "비교전용": 0}
@@ -1615,6 +1615,17 @@ class App(tk.Tk):
                 _wcal_ui.install_auto(self, lambda: self._public_log_dir)
             except Exception:
                 self.wow_calendar_sidebar_btn = None
+            # 1.0.19: 공대 계획 (공대마다 택틱이 다름 · live/raid_plans_ui.py)
+            self.raid_plan_sidebar_btn = None
+            try:
+                from live import raid_plans_ui as _rplan_ui
+                self.raid_plan_sidebar_btn = RoundButton(
+                    sidebar, text="공대 계획", command=lambda: _rplan_ui.open_window(self),
+                    font=(FONT_BODY, 10), outer="#181d23"
+                )
+                self.raid_plan_sidebar_btn.pack(side="bottom", fill="x", pady=_px((0, 5)), before=self._nav_wrap)
+            except Exception:
+                self.raid_plan_sidebar_btn = None
             source_btns.pack(side="bottom", fill="x", before=self._nav_wrap)
             self.archive_sidebar_btn = None
         else:

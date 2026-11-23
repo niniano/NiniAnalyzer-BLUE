@@ -25,7 +25,7 @@ class BigEgg(unittest.TestCase):
         be = U.big_egg_review(r, HEARTS, [], 258.7)
         # 1.0.15: 판정 기준 = NSRT 알림 (들기 4:12 · 마지막 4:19)
         self.assertEqual(be["deadline"], 259.1)
-        self.assertEqual(be["line"], "알방 큰 알 1/4 (들기 4:18 · 마지막 4:19 · 4:18 전멸) · 가 4:07→4:09")
+        self.assertEqual(be["line"], "알방 큰 알 1/4 (마지막 4:19 · 4:18 전멸) · 가 4:07→4:09")   # 1.0.19: 공대 계획이 없으면 들기 시각 없음
         self.assertNotIn("duty", be)
 
     def test_late_pick(self):

@@ -91,9 +91,9 @@ class BigEggLine(unittest.TestCase):
         be = U.big_egg_review(raw, HEARTS, [], 281.0)
         line = U.big_egg_timeline_line(be, raw["weakness"])
         # 1.0.17: 공대 공략 = 4:18 집기 · 4:30쯤 넣기 (4:31 넘으면 늦음)
-        self.assertEqual(line, "큰 알 들기 4:18 → 실제 4:12~4:15 · 마지막 알림 4:19 · 부화 4:24 · 넣음 4:28~4:31 ✅ (공략 4:30쯤)")
+        self.assertEqual(line, "큰 알 들기 4:12~4:15 · 마지막 알림 4:19 · 부화 4:24 · 넣음 4:28~4:31")   # 1.0.19: 공대 계획이 없으면 들기 시각 없음
         out = U.build(meta, mech, raid, facts, raw)
-        self.assertTrue(any(x.startswith("알     큰 알 들기 4:18") for x in out["extraLines"]))
+        self.assertTrue(any(x.startswith("알     큰 알 들기 4:12~4:15") for x in out["extraLines"]))
 
 
 class FollowLatest(unittest.TestCase):

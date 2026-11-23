@@ -36,7 +36,7 @@ class MembraneScan(unittest.TestCase):
 
 class EggBreak(unittest.TestCase):
     def test_version(self):
-        self.assertEqual(U.VERSION, "ULATEK-CONCLUSION-V2.3")
+        self.assertEqual(U.VERSION, "ULATEK-CONCLUSION-V2.4")
         self.assertEqual(U.EGG_MEMBRANE, 1301268)
 
     def test_carrier_break_is_verified(self):

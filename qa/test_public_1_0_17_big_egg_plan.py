@@ -14,10 +14,13 @@ from live import ulatek_conclusion_v1 as U
 from test_public_1_0_15_big_egg_roar_and_follow import HEARTS, make
 
 
+PLAN = {"id": "x", "name": "가짜 공대", "bigEggPick": 258.0, "bigEggPut": 270.0, "south": "big_first"}   # 1.0.19 공대 계획
+
+
 class Plan430(unittest.TestCase):
     def line(self, put):
         meta, mech, raid, facts, raw = make(picks=4, weakness=[{"sec": put, "target": "가"}])
-        return U.big_egg_timeline_line(U.big_egg_review(raw, HEARTS, [], 281.0), raw["weakness"])
+        return U.big_egg_timeline_line(U.big_egg_review(raw, HEARTS, [], 281.0, plan=PLAN), raw["weakness"], PLAN)
 
     def test_constants(self):
         self.assertEqual(U.EGG_BIG_SEC, 270)
@@ -25,13 +28,13 @@ class Plan430(unittest.TestCase):
         self.assertEqual(U.BIG_EGG_HATCH_TO_PICK_ALERT, 84.0)
 
     def test_put_by_430_is_on_time(self):
-        self.assertIn("✅ (공략 4:30쯤)", self.line(270.6))
+        self.assertIn("✅ (계획 4:30쯤)", self.line(270.6))
         self.assertIn("✅", self.line(271.0))
         self.assertIn("⚠ 늦음", self.line(271.4))
 
     def test_pick_line_418(self):
         self.assertTrue(self.line(270.0).startswith("큰 알 들기 4:18 → 실제"))
-        self.assertIn("4:18에 담당 4명이 집기", U.NEXT["big_egg_unpicked"])
+        self.assertIn("4:18에 담당 4명이 집기", U.next_big_egg(PLAN))
 
 
 if __name__ == "__main__":

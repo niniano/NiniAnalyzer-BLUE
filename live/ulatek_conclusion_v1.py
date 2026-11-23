@@ -7,7 +7,8 @@ raw.log 에서는 울라텍 HP, 절규(차단자·징표), 약화된 파멸비�
 
 공략 기준 (인벤 「신화 울라텍 공략」 + 「맹독심연 7,8넴 공략」(10/14 너프 후), 사용자 제공 2026-10-21):
   1심장 종료 보스 HP 마지노선 66% · 2심장에 약화된 파멸비늘을 심장에 붙여 녹인다(그렇게 해도 보스 약 40%)
-  알은 3:50(늦어도 4:00)까지 가마솥, 큰 알은 4:18에 집어 4:30쯤 가마솥 (1.0.17) · 절규 차단은 별·다야·엑스·해골 4조
+  알은 3:50(늦어도 4:00)까지 가마솥 · 큰 알 집기/넣기 시각과 남쪽 구역 택틱은 공대마다 다름 → live/raid_plans.py (1.0.19)
+  절규 차단은 별·다야·엑스·해골 4조
   유체(역병비늘)가 오래 살면 광폭 → 「산성 배출」 · 절규는 2짤이 심장·파도와 겹쳐 가장 어려움(원딜 커버)
 
     어디까지 · 첫 실수 · 전멸 원인 · 딜(심장 진도) · 다음 풀  (+ 심장 · 절규 줄)
@@ -20,7 +21,9 @@ import json
 from collections import Counter
 from pathlib import Path
 
-VERSION = "ULATEK-CONCLUSION-V2.3"
+from live import raid_plans as RP
+
+VERSION = "ULATEK-CONCLUSION-V2.4"
 BOSS_NPC = "-257758-"
 CRY = 1305650
 UNCHECKED_RAGE = 1301007
@@ -107,7 +110,7 @@ BIG_EGG_HATCH_TO_DEADLINE = 85.0   # 11/9 월 6트: 부화 시작 2:54.0~2:54.1 
 BIG_EGG_HATCH_TO_SPAWN = 90.8
 # V5.4.11: 큰 알 판정은 공대 NSRT 알림 기준 (4:05 준비 · 4:12 「큰 알 들기!」 · 4:19 「큰 알 마지막 - 5초 뒤 부화」)
 #   부화 시작(2:54) 기준 +78초 = 들기 알림 · +85초 = 마지막 알림(이때까지 들면 제때 · 위 DEADLINE) · +90.8초 = 게걸스러운 파멸비늘
-BIG_EGG_HATCH_TO_PICK_ALERT = 84.0   # 1.0.17 공대 공략: 4:18에 큰 알 집기 (전에는 들기 알림 4:12 = +78)
+BIG_EGG_HATCH_TO_PICK_ALERT = 84.0   # (1.0.19 부터 안 씀 · 들기 시각은 공대 계획)
 # V5.4.11: 안 든 큰 알 → 게걸스러운 파멸비늘이 「공포의 포효」(1305775, 2.5초 시전) → 공대 공포
 DEVOURING_ROAR = 1305775
 ROAR_MIN_HITS = 3
@@ -122,6 +125,17 @@ VIPER_DROP_SEC = 1.0             # 파도·충돌이 없을 때: 살무사 1초 
 EGG_MEMBRANE = 1301268
 MEMBRANE_MIN_HITS = 5
 MEMBRANE_TO_VIPER_SEC = 12.0   # 살무사는 처음 기록(주시 · 공격)이 늦게 찍히기도 함 (실측: 막 4:37 → 첫 기록 4:47)
+# 1.0.19 알방 구조 (신화 270트 실측 · 좌표): 동·서 두 갈래 × 북쪽 구역(x≈1610~1640) · 남쪽 구역(x≈1475)
+#   큰 알(파멸비늘 알)은 구역마다 1개 = 4개 · 가마솥은 두 구역 사이 (x≈1500~1570)
+#   북쪽: 3:00 감시관 「꿈틀거리는 잉태」 → 알 5개가 산란무리 → 7초 뒤 유체 · 나머지 알은 보호막(강화) 깨고 들어 가마솥 (넣을 때마다 유체 1)
+#   남쪽: 큰 알 + 보호막 알 2개. 보호막 알을 안 깨고 큰 알을 집으면 그 2개가 0.5~1초 안에 산란무리 → 6~7초 뒤 그 자리 유체
+#   큰 알은 들고 최대 19.8초 (127번 · 20초 타이머) · 유체 광폭(산성 배출)은 처음 기록 뒤 30~36초 (137번 · 중앙 35.5초)
+BROOD_EGG_NPC = "-268121-"       # 역병비늘 자손 (알방 알 · 보호막 = 강화)
+SWARM_NPC = "-263535-"           # 역병비늘 산란무리 (주인 = 알)
+EGG_SHIELD = 1299650             # 강화 (알 보호막)
+SOUTH_X = 1550.0                 # 이보다 작으면 남쪽 구역
+SOUTH_EGG_AFTER_HATCH = 60.0     # 좌표가 없으면: 부화 시작 60초 뒤에 처음 보인 알 = 남쪽 (북쪽 알은 +5~+37초 · 남쪽은 +80초~)
+OOZE_ENRAGE_SEC = 30.0
 VIPER_BEFORE_COLLAPSE_SEC = 25.0 # 살무사가 붕괴 25초 안쪽에서 먼저 나오면 붕괴 원인으로 본다
 FIRST_MISTAKE_WINDOW_SEC = 20.0  # 첫 실수(막을 수 없는 분노)는 붕괴 20초 안쪽만
 POTION_H2_SEC, POTION_H2_LATE_SEC = 286, 290      # 4:46 (+4초 여유)
@@ -138,7 +152,9 @@ NEXT = {
     "doomscale_alive": "약화된 파멸비늘을 심장에 최대한 붙여 파킹(웅덩이 감수)하고 2심장 동안 심장 타겟 광.",
     "calcified_corpse": "뱀의 물어뜯기 만료 전에 흡수 담당이 받으세요 (석회화한 시체 0명).",
     "egg_ground": "바닥에 알 남기지 않기: 아무도 안 든 알이 깨지면 공대 전체 「부패한 막」 + 살무사 · 알 담당 인원과 순서 확인 · 비는 알은 가까운 사람이 바로 줍기.",
-    "big_egg_unpicked": "큰 알 4개 다 집기: 4:18에 담당 4명이 집기 · 4:19 마지막 알림 때 남은 알은 가까운 사람이 집기 (안 집은 알은 4:24 게걸스러운 파멸비늘 → 공포의 포효) · 4:30쯤 가마솥.",
+    "big_egg_unpicked": "큰 알 4개 다 집기: 담당 4명이 정한 시각에 집기 · 4:19 마지막 알림 때 남은 알은 가까운 사람이 집기 (안 집은 알은 4:24 게걸스러운 파멸비늘 → 공포의 포효) · 들고 20초 안에 가마솥.",
+    "south_shield": "남쪽 구역: 보호막 알 2개를 먼저 깨고 들어서 가마솥으로 → 그다음 큰 알 (보호막 알이 남은 채 큰 알을 집으면 산란무리 → 유체).",
+    "south_ooze": "남쪽 구역: 큰 알 집으면 산란무리 → 7초 뒤 유체 · 유체는 30초쯤 광폭이니 바로 찍딜 · 탱이 모아 잡기.",
     "ooze_melee": "유체가 사람을 때리고 있음: 탱이 유체를 모아 잡고 · 유체 찍딜 콜(피 많은 유체 먼저) · 광폭 「산성 배출」엔 배정 CC.",
     "egg_viper": "알 든 사람은 파도 피하기가 최우선 (꼬리 파도 방향 미리 · 이동기 아끼기) · 알끼리 3미터 · 살무사 주시 대상은 공대에서 떨어지고 나머지는 착지 자리 피하기 (석화의 독침 스턴).",
 }
@@ -178,12 +194,39 @@ def _ts_sec(ts: str, start):
         return None
 
 
+def _brood_line(b: dict, f: list, ev: str, s: float) -> None:
+    """1.0.19 알방 알(보호막) · 산란무리 · 유체: 처음 본 시각 · 보호막 깨짐 · 주인 알 · 좌표 · 죽음."""
+    for col in (1, 5):
+        g = f[col]
+        if BROOD_EGG_NPC in g:
+            b["eggs"].setdefault(g[-10:], {"first": round(s, 3), "shieldOff": None, "x": None, "y": None})
+        elif SWARM_NPC in g:
+            b["swarm"].setdefault(g[-10:], {"first": round(s, 3), "owner": None, "x": None, "y": None})
+        elif RAWLING_NPC in g:
+            b["ooze"].setdefault(g[-10:], {"first": round(s, 3), "died": None})
+    dst = f[5]
+    if ev == "UNIT_DIED" and RAWLING_NPC in dst:
+        b["ooze"][dst[-10:]]["died"] = round(s, 3)
+    elif ev == "SPELL_AURA_REMOVED" and len(f) > 9 and f[9] == str(EGG_SHIELD) and BROOD_EGG_NPC in dst:
+        b["eggs"][dst[-10:]]["shieldOff"] = round(s, 3)
+    elif ev in ("SPELL_DAMAGE", "SPELL_PERIODIC_DAMAGE", "RANGE_DAMAGE") and len(f) > 27 and (BROOD_EGG_NPC in dst or SWARM_NPC in dst):
+        e = (b["eggs"] if BROOD_EGG_NPC in dst else b["swarm"])[dst[-10:]]
+        if e["x"] is None:
+            try:
+                e["x"], e["y"] = round(float(f[26]), 1), round(float(f[27]), 1)
+            except ValueError:
+                pass
+        if SWARM_NPC in dst and e.get("owner") is None and BROOD_EGG_NPC in f[13]:
+            e["owner"] = f[13][-10:]
+
+
 def scan_raw(raw_path, start_ts: str) -> dict:
     """울라텍 HP 와 고통스러운 절규(시전 시작/완료/차단자), 소환수 주인만 읽는다."""
     out = {"hp": [], "cry": [], "petOwner": {}, "doomSeen": {}, "doomDied": {}, "weakness": [], "acid": [], "vein": [], "prey": [], "available": False,
            "coilCasts": [], "coilSoak": [], "fang": [], "eggBurst": [], "potions": [],
            "shell": [], "waveHits": [], "viperSeen": {}, "viperSting": [], "viperStun": [], "rage": [],
-           "bigEgg": [], "bigEggHatch": [], "roar": [], "membrane": []}
+           "bigEgg": [], "bigEggHatch": [], "roar": [], "membrane": [],
+           "brood": {"eggs": {}, "swarm": {}, "ooze": {}}}
     p = Path(raw_path) if raw_path else None
     if p is None or not p.is_file():
         for name in ("raw.log.gz", "raw.log"):
@@ -215,6 +258,7 @@ def scan_raw(raw_path, start_ts: str) -> dict:
     big_tok, hatch_tok = f",{BIG_EGG_SHELL},".encode(), f",{BIG_EGG_HATCH},".encode()
     roar_tok = f",{DEVOURING_ROAR},".encode()
     memb_tok = f",{EGG_MEMBRANE},".encode()
+    brood_toks = (BROOD_EGG_NPC.encode(), SWARM_NPC.encode(), RAWLING_NPC.encode())
     opener = gzip.open if str(p).endswith(".gz") else open
     last_hp = -1.0
     with opener(p, "rb") as fh:
@@ -235,7 +279,8 @@ def scan_raw(raw_path, start_ts: str) -> dict:
                 or (big_tok in raw and b"SPELL_AURA_" in raw) or (hatch_tok in raw and b"SPELL_CAST_START" in raw) \
                 or (roar_tok in raw and (b"SPELL_CAST_SUCCESS" in raw or b"SPELL_AURA_APPLIED" in raw)) \
                 or (memb_tok in raw and b"SPELL_AURA_APPLIED" in raw)
-            if not (is_boss or is_cry or is_pet or is_doom or is_weak or is_acid or is_vein or is_prey or is_plan or is_egg2):
+            is_brood = any(t in raw for t in brood_toks)
+            if not (is_boss or is_cry or is_pet or is_doom or is_weak or is_acid or is_vein or is_prey or is_plan or is_egg2 or is_brood):
                 continue
             line = raw.decode("utf-8", errors="replace").rstrip("\r\n")
             head, _, payload = line.partition("  ")
@@ -294,6 +339,8 @@ def scan_raw(raw_path, start_ts: str) -> dict:
                 elif sid == str(UNCHECKED_RAGE) and ev == "SPELL_CAST_SUCCESS":
                     if not out["rage"] or s - out["rage"][-1] > 1.0:
                         out["rage"].append(round(s, 3))
+            if is_brood and len(f) > 6:
+                _brood_line(out["brood"], f, ev, s)
             if is_pet and len(f) > 13:
                 if ev == "SPELL_CAST_SUCCESS" and f[1].startswith("Pet-") and f[13].startswith("Player-"):
                     out["petOwner"].setdefault(f[1], f[13])
@@ -725,8 +772,20 @@ def duty_player(duty: dict | None, roster_names=None) -> str | None:
     return next((n for n in names if n in present), None)
 
 
+def next_big_egg(plan: dict | None) -> str:
+    """1.0.19 큰 알 안 집음 조언: 공대 계획 시각이 있으면 넣는다."""
+    pick = (plan or {}).get("bigEggPick")
+    put = (plan or {}).get("bigEggPut")
+    txt = NEXT["big_egg_unpicked"]
+    if pick is not None:
+        txt = txt.replace("담당 4명이 정한 시각에 집기", f"{mmss(pick)}에 담당 4명이 집기")
+    if put is not None:
+        txt = txt.replace("들고 20초 안에 가마솥", f"{mmss(put)}쯤 가마솥 (들고 20초 안)")
+    return txt
+
+
 def big_egg_review(raw: dict, hearts: list, deaths: list, duration: float, duty: dict | None = None,
-                   roster_names=None) -> dict | None:
+                   roster_names=None, plan: dict | None = None) -> dict | None:
     """V5.3.8 2페(알방) 큰 알(파멸비늘 알 4개): 누가 언제 들고 넣었나 · 4:15 기한 · (GOLD) 개인 임무.
 
     알방 구간 = 1심장 끝 뒤. 그 전에 전멸했거나 부화 시작이 없으면 None.
@@ -775,7 +834,9 @@ def big_egg_review(raw: dict, hearts: list, deaths: list, duration: float, duty:
     dead_drop = [p for p in picks if p.get("died") is not None]
     if dead_drop:
         tail.append("들고 사망 → 그 자리 게걸스러운 파멸비늘 " + ", ".join(f"{p['name']} {mmss(p['died'])}" for p in dead_drop))
-    alert = f"들기 {mmss(deadline - (BIG_EGG_HATCH_TO_DEADLINE - BIG_EGG_HATCH_TO_PICK_ALERT))} · 마지막 {mmss(deadline)}"
+    # 1.0.19: 들기 시각은 공대 계획 (없으면 안 씀) · 마지막(부화 5초 전)은 보스 기믹
+    pick_alert = (plan or {}).get("bigEggPick")
+    alert = (f"들기 {mmss(pick_alert)} · " if pick_alert is not None else "") + f"마지막 {mmss(deadline)}"
     line = (f"알방 큰 알 {len(picks)}/{BIG_EGG_COUNT} ({alert}"
             + (f" · {mmss(duration)} 전멸" if duration < deadline + 30 else "") + ")"
             + (" · " + ", ".join(parts) if parts else "")
@@ -787,7 +848,7 @@ def big_egg_review(raw: dict, hearts: list, deaths: list, duration: float, duty:
                   + (f" · 늦음 {len(late)}" if late else "")
                   + (f" · 안 든 큰 알 {unpicked}개 → {mmss(spawn_at)} 게걸스러운 파멸비늘" if unpicked and duration >= spawn_at - 0.5 else "")
                   + (f" · 들고 사망 {len(dead_drop)} → 게걸스러운 파멸비늘" if dead_drop else ""))
-    out = {"deadline": round(deadline, 1), "pickAlert": round(deadline - (BIG_EGG_HATCH_TO_DEADLINE - BIG_EGG_HATCH_TO_PICK_ALERT), 1),
+    out = {"deadline": round(deadline, 1), "pickAlert": round(pick_alert, 1) if pick_alert is not None else None,
            "picks": picks, "late": [p["name"] for p in late],
            "unpicked": unpicked, "spawnAt": round(spawn_at, 1), "diedHolding": [p["name"] for p in dead_drop]}
     who = duty_player(duty, roster_names)
@@ -968,7 +1029,7 @@ def egg_carry_review(raw: dict, deaths: list, vr: dict | None, room_start: float
     out = {"rounds": out_rounds}
     if big and big.get("picks") is not None:
         late = set(big.get("late") or [])
-        out["big"] = {"deadline": big.get("deadline"), "count": BIG_EGG_COUNT, "unpicked": big.get("unpicked"),
+        out["big"] = {"deadline": big.get("deadline"), "pickAlert": big.get("pickAlert"), "count": BIG_EGG_COUNT, "unpicked": big.get("unpicked"),
                       "spawnAt": big.get("spawnAt"),
                       "items": [{"name": p["name"], "pick": round(float(p["pick"]), 1),
                                  "drop": None if p.get("drop") is None else round(float(p["drop"]), 1),
@@ -1012,7 +1073,8 @@ def egg_carry_lines(ec: dict | None) -> list[dict]:
         if big.get("unpicked"):
             parts.append((f"안 든 큰 알 {big['unpicked']}개 → {mmss(big.get('spawnAt') or 0)} 게걸스러운 파멸비늘", "bad"))
         _dl = float(big.get('deadline') or BIG_EGG_PICK_BY_SEC)
-        lines.append({"head": f"큰 알 들기 {mmss(_dl - (BIG_EGG_HATCH_TO_DEADLINE - BIG_EGG_HATCH_TO_PICK_ALERT))} · 마지막 {mmss(_dl)}",
+        _pa = big.get("pickAlert")
+        lines.append({"head": "큰 알 " + (f"들기 {mmss(_pa)} · " if _pa is not None else "") + f"마지막 {mmss(_dl)}",
                       "count": f"{len(big['items'])}/{big['count']}", "parts": parts})
     return lines
 
@@ -1100,8 +1162,66 @@ def _spell_txt(top: str, deaths: list, col_start) -> str:
     return top
 
 
-def big_egg_timeline_line(be: dict | None, weakness: list) -> str | None:
-    """V5.4.11 큰 알 한 줄 (NSRT 알림 기준): 들기 알림 → 실제 · 마지막 알림 · 부화 · 넣음."""
+def south_review(raw: dict, duration: float, plan: dict | None = None) -> dict | None:
+    """1.0.19 남쪽 구역: 보호막 알 2개(갈래마다) 깼나 · 들었나 · 큰 알 집을 때 산란무리 → 유체 · 유체 광폭.
+
+    남쪽 알 = 좌표 x < SOUTH_X (없으면 부화 시작 +60초 뒤 처음 보인 알). 남쪽에 아무도 안 갔으면 None.
+    """
+    b = raw.get("brood") or {}
+    hatch = raw.get("bigEggHatch") or []
+    if not hatch or not b.get("eggs"):
+        return None
+    h0 = float(hatch[0])
+
+    def _south(e) -> bool:
+        if e.get("x") is not None:
+            return float(e["x"]) < SOUTH_X
+        return float(e["first"]) >= h0 + SOUTH_EGG_AFTER_HATCH
+
+    eggs = {g: e for g, e in b["eggs"].items() if float(e["first"]) >= h0 and _south(e)}
+    if not eggs:
+        return None
+    broken = sorted(float(e["shieldOff"]) for e in eggs.values() if e.get("shieldOff") is not None)
+    swarm = sorted(float(w["first"]) for w in (b.get("swarm") or {}).values() if w.get("owner") in eggs)
+    arrive = min(float(e["first"]) for e in eggs.values())
+    carried = sorted(float(x["sec"]) for x in raw.get("shell") or []
+                     if x["event"] == "SPELL_AURA_APPLIED" and float(x["sec"]) >= arrive - 1.0)
+    ooze = []
+    if swarm:
+        lo, hi = swarm[0] + 3.0, swarm[-1] + 15.0
+        ooze = [(g, o) for g, o in (b.get("ooze") or {}).items() if lo <= float(o["first"]) <= hi]
+    ooze_ids = {g for g, _o in ooze}
+    acid = [a for a in raw.get("acid") or [] if a.get("kind") == "start" and a.get("src") in ooze_ids]
+    acid_n = len({a["src"] for a in acid})
+    dead = sorted(float(o["died"]) for _g, o in ooze if o.get("died") is not None)
+    tactic = (plan or {}).get("south")
+    verdict = None
+    if tactic == "shield_first":
+        verdict = "bad" if swarm else ("ok" if broken else None)
+    elif tactic == "big_first" and ooze:
+        verdict = "bad" if acid_n else ("ok" if len(dead) == len(ooze) else None)
+    line = f"보호막 알 {len(eggs)}개 · 깸 {len(broken)}" + (f" ({mmss(broken[0])}~{mmss(broken[-1])})" if broken else "")
+    line += f" · 듦 {len(carried)}" if broken else ""
+    if swarm:
+        line += f" → 큰 알 집을 때 산란무리 {len(swarm)} ({mmss(swarm[0])})"
+        if ooze:
+            line += f" → 유체 {len(ooze)} ({mmss(min(float(o['first']) for _g, o in ooze))})"
+            line += (f" · 처치 {len(dead)}/{len(ooze)}" + (f" {mmss(dead[0])}~{mmss(dead[-1])}" if dead else ""))
+            if acid_n:
+                line += f" · 광폭(산성 배출) {acid_n}마리 ⚠"
+    if tactic:
+        line += f" | 계획 {RP.SOUTH_TACTICS[tactic]}"
+        if verdict == "bad" and tactic == "shield_first":
+            line += " ⚠ 보호막 알이 남은 채 큰 알을 집음"
+        elif verdict == "ok":
+            line += " ✅"
+    return {"eggs": len(eggs), "broken": len(broken), "carried": len(carried), "swarm": len(swarm),
+            "swarmAt": swarm[0] if swarm else None, "ooze": len(ooze), "oozeDead": len(dead), "oozeEnraged": acid_n,
+            "tactic": tactic, "verdict": verdict, "line": line}
+
+
+def big_egg_timeline_line(be: dict | None, weakness: list, plan: dict | None = None) -> str | None:
+    """V5.4.11 큰 알 한 줄: 들기(공대 계획) → 실제 · 마지막 알림 · 부화 · 넣음 (1.0.19 늦음 = 공대 계획 넣기 +1초)."""
     if not be or not be.get("picks"):
         return None
     picks = be["picks"]
@@ -1112,8 +1232,10 @@ def big_egg_timeline_line(be: dict | None, weakness: list) -> str | None:
         put = float(weakness[0]["sec"])
     elif drops:
         put = min(drops)
-    late_put = put is not None and put > EGG_DEFECT_LATE_SEC
-    txt = (f"큰 알 들기 {mmss(be.get('pickAlert') or 0)} → 실제 {mmss(p0)}" + (f"~{mmss(p1)}" if int(p1) != int(p0) else "")
+    plan_put = (plan or {}).get("bigEggPut")
+    late_put = put is not None and plan_put is not None and put > plan_put + 1.0
+    txt = ((f"큰 알 들기 {mmss(be['pickAlert'])} → 실제 " if be.get("pickAlert") is not None else "큰 알 들기 ")
+           + mmss(p0) + (f"~{mmss(p1)}" if int(p1) != int(p0) else "")
            + f" · 마지막 알림 {mmss(be.get('deadline') or 0)}"
            + (f" (늦음 {', '.join(be['late'])})" if be.get("late") else "")
            + f" · 부화 {mmss(be.get('spawnAt') or 0)}")
@@ -1121,7 +1243,8 @@ def big_egg_timeline_line(be: dict | None, weakness: list) -> str | None:
         txt += f" · 안 든 알 {be['unpicked']}개"
     if put is not None:
         txt += f" · 넣음 {mmss(put)}" + (f"~{mmss(max(drops))}" if drops and int(max(drops)) > int(put) else "")
-        txt += (" ⚠ 늦음" if late_put else " ✅") + " (공략 4:30쯤)"
+        if plan_put is not None:
+            txt += (" ⚠ 늦음" if late_put else " ✅") + f" (계획 {mmss(plan_put)}쯤)"
     return txt
 
 
@@ -1168,7 +1291,12 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
         died = raw.get("doomDied") or {}
         doom_alive = {"total": len(seen), "alive": sum(1 for g in seen if not (g in died and died[g] <= cut))}
     acid_done = [a for a in (raw.get("acid") or []) if a["kind"] == "done"]
-    egg_late = bool(mythic and raw.get("weakness") and float(raw["weakness"][0]["sec"]) > EGG_DEFECT_LATE_SEC)
+    # 1.0.19 공대 계획 (공대원으로 고름 · 없으면 시각 판정 안 함)
+    roster_names = [r.get("name") for r in ((facts or {}).get("roster") or [])] if (facts or {}).get("roster") else None
+    rplan = RP.resolve(roster_names) if mythic else None
+    plan_put = (rplan or {}).get("bigEggPut")
+    egg_late = bool(mythic and plan_put is not None and raw.get("weakness")
+                    and float(raw["weakness"][0]["sec"]) > plan_put + 1.0)
 
     # 2. 첫 실수
     fm = obs.get("firstVerifiedFailure") or {}
@@ -1197,7 +1325,7 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
     # V5.4.11 안 든 큰 알 → 4:24 게걸스러운 파멸비늘 → 공포의 포효 N명 → 붕괴 (11/19 7트)
     roar_chain = None
     if raw.get("available") and mythic and result != "kill" and _col0 is not None:
-        be0 = big_egg_review(raw, hearts, deaths, duration)
+        be0 = big_egg_review(raw, hearts, deaths, duration, plan=rplan)
         roar_hit = [r for r in (raw.get("roar") or []) if int(r.get("hits") or 0) >= ROAR_MIN_HITS
                     and float(_col0) - VIPER_BEFORE_COLLAPSE_SEC <= float(r["sec"]) <= float(_col0) + 3.0]
         if be0 and (be0.get("unpicked") or be0.get("diedHolding")) and roar_hit:
@@ -1266,7 +1394,7 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
         cause = {"group": "큰 알 → 공포의 포효", "code": "BIG_EGG_ROAR", "confidence": "verified",
                  "label": (f"{roar_chain['root']} → {mmss(roar_chain['spawnAt'])} 게걸스러운 파멸비늘 → 공포의 포효 "
                            f"{roar_chain['hits']}명 {mmss(roar_chain['roarSec'])} → 붕괴{top_txt} ({mmss(col_start)})"),
-                 "next": NEXT["big_egg_unpicked"]}
+                 "next": next_big_egg(rplan)}
     elif vchain:
         top_txt = ""
         if spells:
@@ -1327,8 +1455,10 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
         cause["next"] = NEXT["acid_purge"]
     elif egg_late and duration < float((h2 or {}).get("endSec") or 330) + 30:
         cause = {"group": "큰 알 가마솥 늦음", "code": "EGG_LATE", "confidence": "likely",
-                 "label": f"큰 알 가마솥 {mmss(raw['weakness'][0]['sec'])} (공략 4:30쯤) → {stage_at(duration - 0.5, hearts, p3)} {mmss(duration)} 전멸"}
-        cause["next"] = "작은 알은 3:50(늦어도 4:00), 큰 알은 4:18에 집어 4:30쯤 가마솥에. 남쪽방 출발 데드라인을 정하세요."
+                 "label": f"큰 알 가마솥 {mmss(raw['weakness'][0]['sec'])} (계획 {mmss(plan_put)}쯤) → {stage_at(duration - 0.5, hearts, p3)} {mmss(duration)} 전멸"}
+        cause["next"] = (f"작은 알은 3:50(늦어도 4:00), 큰 알은 "
+                         + (f"{mmss(rplan['bigEggPick'])}에 집어 " if rplan.get("bigEggPick") is not None else "")
+                         + f"{mmss(plan_put)}쯤 가마솥에. 남쪽방 출발 데드라인을 정하세요.")
     elif doom_alive and doom_alive["alive"] and duration > float(h2["endSec"]):
         cause = {"group": "파멸비늘 미처치", "code": "DOOMSCALE_ALIVE", "confidence": "likely",
                  "label": f"약화된 파멸비늘 {doom_alive['alive']}/{doom_alive['total']}마리 2심장 끝까지 생존 → {stage_at(duration - 0.5, hearts, p3)} {mmss(duration)} 전멸"}
@@ -1424,15 +1554,27 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
     if cr.get("missNth"):
         extra.append("절규짤 놓친 순번 " + " · ".join(f"{k} {v}" for k, v in sorted(cr["missNth"].items())))
     wk = raw.get("weakness") or []
-    _be_line = big_egg_timeline_line(big_egg_review(raw, hearts, deaths, duration), wk) if (raw.get("available") and mythic) else None
+    _be_line = (big_egg_timeline_line(big_egg_review(raw, hearts, deaths, duration, plan=rplan), wk, rplan)
+                if (raw.get("available") and mythic) else None)
     if _be_line:
         extra.append("알     " + _be_line)
     elif wk and mythic:
-        late = float(wk[0]["sec"]) > EGG_DEFECT_LATE_SEC
-        extra.append(f"알     큰 알 가마솥(결함: 약화) 첫 {mmss(wk[0]['sec'])}" + (" ⚠ 늦음" if late else " ✅")
-                     + " (공략 4:30쯤)")
+        extra.append(f"알     큰 알 가마솥(결함: 약화) 첫 {mmss(wk[0]['sec'])}"
+                     + ((" ⚠ 늦음" if egg_late else " ✅") + f" (계획 {mmss(plan_put)}쯤)" if plan_put is not None else ""))
+    # 1.0.19 공대 계획 · 남쪽 구역
+    if mythic and raw.get("available"):
+        extra.append("계획   " + RP.plan_line(rplan))
+    sr = south_review(raw, duration, rplan) if (raw.get("available") and mythic) else None
+    if sr:
+        extra.append("남쪽   " + sr["line"])
+        if sr["verdict"] == "bad":
+            notes.insert(0, NEXT["south_shield"] if sr["tactic"] == "shield_first" else NEXT["south_ooze"])
     # V1.9 공대 공략 판정 (신화 공략이라 신화에서만)
     plan = {}
+    if rplan:
+        plan["raidPlan"] = rplan
+    if sr:
+        plan["south"] = sr
     if raw.get("available") and mythic:
         fr = fang_review(raw)
         for x in fr:
@@ -1464,8 +1606,11 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
                              "stuns": [{"sec": m["stunSec"], "target": m["target"], "stunned": m["stunned"]} for m in vr.get("marks") or []]}
             notes[:0] = egg_viper_notes(vr, names=False)   # 화면 참고 칸은 4줄까지라 알·살무사를 앞에 · 누가 = 알 운반 카드
         duty = load_personal_duty()
-        roster_names = [r.get("name") for r in ((facts or {}).get("roster") or [])] if (facts or {}).get("roster") else None
-        be = big_egg_review(raw, hearts, deaths, duration, duty, roster_names)
+        # 1.0.19: 개인 임무는 정해 둔 공대 풀에서만 (다른 공대 풀이면 임무 줄 안 씀)
+        if duty and duty.get("raidPlans") and roster_names and len(roster_names) >= 10 \
+                and (rplan or {}).get("id") not in duty["raidPlans"]:
+            duty = None
+        be = big_egg_review(raw, hearts, deaths, duration, duty, roster_names, plan=rplan)
         if be:
             plan["bigEgg"] = be
             notes.insert(0, be.get("short") or be["line"])
