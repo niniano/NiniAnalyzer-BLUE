@@ -94,6 +94,14 @@ POTION_WORD = "물약"
 #  · 살무사: 아무나 주시 → 점프해서 착지 범위 스턴 (석화의 독침 1305163) · 44트 중 35트가 살무사가 먼저 나온 뒤 붕괴
 #  · 막을 수 없는 분노는 1:15~1:16(8트) · 1:25(12트)에 거의 같은 시각으로 반복 → 붕괴 20초보다 앞이면 첫 실수에서 뺀다
 SHELL = 1307612
+# 1.0.21: 썩은 노른자 1312150 = 작은 알(유독한 껍질)이 손을 떠나면 20초 (실측 모두 20초)
+#  · 노른자가 남은 채로 작은 알을 또 집으면 그 알 껍질 피해가 약 5% 셈 (실측 틱 126,944 → 133,345 · 4,190번 중 18번)
+#  · 큰 알(파멸비늘 껍질 1300312)은 노른자와 상관없음 (27번 · 125,000 그대로) → 판정은 작은 알만
+#  · 맹독성 분출 1307635 은 알끼리 부딪혀 손을 떠날 때만 같이 붙음 (194번 중 192번 · 둘이 같이 70/117무리)
+#    피해: 터질 때 약 47.6만~50만 + 10초 동안 7.9만~8.3만씩 (겹치면 커짐)
+YOLK = 1312150
+YOLK_REPICK_MIN = 0.5            # 같은 순간(내려놓고 바로 다시 잡힘 기록)은 빼기
+EGG_BURST_DEATH_SEC = 10.5       # 분출 디버프 10초 안에 죽으면 「분출 뒤 사망」
 VIPER_NPC = "-261915-"           # 역병비늘 살무사
 VIPER_STING = 1305163            # 석화의 독침 (살무사 주시 · 5초 뒤 그 자리에 착지)
 # V5.3.6: 착지 스턴은 따로 1303414 (주시 대상 + 착지 범위 안 사람) · 11/8 신화 9트 실측 주시 → 스턴 5.0~5.1초
@@ -224,7 +232,7 @@ def scan_raw(raw_path, start_ts: str) -> dict:
     """울라텍 HP 와 고통스러운 절규(시전 시작/완료/차단자), 소환수 주인만 읽는다."""
     out = {"hp": [], "cry": [], "petOwner": {}, "doomSeen": {}, "doomDied": {}, "weakness": [], "acid": [], "vein": [], "prey": [], "available": False,
            "coilCasts": [], "coilSoak": [], "fang": [], "eggBurst": [], "potions": [],
-           "shell": [], "waveHits": [], "viperSeen": {}, "viperSting": [], "viperStun": [], "rage": [],
+           "shell": [], "yolk": [], "waveHits": [], "viperSeen": {}, "viperSting": [], "viperStun": [], "rage": [],
            "bigEgg": [], "bigEggHatch": [], "roar": [], "membrane": [],
            "brood": {"eggs": {}, "swarm": {}, "ooze": {}}}
     p = Path(raw_path) if raw_path else None
@@ -254,6 +262,7 @@ def scan_raw(raw_path, start_ts: str) -> dict:
     fang_tok, egg_tok = f",{FANG},".encode(), f",{EGG_BURST},".encode()
     pot_tok = POTION_WORD.encode()
     shell_tok, wave_tok = f",{SHELL},".encode(), f",{WAVE_SPELL},".encode()
+    yolk_tok = f",{YOLK},".encode()
     viper_tok, sting_tok, rage_tok = VIPER_NPC.encode(), f",{VIPER_STING},".encode(), f",{UNCHECKED_RAGE},".encode()
     big_tok, hatch_tok = f",{BIG_EGG_SHELL},".encode(), f",{BIG_EGG_HATCH},".encode()
     roar_tok = f",{DEVOURING_ROAR},".encode()
@@ -273,7 +282,7 @@ def scan_raw(raw_path, start_ts: str) -> dict:
             is_prey = prey_tok in raw and b"SPELL_CAST_START" in raw
             is_plan = (coil_tok in raw or soak_tok in raw or fang_tok in raw or egg_tok in raw
                        or (pot_tok in raw and b"SPELL_AURA_" in raw))
-            is_egg2 = (shell_tok in raw and b"SPELL_AURA_" in raw) or (wave_tok in raw and b",Player-" in raw) \
+            is_egg2 = (shell_tok in raw and b"SPELL_AURA_" in raw) or (yolk_tok in raw and b"SPELL_AURA_" in raw) or (wave_tok in raw and b",Player-" in raw) \
                 or viper_tok in raw or (sting_tok in raw and b"SPELL_AURA_APPLIED" in raw) \
                 or (rage_tok in raw and b"SPELL_CAST_SUCCESS" in raw) \
                 or (big_tok in raw and b"SPELL_AURA_" in raw) or (hatch_tok in raw and b"SPELL_CAST_START" in raw) \
@@ -301,7 +310,13 @@ def scan_raw(raw_path, start_ts: str) -> dict:
                 elif sid == str(FANG) and ev in ("SPELL_AURA_APPLIED", "SPELL_AURA_REMOVED"):
                     out["fang"].append({"sec": round(s, 3), "event": ev, "target": short(f[6])})
                 elif sid == str(EGG_BURST):
-                    out["eggBurst"].append({"sec": round(s, 3), "event": ev, "source": short(f[2]), "target": short(f[6])})
+                    row = {"sec": round(s, 3), "event": ev, "source": short(f[2]), "target": short(f[6])}
+                    if ev in ("SPELL_DAMAGE", "SPELL_PERIODIC_DAMAGE"):
+                        try:
+                            row["amount"] = int(float(f[-10]))      # 방어 전 피해 (1.0.21)
+                        except (TypeError, ValueError, IndexError):
+                            pass
+                    out["eggBurst"].append(row)
                 elif (POTION_WORD in f[10] and ev in ("SPELL_AURA_APPLIED", "SPELL_AURA_REMOVED")
                       and f[1].startswith("Player-") and f[1] == f[5]):
                     out["potions"].append({"sec": round(s, 3), "event": ev, "player": short(f[2]), "name": f[10]})
@@ -313,6 +328,8 @@ def scan_raw(raw_path, start_ts: str) -> dict:
                 sid = f[9] if len(f) > 9 else ""
                 if sid == str(SHELL) and ev in ("SPELL_AURA_APPLIED", "SPELL_AURA_REMOVED") and f[5].startswith("Player-"):
                     out["shell"].append({"sec": round(s, 3), "event": ev, "target": short(f[6])})
+                elif sid == str(YOLK) and ev in ("SPELL_AURA_APPLIED", "SPELL_AURA_REMOVED") and f[5].startswith("Player-"):
+                    out["yolk"].append({"sec": round(s, 3), "event": ev, "target": short(f[6])})
                 elif sid == str(WAVE_SPELL) and ev.startswith("SPELL") and f[5].startswith("Player-"):
                     out["waveHits"].append({"sec": round(s, 3), "target": short(f[6])})
                 elif sid == str(VIPER_STING) and ev == "SPELL_AURA_APPLIED" and f[5].startswith("Player-"):
@@ -1128,7 +1145,22 @@ def _trigger_txt(c: dict) -> str:
     return "원인 미확인 (알 운반 밖)"
 
 
-def egg_burst_line(raw: dict) -> str | None:
+def egg_burst_deaths(raw: dict, deaths: list | None) -> list[tuple]:
+    """1.0.21: 맹독성 분출을 받고 10초 안에 죽은 사람 [(이름, 분출 초, 사망 초)]."""
+    got = {}
+    for x in (raw or {}).get("eggBurst") or []:
+        if x["event"] == "SPELL_AURA_APPLIED" and x.get("target") and x["target"] != "nil":
+            got.setdefault(x["target"], []).append(float(x["sec"]))
+    out = []
+    for d in deaths or []:
+        n, ds = short(d.get("name")), float(d.get("sec") or 0)
+        b = next((b for b in got.get(n, []) if 0 <= ds - b <= EGG_BURST_DEATH_SEC), None)
+        if b is not None:
+            out.append((n, b, ds))
+    return out
+
+
+def egg_burst_line(raw: dict, deaths: list | None = None) -> str | None:
     ev = [x for x in (raw or {}).get("eggBurst") or [] if x["event"] in ("SPELL_DAMAGE", "SPELL_AURA_APPLIED", "SPELL_CAST_SUCCESS")]
     if not ev:
         return None
@@ -1136,7 +1168,38 @@ def egg_burst_line(raw: dict) -> str | None:
     for t in _clusters([x["sec"] for x in ev], 3.0):
         names = sorted({x["target"] for x in ev if t[0] <= x["sec"] <= t[-1] and x["target"] and x["target"] != "nil"})
         firsts.append(f"{mmss(t[0])}" + (f" {'·'.join(names[:3])}" if names else ""))
-    return f"알 충돌(맹독성 분출) {len(firsts)}번 · " + ", ".join(firsts[:5]) + " → 곧바로 살무사 (V2.0 실측)"
+    line = f"알 충돌(맹독성 분출) {len(firsts)}번 · " + ", ".join(firsts[:5]) + " → 곧바로 살무사 (V2.0 실측)"
+    dead = egg_burst_deaths(raw, deaths)
+    if dead:
+        line += " · 분출 뒤 10초 안 사망 " + ", ".join(f"{n} {mmss(ds)}" for n, _b, ds in dead[:4])
+    return line
+
+
+def yolk_pick_review(raw: dict) -> list[dict]:
+    """1.0.21: 썩은 노른자가 남은 채로 작은 알(유독한 껍질)을 또 집은 사람 [{sec, name, age}] (age = 노른자 몇 초째)."""
+    evs = [(x["sec"], 0, "yolk", x) for x in (raw or {}).get("yolk") or []] \
+        + [(x["sec"], 1, "shell", x) for x in (raw or {}).get("shell") or []]
+    active, out = {}, []
+    for sec, _o, kind, x in sorted(evs, key=lambda e: (e[0], e[1])):
+        n = x.get("target")
+        if not n or n == "nil":
+            continue
+        if kind == "yolk":
+            if x["event"] == "SPELL_AURA_APPLIED":
+                active[n] = sec
+            else:
+                active.pop(n, None)
+        elif x["event"] == "SPELL_AURA_APPLIED" and n in active and sec - active[n] >= YOLK_REPICK_MIN:
+            out.append({"sec": round(sec, 1), "name": n, "age": round(sec - active[n], 1)})
+    return out
+
+
+def yolk_pick_line(picks: list[dict]) -> str | None:
+    if not picks:
+        return None
+    return (f"썩은 노른자 남은 채로 작은 알 집음 {len(picks)}번 · "
+            + ", ".join(f"{mmss(p['sec'])} {p['name']}(노른자 {p['age']:.0f}초째)" for p in picks[:5])
+            + " → 그 알 껍질 피해 약 5% 더 (노른자 20초 지나고 집기)")
 
 
 def _melee_source(deaths: list, col_start, spell: str = "근접 공격") -> str | None:
@@ -1605,9 +1668,14 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
         if pr and (pr["pre"] or pr["pull"] or pr["h2Ok"] or pr["h2Late"] or pr["h3Ok"]):
             extra.append("물약   " + pr["line"])
             plan["potion"] = {k: pr[k] for k in ("dps", "pre", "pull", "h2Ok", "h2Late", "h2None", "h3Ok", "h3None")}
-        eb = egg_burst_line(raw)
+        eb = egg_burst_line(raw, deaths)
         if eb:
             extra.append("알충돌 " + eb)
+            plan["eggBurstDeaths"] = [{"name": n, "burst": b, "died": ds} for n, b, ds in egg_burst_deaths(raw, deaths)]
+        yp = yolk_pick_review(raw)
+        if yp:
+            extra.append("노른자 " + yolk_pick_line(yp))
+            plan["yolkRepick"] = yp
         if vr:
             cl = vr["clusters"]
             extra.append(f"살무사 첫 {mmss(cl[0]['sec'])} · {sum(c['count'] for c in cl)}마리 · "

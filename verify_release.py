@@ -39,7 +39,7 @@ assert (ROOT/'package_public_release.py').is_file()
 entry=(ROOT/'nini_raid_gui.py').read_text(encoding='utf-8')
 assert 'start_error_notice_poll(app)' in entry
 assert 'maybe_show_first_run(app)' in entry
-assert 'PUBLIC_APP_VERSION = "1.0.20"' in gui
+assert 'PUBLIC_APP_VERSION = "1.0.21"' in gui
 print('STAGE 2.4 RELEASE GATE PASS — first-run guide, local-only error notice and packager')
 
 assert (ROOT/'build_public_windows.py').read_text(encoding='utf-8').find("'--contents-directory', '_internal'") >= 0
@@ -57,7 +57,7 @@ assert '_drop_feign_deaths' in (ROOT/'live/boss_mechanics/engine.py').read_text(
 assert 'def _pull_badge_text' in gui and 'def _public_auto_open_latest_session' in gui
 iss=(ROOT/'installer/NiniAnalyzer_Public.iss').read_text(encoding='utf-8-sig')
 assert 'AppId={{' in iss and 'PrivilegesRequired=lowest' in iss and 'AppUserModelID: "{#AppUserModelID}"' in iss
-assert '#define AppVersion "1.0.20"' in iss
+assert '#define AppVersion "1.0.21"' in iss
 assert 'UninstallDelete' not in iss, 'installer must never delete user raid records'
 print('RC4 GATE PASS — scroll, fonts, feign death, puller, first screen, installer')
 
@@ -345,3 +345,11 @@ assert 'live.dpapi_secret' in (ROOT/'build_public_windows.py').read_text(encodin
 assert '("1.0.20", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
 assert (ROOT/'qa/test_public_1_0_20_dpapi.py').is_file()
 print('1.0.20 GATE PASS — dpapi secrets')
+
+# 1.0.21: 울라텍 썩은 노른자 남은 채로 작은 알 집음 · 맹독성 분출 뒤 사망
+_u21 = (ROOT/'live/ulatek_conclusion_v1.py').read_text(encoding='utf-8')
+assert 'YOLK = 1312150' in _u21 and 'def yolk_pick_review(' in _u21 and 'def egg_burst_deaths(' in _u21, '1.0.21: yolk/burst'
+assert 'extra.append("노른자 " + yolk_pick_line(yp))' in _u21
+assert '("1.0.21", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
+assert (ROOT/'qa/test_public_1_0_21_yolk_burst.py').is_file()
+print('1.0.21 GATE PASS — ulatek yolk + egg burst')
