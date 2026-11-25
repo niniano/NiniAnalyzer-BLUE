@@ -358,6 +358,7 @@ print('1.0.21 GATE PASS — ulatek yolk + egg burst')
 _u22 = (ROOT/'live/ulatek_conclusion_v1.py').read_text(encoding='utf-8')
 assert 'VENOM_LAKE = 1297338' in _u22 and 'def lake_review(' in _u22 and 'def pre_collapse_txt(' in _u22, '1.0.22: lake'
 assert '"code": "VENOM_LAKE"' in _u22 and '"탱: 독성 배양' in _u22
+assert 'def viper_dmg_share(' in _u22 and 'VIPER_HEART1_LAKE' in _u22, '1.0.22: viper heart lake'
 assert '("1.0.22", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
 assert (ROOT/'qa/test_public_1_0_22_venom_lake.py').is_file()
 print('1.0.22 GATE PASS — ulatek venom lake + pre-collapse deaths')

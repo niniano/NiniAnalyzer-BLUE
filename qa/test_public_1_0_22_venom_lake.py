@@ -56,5 +56,12 @@ class Lake(unittest.TestCase):
         self.assertRegex((ROOT / "nini_wcl_gui.py").read_text(encoding="utf-8"), r'PUBLIC_APP_VERSION = "1\.0\.\d+"')
 
 
+class ViperHeart(unittest.TestCase):
+    def test_share(self):
+        self.assertEqual(U.viper_dmg_share({"dmgAll": {"100": 200.0, "300": 999.0}, "dmgViper": {"100": 50.0}}, 90, 150), 25.0)
+        self.assertIsNone(U.viper_dmg_share({}, 0, 10))
+        self.assertEqual(U.VIPER_DPS_SHARE_ROOT, 5.0)
+
+
 if __name__ == "__main__":
     unittest.main()

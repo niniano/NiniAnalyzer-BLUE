@@ -107,6 +107,11 @@ LAKE_NAME = "똥물에 빠짐 (죽음의 맹독)"
 LAKE_CAUSE_MIN_DEAD = 2           # 빠진 사람 중 2명 넘게 죽고 붕괴 20초 안이면 원인
 LAKE_DIED_AFTER = 3.0             # 맹독이 사라지고 3초 안에 죽으면 「빠져서 죽음」
 PRE_COLLAPSE_SEC = 10.0           # 붕괴 직전 사망 순서를 자동으로 적는 범위
+# 1.0.22: 똥물 몰살은 결과 · 뿌리는 「살무사 딜하느라 1심장 미달」 (사용자 11/25: 넘어가는 시간은 같고, 살무사 딜 때문에 심장 딜이 모자람)
+#  · 6일치 실측 2:38~2:52 똥물 5명+: 1심장 미달 8/25 (32%) · 통과 4/37 (11%)
+#  · 1심장 전 40초~1심장 끝 살무사 딜 비중: 통과 중앙 0% · 미달 중앙 8.5% · 10% 넘은 6번은 모두 미달 (4번 몰살)
+VIPER_DPS_BEFORE_H1 = 40.0        # 1심장 시작 40초 전부터 끝까지
+VIPER_DPS_SHARE_ROOT = 5.0        # 살무사 딜이 이만큼(%) 넘으면 「살무사가 심장 딜을 먹음」
 YOLK_REPICK_MIN = 0.5            # 같은 순간(내려놓고 바로 다시 잡힘 기록)은 빼기
 EGG_BURST_DEATH_SEC = 10.5       # 분출 디버프 10초 안에 죽으면 「분출 뒤 사망」
 VIPER_NPC = "-261915-"           # 역병비늘 살무사
@@ -197,6 +202,36 @@ def read_json(path) -> dict:
         return {}
 
 
+def _dmg_bucket(raw: bytes, start, out: dict) -> None:
+    """1.0.22: 플레이어(소환수 포함) → 적 피해를 초 단위로 더함 · 살무사는 따로."""
+    try:
+        line = raw.decode("utf-8", errors="replace").rstrip("\r\n")
+        head, _, payload = line.partition("  ")
+        f = payload.split(",")
+        if not (f[1].startswith("Player-") or f[1].startswith("Pet-")) or f[5].startswith(("Player-", "Pet-")):
+            return
+        amt = float(f[-11] if f[-1].strip() in ("ST", "AOE") else f[-10])
+        s = _ts_sec(head, start)
+        if s is None or amt <= 0:
+            return
+    except (IndexError, ValueError):
+        return
+    k = int(s)
+    out["dmgAll"][k] = out["dmgAll"].get(k, 0.0) + amt
+    if VIPER_NPC in f[5]:
+        out["dmgViper"][k] = out["dmgViper"].get(k, 0.0) + amt
+
+
+def viper_dmg_share(raw: dict, a: float, b: float) -> float | None:
+    """1.0.22: a~b 초 동안 공대 딜 중 살무사에 들어간 비중(%)."""
+    def tot(d):
+        return sum(float(v) for k, v in (d or {}).items() if a <= int(k) <= b)
+    allv = tot((raw or {}).get("dmgAll"))
+    if allv <= 0:
+        return None
+    return round(tot((raw or {}).get("dmgViper")) / allv * 100.0, 1)
+
+
 def _ts_sec(ts: str, start):
     from datetime import datetime
     try:
@@ -240,7 +275,7 @@ def scan_raw(raw_path, start_ts: str) -> dict:
     """울라텍 HP 와 고통스러운 절규(시전 시작/완료/차단자), 소환수 주인만 읽는다."""
     out = {"hp": [], "cry": [], "petOwner": {}, "doomSeen": {}, "doomDied": {}, "weakness": [], "acid": [], "vein": [], "prey": [], "available": False,
            "coilCasts": [], "coilSoak": [], "fang": [], "eggBurst": [], "potions": [],
-           "shell": [], "yolk": [], "lake": [], "waveHits": [], "viperSeen": {}, "viperSting": [], "viperStun": [], "rage": [],
+           "shell": [], "yolk": [], "lake": [], "dmgAll": {}, "dmgViper": {}, "waveHits": [], "viperSeen": {}, "viperSting": [], "viperStun": [], "rage": [],
            "bigEgg": [], "bigEggHatch": [], "roar": [], "membrane": [],
            "brood": {"eggs": {}, "swarm": {}, "ooze": {}}}
     p = Path(raw_path) if raw_path else None
@@ -298,6 +333,8 @@ def scan_raw(raw_path, start_ts: str) -> dict:
                 or (roar_tok in raw and (b"SPELL_CAST_SUCCESS" in raw or b"SPELL_AURA_APPLIED" in raw)) \
                 or (memb_tok in raw and b"SPELL_AURA_APPLIED" in raw)
             is_brood = any(t in raw for t in brood_toks)
+            if b"_DAMAGE," in raw[:90] and (b",Player-" in raw[:120] or b",Pet-" in raw[:120]):
+                _dmg_bucket(raw, start, out)   # 1.0.22 공대가 무엇을 쳤나 (초 단위 합)
             if not (is_boss or is_cry or is_pet or is_doom or is_weak or is_acid or is_vein or is_prey or is_plan or is_egg2 or is_brood):
                 continue
             line = raw.decode("utf-8", errors="replace").rstrip("\r\n")
@@ -1483,6 +1520,15 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
             lk_in = [r for r in lake_rows if float(_lk_at) - FIRST_MISTAKE_WINDOW_SEC <= float(r["sec"]) <= float(_lk_at) + 3.0]
             lake_chain = {"sec": lk_in[0]["sec"], "n": len({r["name"] for r in lk_in}), "dead": len(lk_dead),
                           "names": [r["name"] for r in lk_in]}
+            # 1.0.22 똥물은 결과: 1심장 미달이면 그 앞(살무사가 딜을 먹었나)을 뿌리로
+            if h1_short and h1:
+                h1a = float(h1.get("startSec") or 0)
+                h1b = float(h1.get("endSec") or h1a)
+                lake_chain["h1"] = h1_hp
+                lake_chain["vshare"] = viper_dmg_share(raw, h1a - VIPER_DPS_BEFORE_H1, h1b)
+                pre = [c for c in ((vr or {}).get("clusters") or []) if float(c["sec"]) <= h1b]
+                if pre:
+                    lake_chain["vip"] = {"first": pre[0], "count": sum(int(c.get("count") or 0) for c in pre)}
     if roar_chain:
         first = (f"{stage_at(roar_chain['rootSec'], hearts, p3)} {roar_chain['root']} → {mmss(roar_chain['spawnAt'])} 게걸스러운 파멸비늘"
                  f" → 공포의 포효 {roar_chain['hits']}명 {mmss(roar_chain['roarSec'])} [확정]")
@@ -1492,6 +1538,12 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
         t0 = vchain["triggerSec"] if vchain.get("triggerSec") is not None else vchain["sec"]
         first = (f"{stage_at(t0, hearts, p3)} {mmss(t0)} {_trigger_txt(vchain)} → 살무사 {mmss(vchain['sec'])}"
                  + (" [확정]" if vchain.get("trigger") in ("wave", "burst", "break") else " [추정]"))
+        first_kind = EGG_VIPER_KIND
+    elif lake_chain and lake_chain.get("vip") and (lake_chain.get("vshare") or 0) >= VIPER_DPS_SHARE_ROOT:
+        c0 = lake_chain["vip"]["first"]
+        t0 = c0["triggerSec"] if c0.get("triggerSec") is not None else c0["sec"]
+        first = (f"{stage_at(t0, hearts, p3)} {mmss(t0)} {_trigger_txt(c0)} → 살무사 {mmss(c0['sec'])}"
+                 + (" [확정]" if c0.get("trigger") in ("wave", "burst", "break") else " [추정]"))
         first_kind = EGG_VIPER_KIND
     elif lake_chain:
         first = (f"{stage_at(lake_chain['sec'], hearts, p3)} {mmss(lake_chain['sec'])} {LAKE_NAME} {lake_chain['n']}명 · "
@@ -1561,11 +1613,25 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
         if spells:
             top, n = max(spells.items(), key=lambda kv: kv[1])
             top_txt = f" {_spell_txt(top, deaths, col_start)} {n}명"
-        cause = {"group": LAKE_NAME, "code": "VENOM_LAKE", "confidence": "verified",
-                 "label": (f"{LAKE_NAME} {lake_chain['n']}명 {mmss(lake_chain['sec'])} → 그중 {lake_chain['dead']}명 사망"
-                           + (f" → 붕괴{top_txt} ({mmss(col_start)})" if col_start is not None
-                              else f" → {stage_at(duration - 0.5, hearts, p3)} {mmss(duration)} 전멸")),
-                 "next": NEXT["venom_lake"]}
+        tail = (f"{LAKE_NAME} {lake_chain['n']}명 {mmss(lake_chain['sec'])} → 그중 {lake_chain['dead']}명 사망"
+                + (f" → 붕괴{top_txt} ({mmss(col_start)})" if col_start is not None
+                   else f" → {stage_at(duration - 0.5, hearts, p3)} {mmss(duration)} 전멸"))
+        if lake_chain.get("h1") is not None:
+            # 1.0.22: 똥물은 결과 · 1심장 미달(+ 살무사 딜)이 뿌리
+            vs = lake_chain.get("vshare")
+            vip = lake_chain.get("vip")
+            root_v = bool(vip and (vs or 0) >= VIPER_DPS_SHARE_ROOT)
+            head = ((f"{_trigger_txt(vip['first'])} → 살무사 {vip['count']}마리 → " if root_v else "")
+                    + f"1심장 {lake_chain['h1']:.1f}% 미달"
+                    + (f" (그동안 공대 딜의 {vs:.0f}%가 살무사)" if vs else ""))
+            cause = {"group": "살무사 → 1심장 미달 → 똥물" if root_v else "1심장 미달 → 똥물",
+                     "code": "VIPER_HEART1_LAKE" if root_v else "HEART1_LAKE", "confidence": "likely",
+                     "label": f"{head} → {tail}",
+                     "next": (NEXT["egg_viper"] + f" 살무사를 치느라 1심장 딜이 모자랐고, 그 뒤 {mmss(lake_chain['sec'])} 똥물에서 몰살.") if root_v
+                     else NEXT["heart1_dps"]}
+        else:
+            cause = {"group": LAKE_NAME, "code": "VENOM_LAKE", "confidence": "verified",
+                     "label": tail, "next": NEXT["venom_lake"]}
     elif spells:
         top, n = max(spells.items(), key=lambda kv: kv[1])
         near = [f for f in failures if f.get("sec") is not None and col_start is not None
@@ -1687,7 +1753,7 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
         bits.append(f"{len(hearts)}심장 도달")
     dps = " · ".join(bits)
     # 확정 실패로 원인을 잡았어도 딜 미달이면 다음 풀에 한 줄 더
-    if h1_short and cause.get("code") not in ("HEART1_DPS", "KILL"):
+    if h1_short and cause.get("code") not in ("HEART1_DPS", "HEART1_LAKE", "KILL"):
         cause["next"] += " / " + NEXT["heart1_dps"]
 
     extra = []
