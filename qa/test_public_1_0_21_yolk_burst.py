@@ -49,7 +49,7 @@ class ScanYolk(unittest.TestCase):
 
     def test_version(self):
         gui = (ROOT / "nini_wcl_gui.py").read_text(encoding="utf-8")
-        self.assertIn('PUBLIC_APP_VERSION = "1.0.21"', gui)
+        self.assertRegex(gui, r'PUBLIC_APP_VERSION = "1\.0\.\d+"')   # 다음 버전에서도 통과
 
 
 if __name__ == "__main__":

@@ -67,7 +67,7 @@ DEATH_WINDOWS = {
     "prey2": ("3페 2번째 포위", "두 번째 정화 직후 + 파도 겹치는 순간: 공대 뎀감 몰고, 내 정화는 다른 정화와 떨어져서."),
     # V1.7 와우보초 신성 성기사 울라텍 신화 공략 (사용자 제공 2026-10-22) · 주문으로만 센다 (시간 구간 아님)
     "egg": ("신화 알 운반", "알 운반자끼리 3미터 이상 떨어지기 (맹독성 분출 = 곧바로 부화) · 유독한 껍질이 떨어진 사람은 썩은 노른자 20초 동안 다시 들지 않기."),
-    "brood": ("독성 배양·흉물", "독성 배양 독 줄기는 몸으로 막되 독성 화상 중첩 보고 교대 · 역병비늘 흉물 곪은 폭발은 10미터 밖을 치니 흉물 곁에 붙기."),
+    "brood": ("독성 배양·흉물", "탱: 독성 배양 독 줄기는 몸으로 막되 독성 화상 중첩 보고 교대 · 공대: 역병비늘 흉물 곪은 폭발은 10미터 밖을 치니 흉물 곁에 붙기."),
     "purge": ("불안정한 정화 겹침", "독을 흡수한 사람은 5초 뒤 7미터 폭발 · 흩어져 터뜨리기 (신화는 터진 자리에서 부식의 파도)."),
 }
 GUIDE_SPELLS = {"egg": {1307612, 1307635, 1312150}, "brood": {1302842, 1310763}, "purge": {1306086}}
@@ -100,6 +100,13 @@ SHELL = 1307612
 #  · 맹독성 분출 1307635 은 알끼리 부딪혀 손을 떠날 때만 같이 붙음 (194번 중 192번 · 둘이 같이 70/117무리)
 #    피해: 터질 때 약 47.6만~50만 + 10초 동안 7.9만~8.3만씩 (겹치면 커짐)
 YOLK = 1312150
+# 1.0.22: 죽음의 맹독 1297338 = 단상과 알방 사이 똥물에 빠짐 (와우헤드: 매초 피해 · 화면 효과 · 낙하 피해 -100%)
+#  · 11/23 11트: 2:50~2:55 단상 끝(y 40~43)에서 16명이 빠져 틱당 11.7만 · 5초 넘게 그 자리 → 3:00~3:03 쓰러짐
+VENOM_LAKE = 1297338
+LAKE_NAME = "똥물에 빠짐 (죽음의 맹독)"
+LAKE_CAUSE_MIN_DEAD = 2           # 빠진 사람 중 2명 넘게 죽고 붕괴 20초 안이면 원인
+LAKE_DIED_AFTER = 3.0             # 맹독이 사라지고 3초 안에 죽으면 「빠져서 죽음」
+PRE_COLLAPSE_SEC = 10.0           # 붕괴 직전 사망 순서를 자동으로 적는 범위
 YOLK_REPICK_MIN = 0.5            # 같은 순간(내려놓고 바로 다시 잡힘 기록)은 빼기
 EGG_BURST_DEATH_SEC = 10.5       # 분출 디버프 10초 안에 죽으면 「분출 뒤 사망」
 VIPER_NPC = "-261915-"           # 역병비늘 살무사
@@ -164,6 +171,7 @@ NEXT = {
     "south_shield": "남쪽 구역: 보호막 알 2개를 먼저 깨고 → 큰 알 집기 → 보호막 알과 같이 가마솥에 (보호막 알이 남은 채 큰 알을 집으면 산란무리 → 유체).",
     "south_ooze": "남쪽 구역: 큰 알 집으면 산란무리 → 7초 뒤 유체 · 유체는 30초쯤 광폭이니 바로 찍딜 · 탱이 모아 잡기.",
     "ooze_melee": "유체가 사람을 때리고 있음: 탱이 유체를 모아 잡고 · 유체 찍딜 콜(피 많은 유체 먼저) · 광폭 「산성 배출」엔 배정 CC.",
+    "venom_lake": "알방으로 갈 때 단상 끝에서 뛰어내리지 말고 정해진 길로 건너기 · 똥물(죽음의 맹독)에 빠지면 바로 나오기 (매초 큰 피해 · 10초면 쓰러짐).",
     "egg_viper": "알 든 사람은 파도 피하기가 최우선 (꼬리 파도 방향 미리 · 이동기 아끼기) · 알끼리 3미터 · 살무사 주시 대상은 공대에서 떨어지고 나머지는 착지 자리 피하기 (석화의 독침 스턴).",
 }
 EGG_VIPER_KIND = "알 운반 → 살무사"
@@ -232,7 +240,7 @@ def scan_raw(raw_path, start_ts: str) -> dict:
     """울라텍 HP 와 고통스러운 절규(시전 시작/완료/차단자), 소환수 주인만 읽는다."""
     out = {"hp": [], "cry": [], "petOwner": {}, "doomSeen": {}, "doomDied": {}, "weakness": [], "acid": [], "vein": [], "prey": [], "available": False,
            "coilCasts": [], "coilSoak": [], "fang": [], "eggBurst": [], "potions": [],
-           "shell": [], "yolk": [], "waveHits": [], "viperSeen": {}, "viperSting": [], "viperStun": [], "rage": [],
+           "shell": [], "yolk": [], "lake": [], "waveHits": [], "viperSeen": {}, "viperSting": [], "viperStun": [], "rage": [],
            "bigEgg": [], "bigEggHatch": [], "roar": [], "membrane": [],
            "brood": {"eggs": {}, "swarm": {}, "ooze": {}}}
     p = Path(raw_path) if raw_path else None
@@ -263,6 +271,7 @@ def scan_raw(raw_path, start_ts: str) -> dict:
     pot_tok = POTION_WORD.encode()
     shell_tok, wave_tok = f",{SHELL},".encode(), f",{WAVE_SPELL},".encode()
     yolk_tok = f",{YOLK},".encode()
+    lake_tok = f",{VENOM_LAKE},".encode()
     viper_tok, sting_tok, rage_tok = VIPER_NPC.encode(), f",{VIPER_STING},".encode(), f",{UNCHECKED_RAGE},".encode()
     big_tok, hatch_tok = f",{BIG_EGG_SHELL},".encode(), f",{BIG_EGG_HATCH},".encode()
     roar_tok = f",{DEVOURING_ROAR},".encode()
@@ -282,7 +291,7 @@ def scan_raw(raw_path, start_ts: str) -> dict:
             is_prey = prey_tok in raw and b"SPELL_CAST_START" in raw
             is_plan = (coil_tok in raw or soak_tok in raw or fang_tok in raw or egg_tok in raw
                        or (pot_tok in raw and b"SPELL_AURA_" in raw))
-            is_egg2 = (shell_tok in raw and b"SPELL_AURA_" in raw) or (yolk_tok in raw and b"SPELL_AURA_" in raw) or (wave_tok in raw and b",Player-" in raw) \
+            is_egg2 = (shell_tok in raw and b"SPELL_AURA_" in raw) or (yolk_tok in raw and b"SPELL_AURA_" in raw) or (lake_tok in raw and b"SPELL_AURA_" in raw) or (wave_tok in raw and b",Player-" in raw) \
                 or viper_tok in raw or (sting_tok in raw and b"SPELL_AURA_APPLIED" in raw) \
                 or (rage_tok in raw and b"SPELL_CAST_SUCCESS" in raw) \
                 or (big_tok in raw and b"SPELL_AURA_" in raw) or (hatch_tok in raw and b"SPELL_CAST_START" in raw) \
@@ -330,6 +339,8 @@ def scan_raw(raw_path, start_ts: str) -> dict:
                     out["shell"].append({"sec": round(s, 3), "event": ev, "target": short(f[6])})
                 elif sid == str(YOLK) and ev in ("SPELL_AURA_APPLIED", "SPELL_AURA_REMOVED") and f[5].startswith("Player-"):
                     out["yolk"].append({"sec": round(s, 3), "event": ev, "target": short(f[6])})
+                elif sid == str(VENOM_LAKE) and ev in ("SPELL_AURA_APPLIED", "SPELL_AURA_REMOVED") and f[5].startswith("Player-"):
+                    out["lake"].append({"sec": round(s, 3), "event": ev, "target": short(f[6])})
                 elif sid == str(WAVE_SPELL) and ev.startswith("SPELL") and f[5].startswith("Player-"):
                     out["waveHits"].append({"sec": round(s, 3), "target": short(f[6])})
                 elif sid == str(VIPER_STING) and ev == "SPELL_AURA_APPLIED" and f[5].startswith("Player-"):
@@ -1202,6 +1213,54 @@ def yolk_pick_line(picks: list[dict]) -> str | None:
             + " → 그 알 껍질 피해 약 5% 더 (노른자 20초 지나고 집기)")
 
 
+def lake_review(raw: dict, deaths: list | None = None, end_sec: float | None = None) -> list[dict]:
+    """1.0.22: 똥물(죽음의 맹독)에 빠진 사람 [{name, sec, dur, died}] · 한 사람이 여러 번 빠지면 따로."""
+    deaths_by = {}
+    for d in deaths or []:
+        deaths_by.setdefault(short(d.get("name")), []).append(float(d.get("sec") or 0))
+    on, out = {}, []
+    for x in sorted((raw or {}).get("lake") or [], key=lambda e: e["sec"]):
+        n = x.get("target")
+        if not n or n == "nil":
+            continue
+        if x["event"] == "SPELL_AURA_APPLIED":
+            on.setdefault(n, float(x["sec"]))
+        elif n in on:
+            a = on.pop(n)
+            out.append({"name": n, "sec": round(a, 1), "end": float(x["sec"])})
+    for n, a in on.items():
+        out.append({"name": n, "sec": round(a, 1), "end": float(end_sec if end_sec is not None else a)})
+    for r in out:
+        r["dur"] = round(max(0.0, r["end"] - r["sec"]), 1)
+        r["died"] = next((round(t, 1) for t in deaths_by.get(r["name"], []) if r["sec"] <= t <= r["end"] + LAKE_DIED_AFTER), None)
+        r.pop("end")
+    return sorted(out, key=lambda r: r["sec"])
+
+
+def lake_line(rows: list[dict]) -> str | None:
+    if not rows:
+        return None
+    dead = [r for r in rows if r.get("died") is not None]
+    return (f"{LAKE_NAME} {len({r['name'] for r in rows})}명 · "
+            + ", ".join(f"{mmss(r['sec'])} {r['name']}({r['dur']:.0f}초" + (" · 사망)" if r.get("died") is not None else ")") for r in rows[:6])
+            + (" …" if len(rows) > 6 else "")
+            + (f" → 빠져서 사망 {len(dead)}명" if dead else ""))
+
+
+def pre_collapse_txt(deaths: list, at) -> str | None:
+    """1.0.22: 「붕괴 직전 10초를 직접 확인하세요」 대신 그 10초 사망 순서 (BLUE 에는 사망 타임라인이 없음)."""
+    if at is None:
+        return None
+    rows = [d for d in deaths or [] if float(at) - PRE_COLLAPSE_SEC <= float(d.get("sec") or 0) <= float(at) + 3.0]
+    if not rows:
+        return None
+    def spell(d):
+        lh = d.get("lastHit") or {}
+        return lh.get("canonicalMechanic") or lh.get("spellName") or "?"
+    return ("붕괴 직전 사망: " + " · ".join(f"{mmss(d.get('sec'))} {short(d.get('name'))}({spell(d)})" for d in rows[:5])
+            + (" …" if len(rows) > 5 else "") + " → 맨 앞 기술부터 막기")
+
+
 def _melee_source(deaths: list, col_start, spell: str = "근접 공격") -> str | None:
     """V5.4.11 붕괴 「근접 공격」을 누가 쳤나 (붕괴 시작부터 15초 사이 사망의 마지막 타격 출처 중 가장 많은 것)."""
     if col_start is None:
@@ -1413,6 +1472,17 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
                           "roarSec": float(roar_hit[0]["sec"]), "hits": int(roar_hit[0]["hits"])}
             if vchain and float(vchain.get("triggerSec") or vchain["sec"]) < root_sec:
                 roar_chain = None   # 살무사가 먼저면 그쪽이 뿌리
+    # 1.0.22 똥물에 빠짐 (죽음의 맹독): 빠진 사람 중 2명 넘게 죽었고 붕괴 20초 안쪽이면 뿌리 (11/23 4트 · 11트)
+    lake_rows = lake_review(raw, deaths, duration) if raw.get("available") else []
+    lake_chain = None
+    _lk_at = _col0 if _col0 is not None else duration   # 붕괴 기록이 없으면 전멸 시각 기준 (11/23 10트)
+    if lake_rows and result != "kill" and _lk_at is not None and not roar_chain and not vchain:
+        lk_dead = [r for r in lake_rows if r.get("died") is not None
+                   and float(_lk_at) - FIRST_MISTAKE_WINDOW_SEC <= float(r["sec"]) <= float(_lk_at) + 3.0]
+        if len(lk_dead) >= LAKE_CAUSE_MIN_DEAD:
+            lk_in = [r for r in lake_rows if float(_lk_at) - FIRST_MISTAKE_WINDOW_SEC <= float(r["sec"]) <= float(_lk_at) + 3.0]
+            lake_chain = {"sec": lk_in[0]["sec"], "n": len({r["name"] for r in lk_in}), "dead": len(lk_dead),
+                          "names": [r["name"] for r in lk_in]}
     if roar_chain:
         first = (f"{stage_at(roar_chain['rootSec'], hearts, p3)} {roar_chain['root']} → {mmss(roar_chain['spawnAt'])} 게걸스러운 파멸비늘"
                  f" → 공포의 포효 {roar_chain['hits']}명 {mmss(roar_chain['roarSec'])} [확정]")
@@ -1423,6 +1493,10 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
         first = (f"{stage_at(t0, hearts, p3)} {mmss(t0)} {_trigger_txt(vchain)} → 살무사 {mmss(vchain['sec'])}"
                  + (" [확정]" if vchain.get("trigger") in ("wave", "burst", "break") else " [추정]"))
         first_kind = EGG_VIPER_KIND
+    elif lake_chain:
+        first = (f"{stage_at(lake_chain['sec'], hearts, p3)} {mmss(lake_chain['sec'])} {LAKE_NAME} {lake_chain['n']}명 · "
+                 + "·".join(lake_chain["names"][:3]) + " [확정]")
+        first_kind = "venom_lake"
     elif (fm.get("sec") is not None and _col0 is not None and result != "kill" and (
             (fm.get("kind") == "unchecked_rage"
              and (float(fm["sec"]) < float(_col0) - FIRST_MISTAKE_WINDOW_SEC or float(fm["sec"]) > float(_col0)))
@@ -1482,6 +1556,16 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
                  "label": (f"{_trigger_txt(vchain)} → 살무사 {vchain['count']}마리 {mmss(vchain['sec'])} → 붕괴{top_txt} ({mmss(col_start)})"
                            + (f" · 그 사이 막을 수 없는 분노 {len(rage_mid)}회" if rage_mid else "")),
                  "next": NEXT["egg_ground"] if vchain.get("trigger") == "ground" else NEXT["egg_viper"]}
+    elif lake_chain:
+        top_txt = ""
+        if spells:
+            top, n = max(spells.items(), key=lambda kv: kv[1])
+            top_txt = f" {_spell_txt(top, deaths, col_start)} {n}명"
+        cause = {"group": LAKE_NAME, "code": "VENOM_LAKE", "confidence": "verified",
+                 "label": (f"{LAKE_NAME} {lake_chain['n']}명 {mmss(lake_chain['sec'])} → 그중 {lake_chain['dead']}명 사망"
+                           + (f" → 붕괴{top_txt} ({mmss(col_start)})" if col_start is not None
+                              else f" → {stage_at(duration - 0.5, hearts, p3)} {mmss(duration)} 전멸")),
+                 "next": NEXT["venom_lake"]}
     elif spells:
         top, n = max(spells.items(), key=lambda kv: kv[1])
         near = [f for f in failures if f.get("sec") is not None and col_start is not None
@@ -1504,6 +1588,9 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
                 cause = {"group": f"{title} 붕괴", "code": "WINDOW_" + win.upper(), "confidence": "likely",
                          "label": f"{title} 구간 붕괴 · {top} {n}명 ({mmss(col_start)}) · 그 전에 {title} 사망 {len(dwin[win])}명"}
                 link = {"kind": "window_" + win}
+                if win == "brood" and vr and any(c["sec"] < float(col_start) for c in vr.get("clusters") or []):
+                    # 1.0.22: 독성 배양은 탱 몫 · 그 전에 알 → 살무사가 있었으면 공대 조언은 알 쪽 (11/23 1트)
+                    advice = NEXT["egg_viper"]
                 NEXT["window_" + win] = advice
             else:
                 top_disp = _spell_txt(top, deaths, col_start)
@@ -1519,12 +1606,12 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
         if link is None and fm.get("sec") is not None and col_start is not None and (
                 float(fm["sec"]) < float(col_start) - FIRST_MISTAKE_WINDOW_SEC or float(fm["sec"]) > float(col_start) + 1.0):
             _nk = ""   # V5.4.11 붕괴와 먼 첫 검증 실패(1:15 분노 등)로 다음 풀 조언을 고르지 않는다 (11/19 8트)
-        cause["next"] = NEXT.get(_nk, "붕괴 직전 10초를 직접 확인하세요.")
+        cause["next"] = NEXT.get(_nk) or pre_collapse_txt(deaths, col_start) or "붕괴 직전 10초를 직접 확인하세요."
     elif failures:
         last = max(failures, key=lambda f: float(f.get("sec") or 0))
         cause = {"group": str(last.get("label")), "code": str(last.get("kind")).upper(), "confidence": "likely",
                  "label": f"{last.get('label')} ({mmss(last.get('sec'))}) → {mmss(duration)} 전멸 · 붕괴 기록 없음"}
-        cause["next"] = NEXT.get(str(last.get("kind")), "붕괴 직전 10초를 직접 확인하세요.")
+        cause["next"] = NEXT.get(str(last.get("kind"))) or pre_collapse_txt(deaths, duration) or "붕괴 직전 10초를 직접 확인하세요."
     elif acid_done and result != "kill":
         cause = {"group": "유체 광폭(산성 배출)", "code": "ACID_PURGE", "confidence": "likely",
                  "label": f"유체 광폭 산성 배출 {len(acid_done)}회 (첫 {stage_at(acid_done[0]['sec'], hearts, p3)} {mmss(acid_done[0]['sec'])}) → {mmss(duration)} 전멸"}
@@ -1560,7 +1647,7 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
     else:
         cause = {"group": "원인 미확정", "code": "UNKNOWN", "confidence": "unknown",
                  "label": f"{len(hearts)}심장 · {mmss(duration)} 전멸 · 확정 실패 없음"}
-        cause["next"] = "붕괴 직전 10초를 직접 확인하세요."
+        cause["next"] = pre_collapse_txt(deaths, col_start if col_start is not None else duration) or "붕괴 직전 10초를 직접 확인하세요."
     if col_start is not None:
         before = [d for d in deaths if float(d.get("sec") or 0) < float(col_start)]
         if before:
@@ -1676,6 +1763,9 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
         if yp:
             extra.append("노른자 " + yolk_pick_line(yp))
             plan["yolkRepick"] = yp
+        if lake_rows:
+            extra.append("똥물 " + lake_line(lake_rows))
+            plan["venomLake"] = lake_rows
         if vr:
             cl = vr["clusters"]
             extra.append(f"살무사 첫 {mmss(cl[0]['sec'])} · {sum(c['count'] for c in cl)}마리 · "
