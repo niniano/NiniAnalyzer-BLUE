@@ -367,6 +367,7 @@ print('1.0.22 GATE PASS — ulatek venom lake + pre-collapse deaths')
 _u23 = (ROOT/'live/ulatek_conclusion_v1.py').read_text(encoding='utf-8')
 assert 'VEIN_TICK = 1317955' in _u23 and 'FANG_LATE_SEC' in _u23 and 'def _vein_ticks(' in _u23, '1.0.23: fang late'
 assert '"code": "FANG_LATE"' in _u23 and '"fang_late"' in _u23
+assert '"code": "TANK_DEATH"' in _u23 and 'TANK_NEXT_BY_SOURCE' in _u23 and '"doomscale_tank"' in _u23, '1.0.23: tank death'
 assert '("1.0.23", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
 assert (ROOT/'qa/test_public_1_0_23_fang_late.py').is_file()
-print('1.0.23 GATE PASS — ulatek fang late break')
+print('1.0.23 GATE PASS — ulatek fang late break + tank death')

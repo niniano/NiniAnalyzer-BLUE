@@ -169,6 +169,17 @@ POTION_H2_SEC, POTION_H2_LATE_SEC = 286, 290      # 4:46 (+4초 여유)
 POTION_H3_REF_SEC = 584                           # 9:44 막심장
 POTION_CD_SEC = 300
 TANK_SPECS = {66, 73, 104, 250, 268, 581}
+# 1.0.23 탱 사망 → 붕괴
+#  · 붕괴 3~20초 앞에 탱이 죽었고 다른 뿌리(살무사 · 큰 알 · 송곳니 · 똥물)가 없으면 그게 뿌리
+#  · 신화 실측: 4:28~4:56 약화된 파멸비늘에 탱이 죽는 풀이 잦음 (한 방 85만 · 2마리 동시면 2초에 170만)
+TANK_DEATH_BEFORE = (3.0, 20.0)
+TANK_NEXT_BY_SOURCE = (   # 탱이 맞은 것 중 앞에 있는 것으로 조언 (보스 근접은 탱이 원래 맞는 것이라 맨 뒤)
+    ("약화된 파멸비늘", "doomscale_tank"),
+    ("역병비늘 흉물", "brood_tank"),
+    ("역병비늘 유체", "ooze_melee"),
+    ("울라텍", "unchecked_rage"),
+)
+TANK_IGNORE_SPELLS = {1286835}   # 괴저 증기 (공대 전체 장판 · 탱만의 원인이 아님)
 HEALER_SPECS = {65, 105, 256, 257, 264, 270, 1468}
 
 NEXT = {
@@ -184,6 +195,9 @@ NEXT = {
     "south_ooze": "남쪽 구역: 큰 알 집으면 산란무리 → 7초 뒤 유체 · 유체는 30초쯤 광폭이니 바로 찍딜 · 탱이 모아 잡기.",
     "ooze_melee": "유체가 사람을 때리고 있음: 탱이 유체를 모아 잡고 · 유체 찍딜 콜(피 많은 유체 먼저) · 광폭 「산성 배출」엔 배정 CC.",
     "fang_late": "송곳니 줄은 끊기 콜에 다 같이 (2초 안) · 늦었으면 역병의 핏줄 2틱 보고(핏줄이 끝난 뒤) 끊기 — 걸려 있는 동안 끊으면 중첩이 그대로 연장돼 공대 전체가 틱당 100만 넘게 한 번 더 맞음.",
+    "doomscale_tank": "탱: 약화된 파멸비늘 2마리는 탱 둘이 하나씩 (한 방 85만 · 혼자 둘이면 2초에 170만) · 잡는 동안 방어 버프·생존기 끊기지 않게 · 탱이 죽으면 파멸비늘이 딜·힐을 한 방에 죽이니 바로 도발.",
+    "brood_tank": "탱: 독성 배양 독 줄기는 몸으로 막되 독성 화상 중첩 보고 교대 · 흉물 곪은 폭발 때 생존기 · 힐러는 막는 탱 집중.",
+    "tank_death": "탱 생존기 순서와 교대 시점 확인 · 탱이 죽으면 다른 탱이 바로 도발.",
     "venom_lake": "알방으로 갈 때 단상 끝에서 뛰어내리지 말고 정해진 길로 건너기 · 똥물(죽음의 맹독)에 빠지면 바로 나오기 (매초 큰 피해 · 10초면 쓰러짐).",
     "egg_viper": "알 든 사람은 파도 피하기가 최우선 (꼬리 파도 방향 미리 · 이동기 아끼기) · 알끼리 3미터 · 살무사 주시 대상은 공대에서 떨어지고 나머지는 착지 자리 피하기 (석화의 독침 스턴).",
 }
@@ -1611,7 +1625,32 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
             fang_chain = None   # 살무사가 먼저면 그쪽이 뿌리 (붕괴가 역병의 핏줄이면 송곳니 쪽)
         if fang_chain:
             vchain, lake_chain = None, None
-    if fang_chain:
+    # 1.0.23 탱 사망 → 붕괴 (다른 뿌리가 없을 때)
+    tank_chain = None
+    if result != "kill" and _col0 is not None and not (roar_chain or vchain or fang_chain or lake_chain):
+        _spec = {short(r.get("name")): r.get("specID") for r in ((facts or {}).get("roster") or [])}
+        for d in deaths:
+            try:
+                _sp = int(_spec.get(short(d.get("name"))) or 0)
+            except (TypeError, ValueError):
+                _sp = 0
+            gap = float(_col0) - float(d.get("sec") or 0)
+            if _sp in TANK_SPECS and TANK_DEATH_BEFORE[0] <= gap <= TANK_DEATH_BEFORE[1]:
+                srcs = {}
+                for h in list(d.get("recentDamage") or []) + [d.get("lastHit") or {}]:
+                    if h.get("hostileSource") and h.get("sourceName") and h.get("spellID") not in TANK_IGNORE_SPELLS:
+                        srcs[h["sourceName"]] = srcs.get(h["sourceName"], 0.0) + float(h.get("amount") or 0)
+                tops = sorted(srcs.items(), key=lambda kv: -kv[1])[:3]
+                nk = next((k for nm, k in TANK_NEXT_BY_SOURCE if nm in srcs), "tank_death")
+                tank_chain = {"sec": float(d["sec"]), "name": short(d.get("name")), "tops": tops, "next": nk,
+                              "dmg8": float(d.get("damage8s") or 0)}
+                break
+    if tank_chain:
+        _src = " · ".join(f"{n} {v / 10000:.0f}만" for n, v in tank_chain["tops"])
+        first = (f"{stage_at(tank_chain['sec'], hearts, p3)} {mmss(tank_chain['sec'])} 탱 사망 · {tank_chain['name']}"
+                 + (f" ({_src})" if _src else "") + " [추정]")
+        first_kind = "tank_death"
+    elif fang_chain:
         _who = ", ".join(f"{x['name']} +{float(x['after']):.1f}초" for x in fang_chain["late"][:3])
         first = f"{stage_at(fang_chain['sec'], hearts, p3)} {mmss(fang_chain['sec'])} 송곳니 줄 늦게 끊음 · {_who} [확정]"
         first_kind = "fang_late"
@@ -1673,6 +1712,19 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
     failures = obs.get("verifiedFailures") or []
     if result == "kill":
         cause = {"group": "킬", "code": "KILL", "label": "킬", "confidence": "verified", "next": "-"}
+    elif tank_chain:
+        top_txt = ""
+        if spells:
+            top, n = max(spells.items(), key=lambda kv: kv[1])
+            top_txt = f" {_spell_txt(top, deaths, col_start)} {n}명"
+        _src = " · ".join(n for n, _ in tank_chain["tops"])
+        rage_mid = [t for t in (raw.get("rage") or []) if tank_chain["sec"] <= t <= float(col_start) + 1.0]
+        cause = {"group": "탱 사망", "code": "TANK_DEATH", "confidence": "likely",
+                 "label": (f"탱 {tank_chain['name']} 사망 {mmss(tank_chain['sec'])}"
+                           + (f" (8초 {tank_chain['dmg8'] / 10000:.0f}만 · {_src})" if tank_chain["dmg8"] else (f" ({_src})" if _src else ""))
+                           + (f" → 막을 수 없는 분노 {len(rage_mid)}회" if rage_mid else "")
+                           + f" → 붕괴{top_txt} ({mmss(col_start)})"),
+                 "next": NEXT[tank_chain["next"]]}
     elif fang_chain:
         top_txt = ""
         if spells:
