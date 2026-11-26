@@ -86,6 +86,13 @@ COIL_SOAK = 1300685
 COILS_MYTHIC = 8
 FANG = 1311611
 FANG_SYNC_SEC = 1.5
+# 1.0.23: 송곳니 줄을 끊으면 공대 전체에 역병의 핏줄(1311609) · 2초마다 틱(1317955) 3번 (끊는 순간 + 2초 + 4초)
+#  · 줄 하나 = 1중첩 · 틱당 방어 전 약 21.7만 × 중첩 (6중첩 130만) · 걸려 있는 동안 또 끊으면 중첩 +1 에 시간이 처음부터
+#  · 그래서 2틱이 지난 뒤(첫 끊기 +2초~)에 끊으면 6중첩 틱이 한 번 더 → 신화 실측: 이런 풀 대부분 5~16명 사망
+#  · 공략: 다 같이 끊고, 늦었으면 2틱 보고(핏줄이 끝난 뒤) 끊기 → 새 핏줄 1중첩부터 (늦게 끊은 풀 사망 0~2명)
+VEIN_TICK = 1317955
+FANG_LATE_SEC = 1.9               # 핏줄이 시작되고 이만큼 지나 걸려 있는 동안 끊으면 「늦게 끊음」 (2번째 틱 직전)
+FANG_LATE_DEATH_SEC = 12.0        # 늦게 끊고 이 안에 붕괴가 시작되면 원인
 EGG_BURST = 1307635
 POTION_WORD = "물약"
 # V2.0 알 운반 → 살무사 (2026-11-03 신화 44트 실측 · 공대 공략 「알 든 상태에서 알끼리 닿거나 파도·살무사 맞으면 신화는 1시간 디버프」)
@@ -176,6 +183,7 @@ NEXT = {
     "south_shield": "남쪽 구역: 보호막 알 2개를 먼저 깨고 → 큰 알 집기 → 보호막 알과 같이 가마솥에 (보호막 알이 남은 채 큰 알을 집으면 산란무리 → 유체).",
     "south_ooze": "남쪽 구역: 큰 알 집으면 산란무리 → 7초 뒤 유체 · 유체는 30초쯤 광폭이니 바로 찍딜 · 탱이 모아 잡기.",
     "ooze_melee": "유체가 사람을 때리고 있음: 탱이 유체를 모아 잡고 · 유체 찍딜 콜(피 많은 유체 먼저) · 광폭 「산성 배출」엔 배정 CC.",
+    "fang_late": "송곳니 줄은 끊기 콜에 다 같이 (2초 안) · 늦었으면 역병의 핏줄 2틱 보고(핏줄이 끝난 뒤) 끊기 — 걸려 있는 동안 끊으면 중첩이 그대로 연장돼 공대 전체가 틱당 100만 넘게 한 번 더 맞음.",
     "venom_lake": "알방으로 갈 때 단상 끝에서 뛰어내리지 말고 정해진 길로 건너기 · 똥물(죽음의 맹독)에 빠지면 바로 나오기 (매초 큰 피해 · 10초면 쓰러짐).",
     "egg_viper": "알 든 사람은 파도 피하기가 최우선 (꼬리 파도 방향 미리 · 이동기 아끼기) · 알끼리 3미터 · 살무사 주시 대상은 공대에서 떨어지고 나머지는 착지 자리 피하기 (석화의 독침 스턴).",
 }
@@ -275,7 +283,7 @@ def scan_raw(raw_path, start_ts: str) -> dict:
     """울라텍 HP 와 고통스러운 절규(시전 시작/완료/차단자), 소환수 주인만 읽는다."""
     out = {"hp": [], "cry": [], "petOwner": {}, "doomSeen": {}, "doomDied": {}, "weakness": [], "acid": [], "vein": [], "prey": [], "available": False,
            "coilCasts": [], "coilSoak": [], "fang": [], "eggBurst": [], "potions": [],
-           "shell": [], "yolk": [], "lake": [], "dmgAll": {}, "dmgViper": {}, "waveHits": [], "viperSeen": {}, "viperSting": [], "viperStun": [], "rage": [],
+           "shell": [], "yolk": [], "lake": [], "veinFresh": [], "veinTick": [], "dmgAll": {}, "dmgViper": {}, "waveHits": [], "viperSeen": {}, "viperSting": [], "viperStun": [], "rage": [],
            "bigEgg": [], "bigEggHatch": [], "roar": [], "membrane": [],
            "brood": {"eggs": {}, "swarm": {}, "ooze": {}}}
     p = Path(raw_path) if raw_path else None
@@ -307,6 +315,7 @@ def scan_raw(raw_path, start_ts: str) -> dict:
     shell_tok, wave_tok = f",{SHELL},".encode(), f",{WAVE_SPELL},".encode()
     yolk_tok = f",{YOLK},".encode()
     lake_tok = f",{VENOM_LAKE},".encode()
+    vtick_tok = f",{VEIN_TICK},".encode()
     viper_tok, sting_tok, rage_tok = VIPER_NPC.encode(), f",{VIPER_STING},".encode(), f",{UNCHECKED_RAGE},".encode()
     big_tok, hatch_tok = f",{BIG_EGG_SHELL},".encode(), f",{BIG_EGG_HATCH},".encode()
     roar_tok = f",{DEVOURING_ROAR},".encode()
@@ -325,6 +334,7 @@ def scan_raw(raw_path, start_ts: str) -> dict:
             is_vein = vein_tok in raw and b"SPELL_AURA_APPLIED" in raw
             is_prey = prey_tok in raw and b"SPELL_CAST_START" in raw
             is_plan = (coil_tok in raw or soak_tok in raw or fang_tok in raw or egg_tok in raw
+                       or (vtick_tok in raw and b"SPELL_DAMAGE," in raw[:60])
                        or (pot_tok in raw and b"SPELL_AURA_" in raw))
             is_egg2 = (shell_tok in raw and b"SPELL_AURA_" in raw) or (yolk_tok in raw and b"SPELL_AURA_" in raw) or (lake_tok in raw and b"SPELL_AURA_" in raw) or (wave_tok in raw and b",Player-" in raw) \
                 or viper_tok in raw or (sting_tok in raw and b"SPELL_AURA_APPLIED" in raw) \
@@ -355,6 +365,11 @@ def scan_raw(raw_path, start_ts: str) -> dict:
                     out["coilSoak"].append({"sec": round(s, 3), "event": ev, "target": short(f[6])})
                 elif sid == str(FANG) and ev in ("SPELL_AURA_APPLIED", "SPELL_AURA_REMOVED"):
                     out["fang"].append({"sec": round(s, 3), "event": ev, "target": short(f[6])})
+                elif sid == str(VEIN_TICK) and ev == "SPELL_DAMAGE" and f[5].startswith("Player-"):
+                    try:   # 1.0.23 역병의 핏줄 틱 (방어 전 피해)
+                        out["veinTick"].append((round(s, 3), int(float(f[-10]))))
+                    except (TypeError, ValueError, IndexError):
+                        pass
                 elif sid == str(EGG_BURST):
                     row = {"sec": round(s, 3), "event": ev, "source": short(f[2]), "target": short(f[6])}
                     if ev in ("SPELL_DAMAGE", "SPELL_PERIODIC_DAMAGE"):
@@ -422,6 +437,8 @@ def scan_raw(raw_path, start_ts: str) -> dict:
                 out["acid"].append({"sec": round(s, 3), "kind": "start" if ev == "SPELL_CAST_START" else "done", "src": f[1][-10:],
                                     "rawling": RAWLING_NPC in f[1]})
             if is_vein and ev == "SPELL_AURA_APPLIED" and len(f) > 9 and f[9] == str(VEIN_SPELL):
+                if not out["veinFresh"] or s - out["veinFresh"][-1] > 0.5:   # 1.0.23 새 핏줄 (중첩 아님)
+                    out["veinFresh"].append(round(s, 3))
                 if not out["vein"] or s - out["vein"][-1] > 20:
                     out["vein"].append(round(s, 3))
             if is_prey and ev == "SPELL_CAST_START" and len(f) > 9 and f[9] == str(PREY_SPELL):
@@ -654,9 +671,24 @@ def soul_coil_review(raw: dict, mythic: bool, duration: float) -> dict | None:
                         + (f" · 다른 조 차례에도 맞음: {', '.join(cross[:6])}" if cross else "")}
 
 
+def _vein_ticks(ticks: list, a: float, b: float) -> list[tuple]:
+    """역병의 핏줄 틱을 0.6초 안쪽끼리 묶어 [(시각, 평균 피해)]."""
+    out = []
+    for t, v in sorted(x for x in (ticks or []) if a <= x[0] <= b):
+        if out and t - out[-1][0] <= 0.6:
+            out[-1][2].append(v)
+        else:
+            out.append([t, t, [v]])
+    return [(g[0], sum(g[2]) / len(g[2])) for g in out]
+
+
 def fang_review(raw: dict) -> list[dict]:
-    """V1.9 2페 송곳니 줄(움켜쥐는 송곳니): 줄마다 끊긴(풀린) 시각 · 공략은 6개 동시에."""
-    rows = sorted((raw or {}).get("fang") or [], key=lambda x: x["sec"])
+    """V1.9 2페 송곳니 줄(움켜쥐는 송곳니): 줄마다 끊긴(풀린) 시각 · 공략은 6개 동시에.
+    1.0.23: 역병의 핏줄이 걸려 있는 동안 2틱 뒤에 끊은 사람 = 늦게 끊음 (중첩 그대로 틱 추가) ·
+    핏줄이 끝난 뒤 끊으면 새 핏줄 1중첩이라 괜찮음 (공략: 늦으면 2틱 보고 끊기)."""
+    raw = raw or {}
+    rows = sorted(raw.get("fang") or [], key=lambda x: x["sec"])
+    fresh = sorted(raw.get("veinFresh") or [])
     applies = [x for x in rows if x["event"] == "SPELL_AURA_APPLIED"]
     out = []
     for grp in _clusters([x["sec"] for x in applies], 15.0):
@@ -670,10 +702,40 @@ def fang_review(raw: dict) -> list[dict]:
         broke.sort()
         spread = round(broke[-1][0] - broke[0][0], 1) if broke else None
         sync = bool(broke and len(broke) == len(tg) and spread <= FANG_SYNC_SEC)
+        late, waited = [], []
+        if broke and not sync:
+            b0 = broke[0][0]
+            for t, n in broke[1:]:
+                if fresh:
+                    st = max((x for x in fresh if b0 - 0.5 <= x <= t + 0.3), default=b0)
+                    if abs(st - t) <= 0.3 and st > b0 + 0.3:
+                        waited.append((t, n, round(t - b0, 1)))      # 핏줄이 끝난 뒤 끊어 새 핏줄 시작 ✅
+                        continue
+                else:
+                    st = b0
+                if t - st >= FANG_LATE_SEC:
+                    late.append((t, n, round(t - st, 1)))
+        ticks = _vein_ticks(raw.get("veinTick"), broke[0][0] - 0.5, broke[-1][0] + 8.0) if broke else []
+        dots = 1 + len({round(w[0]) for w in waited}) if broke else 0
+        extra = max(0, len(ticks) - 3 * dots) if ticks else 0
+        peak = max((v for _, v in ticks), default=0)
+        if sync:
+            judge = " · 동시 ✅"
+        elif late:
+            judge = (" · 늦게 끊음 ❌ " + ", ".join(f"{n} {mmss(t)} (+{d:.1f}초)" for t, n, d in late[:6])
+                     + (f" → 핏줄 틱 {len(ticks)}번 (보통 {3 * dots}번 · 가장 큰 틱 {peak / 10000:.0f}만)" if extra else ""))
+        elif broke and waited and len(broke) == len(tg):
+            judge = " · 늦었지만 핏줄 끝나고 끊음 ✅ (" + ", ".join(f"{n} +{d:.1f}초" for _, n, d in waited[:6]) + ")"
+        elif broke:
+            judge = " · 따로 끊김 ❌ (" + ", ".join(f"{n} {mmss(t)}" for t, n in broke[:6]) + ")"
+        else:
+            judge = ""
         line = (f"송곳니 줄 {len(tg)}개 {mmss(lo)}" + (f" · 끊김 {mmss(broke[0][0])}~{mmss(broke[-1][0])} ({spread:.1f}초 차이)" if broke else " · 안 끊김")
-                + (" · 동시 ✅" if sync else " · 따로 끊김 ❌ (" + ", ".join(f"{n} {mmss(t)}" for t, n in broke[:6]) + ")" if broke else "")
-                + (f" · {len(tg) - len(broke)}개 안 끊김" if broke and len(broke) < len(tg) else ""))
-        out.append({"sec": lo, "count": len(tg), "broken": len(broke), "spread": spread, "sync": sync, "line": line})
+                + judge + (f" · {len(tg) - len(broke)}개 안 끊김" if broke and len(broke) < len(tg) else ""))
+        out.append({"sec": lo, "count": len(tg), "broken": len(broke), "spread": spread, "sync": sync, "line": line,
+                    "late": [{"name": n, "sec": t, "after": d} for t, n, d in late],
+                    "waited": [{"name": n, "sec": t, "after": d} for t, n, d in waited],
+                    "ticks": len(ticks), "extraTicks": extra, "peakTick": round(peak)})
     return out
 
 
@@ -1529,7 +1591,31 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
                 pre = [c for c in ((vr or {}).get("clusters") or []) if float(c["sec"]) <= h1b]
                 if pre:
                     lake_chain["vip"] = {"first": pre[0], "count": sum(int(c.get("count") or 0) for c in pre)}
-    if roar_chain:
+    # 1.0.23 송곳니 줄 늦게 끊음 → 역병의 핏줄 중첩 틱 추가 → 붕괴
+    fang_chain = None
+    if raw.get("available") and mythic and result != "kill" and not roar_chain:
+        for g in fang_review(raw):
+            for x in g.get("late") or []:
+                t = float(x["sec"])
+                # 붕괴가 늦게 끊은 직후 시작됐거나 (붕괴 기록이 없을 때) 그 뒤 12초 안에 3명 넘게 죽음
+                near = [d for d in deaths if t - 2.0 <= float(d.get("sec") or 0) <= t + FANG_LATE_DEATH_SEC]
+                if (_col0 is not None and t - 1.0 <= float(_col0) <= t + FANG_LATE_DEATH_SEC) or (_col0 is None and len(near) >= 3):
+                    fang_chain = {"sec": t, "late": [y for y in g["late"] if float(y["sec"]) >= t], "ticks": g["ticks"],
+                                  "extra": g["extraTicks"], "peak": g["peakTick"], "first": g["sec"], "dead": len(near)}
+                    break
+            if fang_chain:
+                break
+        _cs = ((raid or {}).get("collapse") or {}).get("spells") or {}
+        _vein_top = bool(_cs) and max(_cs.items(), key=lambda kv: kv[1])[0] == "역병의 핏줄"
+        if fang_chain and vchain and not _vein_top and float(vchain.get("triggerSec") if vchain.get("triggerSec") is not None else vchain["sec"]) < fang_chain["sec"]:
+            fang_chain = None   # 살무사가 먼저면 그쪽이 뿌리 (붕괴가 역병의 핏줄이면 송곳니 쪽)
+        if fang_chain:
+            vchain, lake_chain = None, None
+    if fang_chain:
+        _who = ", ".join(f"{x['name']} +{float(x['after']):.1f}초" for x in fang_chain["late"][:3])
+        first = f"{stage_at(fang_chain['sec'], hearts, p3)} {mmss(fang_chain['sec'])} 송곳니 줄 늦게 끊음 · {_who} [확정]"
+        first_kind = "fang_late"
+    elif roar_chain:
         first = (f"{stage_at(roar_chain['rootSec'], hearts, p3)} {roar_chain['root']} → {mmss(roar_chain['spawnAt'])} 게걸스러운 파멸비늘"
                  f" → 공포의 포효 {roar_chain['hits']}명 {mmss(roar_chain['roarSec'])} [확정]")
         first_kind = "big_egg_unpicked"
@@ -1587,6 +1673,18 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
     failures = obs.get("verifiedFailures") or []
     if result == "kill":
         cause = {"group": "킬", "code": "KILL", "label": "킬", "confidence": "verified", "next": "-"}
+    elif fang_chain:
+        top_txt = ""
+        if spells:
+            top, n = max(spells.items(), key=lambda kv: kv[1])
+            top_txt = f" {_spell_txt(top, deaths, col_start)} {n}명"
+        _who = ", ".join(f"{x['name']} +{float(x['after']):.1f}초" for x in fang_chain["late"][:3])
+        cause = {"group": "송곳니 줄 늦게 끊음", "code": "FANG_LATE", "confidence": "verified",
+                 "label": (f"송곳니 줄 늦게 끊음 ({_who}) → 역병의 핏줄 중첩 그대로 연장"
+                           + (f" · 틱 {fang_chain['ticks']}번 (가장 큰 틱 {fang_chain['peak'] / 10000:.0f}만)" if fang_chain.get("extra") else "")
+                           + (f" → 붕괴{top_txt} ({mmss(col_start)})" if col_start is not None
+                              else f" → {fang_chain['dead']}명 사망 → {mmss(duration)} 전멸")),
+                 "next": NEXT["fang_late"]}
     elif roar_chain:
         top_txt = ""
         if spells:
@@ -1809,7 +1907,8 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
         for x in fr:
             extra.append("줄     " + x["line"])
         if fr:
-            plan["fang"] = [{"sync": x["sync"], "spread": x["spread"], "count": x["count"]} for x in fr]
+            plan["fang"] = [{"sync": x["sync"], "spread": x["spread"], "count": x["count"],
+                             "late": [y["name"] for y in x["late"]], "extraTicks": x["extraTicks"]} for x in fr]
         sc = soul_coil_review(raw, mythic, duration)
         if sc:
             extra.append("똬리   " + sc["line"])

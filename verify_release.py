@@ -39,7 +39,7 @@ assert (ROOT/'package_public_release.py').is_file()
 entry=(ROOT/'nini_raid_gui.py').read_text(encoding='utf-8')
 assert 'start_error_notice_poll(app)' in entry
 assert 'maybe_show_first_run(app)' in entry
-assert 'PUBLIC_APP_VERSION = "1.0.22"' in gui
+assert 'PUBLIC_APP_VERSION = "1.0.23"' in gui
 print('STAGE 2.4 RELEASE GATE PASS — first-run guide, local-only error notice and packager')
 
 assert (ROOT/'build_public_windows.py').read_text(encoding='utf-8').find("'--contents-directory', '_internal'") >= 0
@@ -57,7 +57,7 @@ assert '_drop_feign_deaths' in (ROOT/'live/boss_mechanics/engine.py').read_text(
 assert 'def _pull_badge_text' in gui and 'def _public_auto_open_latest_session' in gui
 iss=(ROOT/'installer/NiniAnalyzer_Public.iss').read_text(encoding='utf-8-sig')
 assert 'AppId={{' in iss and 'PrivilegesRequired=lowest' in iss and 'AppUserModelID: "{#AppUserModelID}"' in iss
-assert '#define AppVersion "1.0.22"' in iss
+assert '#define AppVersion "1.0.23"' in iss
 assert 'UninstallDelete' not in iss, 'installer must never delete user raid records'
 print('RC4 GATE PASS — scroll, fonts, feign death, puller, first screen, installer')
 
@@ -362,3 +362,11 @@ assert 'def viper_dmg_share(' in _u22 and 'VIPER_HEART1_LAKE' in _u22, '1.0.22: 
 assert '("1.0.22", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
 assert (ROOT/'qa/test_public_1_0_22_venom_lake.py').is_file()
 print('1.0.22 GATE PASS — ulatek venom lake + pre-collapse deaths')
+
+# 1.0.23: 울라텍 송곳니 줄 늦게 끊음 (역병의 핏줄 중첩 연장)
+_u23 = (ROOT/'live/ulatek_conclusion_v1.py').read_text(encoding='utf-8')
+assert 'VEIN_TICK = 1317955' in _u23 and 'FANG_LATE_SEC' in _u23 and 'def _vein_ticks(' in _u23, '1.0.23: fang late'
+assert '"code": "FANG_LATE"' in _u23 and '"fang_late"' in _u23
+assert '("1.0.23", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
+assert (ROOT/'qa/test_public_1_0_23_fang_late.py').is_file()
+print('1.0.23 GATE PASS — ulatek fang late break')
