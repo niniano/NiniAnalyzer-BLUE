@@ -146,6 +146,11 @@ PERSONAL_DUTIES_FILE = Path(__file__).resolve().parent / "personal_duties.json"
 VIPER_MARK_TO_STUN = (3.5, 7.0)
 VIPER_TRIGGER_SEC = 6.0          # 원인 → 살무사 출현 (실측 0.1~5.9초)
 VIPER_CLUSTER_SEC = 4.0
+# 1.0.24: 살무사보다 뒤에 맞은 파도가 원인으로 잡힘 → 살무사 앞(+0.3초까지) 일을 먼저 · 알 든 채 사망도 적기
+#   · 예: 알 든 사람 사망 → 알 깨짐(부패한 막) → 살무사 · 그 뒤에 맞은 파도는 원인 아님
+VIPER_PRE_TOL = 0.3
+LAKE_DEAD_BEFORE_SHARE = 0.5     # 1.0.24 똥물 전에 공대 절반이 이미 죽었으면 똥물은 뿌리가 아님
+RAGE_ROUTINE = (74.0, 87.0)       # 1.0.24 1:14~1:27 막을 수 없는 분노는 매 풀 같은 시각 (킬에서도 첫 실수로 안 씀)
 VIPER_DROP_SEC = 1.0             # 파도·충돌이 없을 때: 살무사 1초 안쪽 직전에 알(유독한 껍질)이 사라진 사람 (44트 중 27무리)
 # 1.0.18: 알이 깨지면 공대 전체에 「부패한 막」(1301268)이 한 번에 걸린다 (실측 73번 중 68번이 같은 순간 알 든 사람의 유독한 껍질이
 #   사라짐 · 가마솥에 넣을 때는 안 걸림) → 0.1~6초 뒤 살무사. 껍질이 안 사라졌는데 걸리면 아무도 안 든 알이 깨진 것.
@@ -199,6 +204,7 @@ NEXT = {
     "brood_tank": "탱: 독성 배양 독 줄기는 몸으로 막되 독성 화상 중첩 보고 교대 · 흉물 곪은 폭발 때 생존기 · 힐러는 막는 탱 집중.",
     "tank_death": "탱 생존기 순서와 교대 시점 확인 · 탱이 죽으면 다른 탱이 바로 도발.",
     "venom_lake": "알방으로 갈 때 단상 끝에서 뛰어내리지 말고 정해진 길로 건너기 · 똥물(죽음의 맹독)에 빠지면 바로 나오기 (매초 큰 피해 · 10초면 쓰러짐).",
+    "egg_died": "알 든 사람이 죽으면 그 자리에서 알이 깨져 공대 전체 부패한 막 + 살무사 · 알 운반자 힐·생존기 우선 · 피 낮으면 알 넘기기.",
     "egg_viper": "알 든 사람은 파도 피하기가 최우선 (꼬리 파도 방향 미리 · 이동기 아끼기) · 알끼리 3미터 · 살무사 주시 대상은 공대에서 떨어지고 나머지는 착지 자리 피하기 (석화의 독침 스턴).",
 }
 EGG_VIPER_KIND = "알 운반 → 살무사"
@@ -834,7 +840,20 @@ def viper_review(raw: dict) -> dict | None:
         dr = [(s, n) for s, n in drops if t - VIPER_DROP_SEC <= s <= t + 0.3]
         mb = [m for m in membs if t - MEMBRANE_TO_VIPER_SEC <= m <= t + 0.3]
         br = [(s, n) for s, n in drops if any(abs(s - m) <= 0.3 for m in mb)]
-        if wv:
+        # 1.0.24: 살무사 앞에 일어난 것 중 가장 이른 것 (뒤에 맞은 파도는 무리 안 추가 피해일 뿐)
+        pre = sorted([(s0, "wave") for s0, _n in wv if s0 <= t + VIPER_PRE_TOL]
+                     + [(s0, "burst") for s0, _n in bs if s0 <= t + VIPER_PRE_TOL]
+                     + [(s0, "break") for s0, _n in br if t - VIPER_TRIGGER_SEC <= s0 <= t + VIPER_PRE_TOL])
+        first_kind = None
+        if pre:   # 가장 이른 일 1초 안쪽에서는 원래 순서 (파도 > 충돌 > 깨짐 · 파도·충돌로 알이 깨지면 같은 순간)
+            e0 = pre[0][0]
+            near = {k for s0, k in pre if s0 <= e0 + 1.0}
+            first_kind = next(k for k in ("wave", "burst", "break") if k in near)
+        if first_kind == "break":
+            kind, names, tsec = "break", sorted({n for _s, n in br}), br[0][0]
+        elif first_kind == "burst":
+            kind, names, tsec = "burst", sorted({n for _s, n in bs}), bs[0][0]
+        elif wv:
             kind, names, tsec = "wave", sorted({n for _s, n in wv}), wv[0][0]
         elif bs:
             kind, names, tsec = "burst", sorted({n for _s, n in bs}), bs[0][0]
@@ -1256,6 +1275,10 @@ def egg_viper_notes(vr: dict | None, limit: int = 6, names: bool = True) -> list
 
 
 def _trigger_txt(c: dict) -> str:
+    if c.get("trigger") in ("break", "drop") and c.get("diedHolding"):   # 1.0.24 알 든 채 사망
+        d0 = c["diedHolding"][0]
+        return (f"알 든 {d0['name']} 사망 {mmss(d0['sec'])}" + (f" ({d0['spell']})" if d0.get("spell") else "")
+                + (" → 알 깨짐 (공대 전체 부패한 막)" if c["trigger"] == "break" else " → 알 떨어짐"))
     if c.get("trigger") == "wave":
         return f"알 든 {'·'.join(c['names'][:3])} 부식의 파도 {mmss(c['triggerSec'])}"
     if c.get("trigger") == "burst":
@@ -1548,6 +1571,9 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
 
     # 2. 첫 실수
     fm = obs.get("firstVerifiedFailure") or {}
+    if (result == "kill" and fm.get("kind") == "unchecked_rage" and fm.get("sec") is not None
+            and RAGE_ROUTINE[0] <= float(fm["sec"]) <= RAGE_ROUTINE[1]):
+        fm = {}   # 1.0.24 킬에서 1:15 · 1:25 분노는 매 풀 같은 시각이라 첫 실수로 안 씀
     if fm.get("sec") is not None:
         who = ", ".join(short(p) for p in (fm.get("players") or [])[:2])
         first = (f"{stage_at(fm['sec'], hearts, p3)} {mmss(fm['sec'])} {fm.get('label') or fm.get('kind')}"
@@ -1564,6 +1590,14 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
 
     # V2.0 알 운반 → 살무사: 붕괴 25초 안쪽에서 살무사가 먼저 나왔으면 그게 뿌리
     vr = viper_review(raw) if (raw.get("available") and mythic) else None
+    for _c in (vr or {}).get("clusters") or []:   # 1.0.24 알 깨짐 = 알 든 사람이 죽어서인지
+        if _c.get("trigger") in ("break", "drop") and _c.get("triggerSec") is not None:
+            _dh = [{"name": short(d.get("name")), "sec": float(d.get("sec") or 0),
+                    "spell": str((d.get("lastHit") or {}).get("spellName") or "")}
+                   for d in deaths if short(d.get("name")) in _c["names"]
+                   and abs(float(d.get("sec") or 0) - float(_c["triggerSec"])) <= 0.5]
+            if _dh:
+                _c["diedHolding"] = _dh
     vchain = None
     if vr and result != "kill" and _col0 is not None:
         inwin = [c for c in vr["clusters"]
@@ -1592,8 +1626,10 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
     if lake_rows and result != "kill" and _lk_at is not None and not roar_chain and not vchain:
         lk_dead = [r for r in lake_rows if r.get("died") is not None
                    and float(_lk_at) - FIRST_MISTAKE_WINDOW_SEC <= float(r["sec"]) <= float(_lk_at) + 3.0]
-        if len(lk_dead) >= LAKE_CAUSE_MIN_DEAD:
-            lk_in = [r for r in lake_rows if float(_lk_at) - FIRST_MISTAKE_WINDOW_SEC <= float(r["sec"]) <= float(_lk_at) + 3.0]
+        lk_in = [r for r in lake_rows if float(_lk_at) - FIRST_MISTAKE_WINDOW_SEC <= float(r["sec"]) <= float(_lk_at) + 3.0]
+        dead_before = [d for d in deaths if lk_in and float(d.get("sec") or 0) < float(lk_in[0]["sec"]) - 0.5]
+        _n_raid = len((facts or {}).get("roster") or []) or 20
+        if len(lk_dead) >= LAKE_CAUSE_MIN_DEAD and len(dead_before) < _n_raid * LAKE_DEAD_BEFORE_SHARE:
             lake_chain = {"sec": lk_in[0]["sec"], "n": len({r["name"] for r in lk_in}), "dead": len(lk_dead),
                           "names": [r["name"] for r in lk_in]}
             # 1.0.22 똥물은 결과: 1심장 미달이면 그 앞(살무사가 딜을 먹었나)을 뿌리로
@@ -1662,13 +1698,13 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
     elif vchain:
         t0 = vchain["triggerSec"] if vchain.get("triggerSec") is not None else vchain["sec"]
         first = (f"{stage_at(t0, hearts, p3)} {mmss(t0)} {_trigger_txt(vchain)} → 살무사 {mmss(vchain['sec'])}"
-                 + (" [확정]" if vchain.get("trigger") in ("wave", "burst", "break") else " [추정]"))
+                 + (" [확정]" if vchain.get("trigger") in ("wave", "burst", "break") or vchain.get("diedHolding") else " [추정]"))
         first_kind = EGG_VIPER_KIND
     elif lake_chain and lake_chain.get("vip") and (lake_chain.get("vshare") or 0) >= VIPER_DPS_SHARE_ROOT:
         c0 = lake_chain["vip"]["first"]
         t0 = c0["triggerSec"] if c0.get("triggerSec") is not None else c0["sec"]
         first = (f"{stage_at(t0, hearts, p3)} {mmss(t0)} {_trigger_txt(c0)} → 살무사 {mmss(c0['sec'])}"
-                 + (" [확정]" if c0.get("trigger") in ("wave", "burst", "break") else " [추정]"))
+                 + (" [확정]" if c0.get("trigger") in ("wave", "burst", "break") or c0.get("diedHolding") else " [추정]"))
         first_kind = EGG_VIPER_KIND
     elif lake_chain:
         first = (f"{stage_at(lake_chain['sec'], hearts, p3)} {mmss(lake_chain['sec'])} {LAKE_NAME} {lake_chain['n']}명 · "
@@ -1754,10 +1790,11 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
             top_txt = f" {_spell_txt(top, deaths, col_start)} {n}명"
         rage_mid = [t for t in (raw.get("rage") or []) if vchain["sec"] <= t <= float(col_start) + 1.0]
         cause = {"group": EGG_VIPER_KIND, "code": "EGG_VIPER",
-                 "confidence": "verified" if vchain.get("trigger") in ("wave", "burst", "break") else "likely",
+                 "confidence": "verified" if vchain.get("trigger") in ("wave", "burst", "break") or vchain.get("diedHolding") else "likely",
                  "label": (f"{_trigger_txt(vchain)} → 살무사 {vchain['count']}마리 {mmss(vchain['sec'])} → 붕괴{top_txt} ({mmss(col_start)})"
                            + (f" · 그 사이 막을 수 없는 분노 {len(rage_mid)}회" if rage_mid else "")),
-                 "next": NEXT["egg_ground"] if vchain.get("trigger") == "ground" else NEXT["egg_viper"]}
+                 "next": (NEXT["egg_ground"] if vchain.get("trigger") == "ground"
+                          else NEXT["egg_died"] if vchain.get("diedHolding") else NEXT["egg_viper"])}
     elif lake_chain:
         top_txt = ""
         if spells:

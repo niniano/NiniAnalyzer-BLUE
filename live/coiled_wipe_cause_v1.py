@@ -52,6 +52,11 @@ P2_NEXT = {
     "prior_add_overlap": "이전 차단쫄을 다음 웨이브 전에 정리.",
 }
 HEALER_SPECS = {65, 105, 256, 257, 264, 270, 1468}
+TANK_SPECS = {66, 73, 104, 250, 268, 581}
+# 1.0.24 역병의 절단 1307292 = 줄잔 탱 전방 (3초 시전 · 약 31초마다 탱이 번갈아 맞음 · 킬에서는 탱만 맞음)
+#  · 예: 탱 하나 사망 → 남은 탱 앞에 있던 2명이 같이 맞고 셋 다 사망 → 「역병의 절단 3명 중심 붕괴」는 결과
+PLAGUE_CLEAVE = "역병의 절단"
+CLEAVE_TANK_DEAD_SEC = 12.0
 ATTRITION = {"무시무시한 존재감", "앙갚음의 원한", "무덤구속"}
 P2_SHORT = {"manifest_collision": "현신", "wail_interrupt_failure": "통곡 차단", "gloombomb_failure": "암영폭탄",
             "soul_sever_non_tank_hit": "영혼 절단", "prior_add_overlap": "쫄 중첩"}
@@ -944,6 +949,25 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
             group, conf = "막페 구슬(파열) 연쇄", "likely"
             nxt = ("막페 구슬 순서 확인: 1보호막 후 센터 배달 → 1브레스(구슬+영혼) → 2단두대 뒤 2브레스로 남은 구슬. "
                    "보라구슬 특임이 패턴 대상자 걸리기 전에 옮겼는지.")
+        elif top == PLAGUE_CLEAVE:
+            tanks = {short(r.get("name")) for r in ((facts or {}).get("roster") or []) if safe_int(r.get("specID")) in TANK_SPECS}
+            hit = [short(d.get("name")) for d in deaths if col_start is not None and abs(float(d.get("sec") or 0) - float(col_start)) <= 3.0
+                   and _death_spell(d)[1] == PLAGUE_CLEAVE]
+            non_tank = [x for x in hit if x not in tanks]
+            td = [d for d in deaths if short(d.get("name")) in tanks and col_start is not None
+                  and 0 < float(col_start) - float(d.get("sec") or 0) <= CLEAVE_TANK_DEAD_SEC]
+            if td:
+                t0 = td[-1]
+                label = (f"{stage} · 탱 {short(t0.get('name'))} 사망 {mmss(t0.get('sec'))} → 역병의 절단(탱 전방) {n}명 ({mmss(col_start)})"
+                         + (f" · 탱 아님 {', '.join(non_tank[:3])}" if non_tank else ""))
+                group, conf, cat = f"{stage} 탱 사망 → 역병의 절단", "likely", "heal"
+                nxt = ("역병의 절단은 줄잔 탱 전방 (약 31초마다 탱 번갈아) · 탱 하나가 죽으면 바로 남은 탱이 받고 나머지는 줄잔 앞을 비우기 · "
+                       f"탱 {short(t0.get('name'))} 사망 원인부터 확인.")
+            else:
+                label = (f"{stage} · 역병의 절단(탱 전방) {n}명 ({mmss(col_start)})"
+                         + (f" · 탱 아님 {', '.join(non_tank[:3])}" if non_tank else ""))
+                group, conf = f"{stage} 역병의 절단", "likely"
+                nxt = "역병의 절단은 줄잔 탱 전방 (약 31초마다 탱 번갈아) · 탱 말고는 줄잔 앞에 서지 않기."
         elif top in GUIDE_DEATHS:
             g_label, g_next = GUIDE_DEATHS[top]
             label = f"{stage} · {g_label} {n}명 ({mmss(col_start)})"
