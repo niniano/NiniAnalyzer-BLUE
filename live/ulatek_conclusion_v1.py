@@ -23,7 +23,7 @@ from pathlib import Path
 
 from live import raid_plans as RP
 
-VERSION = "ULATEK-CONCLUSION-V2.4"
+VERSION = "ULATEK-CONCLUSION-V2.5"   # 1.0.29 똥물 사망 = 마지막 피해가 죽음의 맹독
 BOSS_NPC = "-257758-"
 CRY = 1305650
 UNCHECKED_RAGE = 1301007
@@ -112,7 +112,12 @@ YOLK = 1312150
 VENOM_LAKE = 1297338
 LAKE_NAME = "똥물에 빠짐 (죽음의 맹독)"
 LAKE_CAUSE_MIN_DEAD = 2           # 빠진 사람 중 2명 넘게 죽고 붕괴 20초 안이면 원인
-LAKE_DIED_AFTER = 3.0             # 맹독이 사라지고 3초 안에 죽으면 「빠져서 죽음」
+LAKE_DIED_AFTER = 3.0             # 맹독이 사라지고 3초 안에 죽으면 「빠진 채 사망」
+# 1.0.29: 틱은 최대 생명력의 약 11% (탱 약 6.5%) · 시간 지나도 같음.
+#  여러 공대 울라텍 409번 빠짐 중 빠진 채 죽은 286명의 마지막 피해: 죽음의 맹독 57 · 괴저 증기 48 · 근접 46 · 부패한 막 38 …
+#  2초 이하로 잠깐 빠졌다 죽은 60명 중 똥물이 마지막 피해인 건 6명 (이미 피 2~19%) → 글에서 「똥물로 사망」(마지막 피해 = 죽음의 맹독)과
+#  「빠진 채 다른 피해로 사망」을 나눔 · 원인 판정(여럿이 빠져서 몰살)은 그대로 「빠진 채 사망」 기준 (예전 판정 유지)
+LAKE_TICK_PCT = 11
 PRE_COLLAPSE_SEC = 10.0           # 붕괴 직전 사망 순서를 자동으로 적는 범위
 # 1.0.22: 똥물 몰살은 결과 · 뿌리는 「살무사 딜하느라 1심장 미달」 (사용자 11/25: 넘어가는 시간은 같고, 살무사 딜 때문에 심장 딜이 모자람)
 #  · 6일치 실측 2:38~2:52 똥물 5명+: 1심장 미달 8/25 (32%) · 통과 4/37 (11%)
@@ -203,7 +208,7 @@ NEXT = {
     "doomscale_tank": "탱: 약화된 파멸비늘 2마리는 탱 둘이 하나씩 (한 방 85만 · 혼자 둘이면 2초에 170만) · 잡는 동안 방어 버프·생존기 끊기지 않게 · 탱이 죽으면 파멸비늘이 딜·힐을 한 방에 죽이니 바로 도발.",
     "brood_tank": "탱: 독성 배양 독 줄기는 몸으로 막되 독성 화상 중첩 보고 교대 · 흉물 곪은 폭발 때 생존기 · 힐러는 막는 탱 집중.",
     "tank_death": "탱 생존기 순서와 교대 시점 확인 · 탱이 죽으면 다른 탱이 바로 도발.",
-    "venom_lake": "알방으로 갈 때 단상 끝에서 뛰어내리지 말고 정해진 길로 건너기 · 똥물(죽음의 맹독)에 빠지면 바로 나오기 (매초 큰 피해 · 10초면 쓰러짐).",
+    "venom_lake": "알방으로 갈 때 단상 끝에서 뛰어내리지 말고 정해진 길로 건너기 · 똥물(죽음의 맹독)에 빠지면 바로 나오기 (1초에 생명력 약 11% · 잠깐은 버티지만 오래 있거나 피 낮으면 쓰러짐).",
     "egg_died": "알 든 사람이 죽으면 그 자리에서 알이 깨져 공대 전체 부패한 막 + 살무사 · 알 운반자 힐·생존기 우선.",
     "egg_viper": "알 든 사람은 파도 피하기가 최우선 (꼬리 파도 방향 미리 · 이동기 아끼기) · 알끼리 3미터 · 살무사 주시 대상은 공대에서 떨어지고 나머지는 착지 자리 피하기 (석화의 독침 스턴).",
 }
@@ -1366,9 +1371,17 @@ def lake_review(raw: dict, deaths: list | None = None, end_sec: float | None = N
             out.append({"name": n, "sec": round(a, 1), "end": float(x["sec"])})
     for n, a in on.items():
         out.append({"name": n, "sec": round(a, 1), "end": float(end_sec if end_sec is not None else a)})
+    last_by = {}
+    for d in deaths or []:
+        last_by[(short(d.get("name")), round(float(d.get("sec") or 0), 1))] = (d.get("lastHit") or {})
     for r in out:
         r["dur"] = round(max(0.0, r["end"] - r["sec"]), 1)
         r["died"] = next((round(t, 1) for t in deaths_by.get(r["name"], []) if r["sec"] <= t <= r["end"] + LAKE_DIED_AFTER), None)
+        lh = last_by.get((r["name"], r["died"])) or {} if r["died"] is not None else {}
+        r["lakeKill"] = bool(r["died"] is not None and (int(lh.get("spellID") or 0) == VENOM_LAKE
+                                                       or str(lh.get("spellName") or "") == "죽음의 맹독"))   # 1.0.29
+        if r["died"] is not None and not r["lakeKill"] and lh.get("spellName"):
+            r["killedBy"] = str(lh.get("spellName"))
         r.pop("end")
     return sorted(out, key=lambda r: r["sec"])
 
@@ -1376,11 +1389,14 @@ def lake_review(raw: dict, deaths: list | None = None, end_sec: float | None = N
 def lake_line(rows: list[dict]) -> str | None:
     if not rows:
         return None
-    dead = [r for r in rows if r.get("died") is not None]
+    lk = [r for r in rows if r.get("lakeKill")]
+    other = [r for r in rows if r.get("died") is not None and not r.get("lakeKill")]
     return (f"{LAKE_NAME} {len({r['name'] for r in rows})}명 · "
-            + ", ".join(f"{mmss(r['sec'])} {r['name']}({r['dur']:.0f}초" + (" · 사망)" if r.get("died") is not None else ")") for r in rows[:6])
+            + ", ".join(f"{mmss(r['sec'])} {r['name']}({r['dur']:.0f}초"
+                        + (" · 똥물로 사망)" if r.get("lakeKill") else " · 사망)" if r.get("died") is not None else ")") for r in rows[:6])
             + (" …" if len(rows) > 6 else "")
-            + (f" → 빠져서 사망 {len(dead)}명" if dead else ""))
+            + (f" → 똥물로 사망 {len(lk)}명" if lk else "")
+            + (f" · 빠진 채 다른 피해로 사망 {len(other)}명" if other else ""))
 
 
 def pre_collapse_txt(deaths: list, at) -> str | None:
@@ -1624,13 +1640,14 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
     lake_chain = None
     _lk_at = _col0 if _col0 is not None else duration   # 붕괴 기록이 없으면 전멸 시각 기준 (11/23 10트)
     if lake_rows and result != "kill" and _lk_at is not None and not roar_chain and not vchain:
-        lk_dead = [r for r in lake_rows if r.get("died") is not None
+        lk_dead = [r for r in lake_rows if r.get("died") is not None   # 빠진 채 사망 (마지막 피해는 글에만 나눠 적음 · 1.0.29)
                    and float(_lk_at) - FIRST_MISTAKE_WINDOW_SEC <= float(r["sec"]) <= float(_lk_at) + 3.0]
         lk_in = [r for r in lake_rows if float(_lk_at) - FIRST_MISTAKE_WINDOW_SEC <= float(r["sec"]) <= float(_lk_at) + 3.0]
         dead_before = [d for d in deaths if lk_in and float(d.get("sec") or 0) < float(lk_in[0]["sec"]) - 0.5]
         _n_raid = len((facts or {}).get("roster") or []) or 20
         if len(lk_dead) >= LAKE_CAUSE_MIN_DEAD and len(dead_before) < _n_raid * LAKE_DEAD_BEFORE_SHARE:
             lake_chain = {"sec": lk_in[0]["sec"], "n": len({r["name"] for r in lk_in}), "dead": len(lk_dead),
+                          "lakeKill": sum(1 for r in lk_dead if r.get("lakeKill")),
                           "names": [r["name"] for r in lk_in]}
             # 1.0.22 똥물은 결과: 1심장 미달이면 그 앞(살무사가 딜을 먹었나)을 뿌리로
             if h1_short and h1:
@@ -1800,7 +1817,9 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
         if spells:
             top, n = max(spells.items(), key=lambda kv: kv[1])
             top_txt = f" {_spell_txt(top, deaths, col_start)} {n}명"
-        tail = (f"{LAKE_NAME} {lake_chain['n']}명 {mmss(lake_chain['sec'])} → 그중 {lake_chain['dead']}명 사망"
+        _lkk = int(lake_chain.get("lakeKill") or 0)
+        tail = (f"{LAKE_NAME} {lake_chain['n']}명 {mmss(lake_chain['sec'])} → 빠진 채 {lake_chain['dead']}명 사망"
+                + (f" (똥물이 마지막 피해 {_lkk}명)" if _lkk < lake_chain["dead"] else "")
                 + (f" → 붕괴{top_txt} ({mmss(col_start)})" if col_start is not None
                    else f" → {stage_at(duration - 0.5, hearts, p3)} {mmss(duration)} 전멸"))
         if lake_chain.get("h1") is not None:

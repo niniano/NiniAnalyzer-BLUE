@@ -39,7 +39,7 @@ assert (ROOT/'package_public_release.py').is_file()
 entry=(ROOT/'nini_raid_gui.py').read_text(encoding='utf-8')
 assert 'start_error_notice_poll(app)' in entry
 assert 'maybe_show_first_run(app)' in entry
-assert 'PUBLIC_APP_VERSION = "1.0.28"' in gui
+assert 'PUBLIC_APP_VERSION = "1.0.29"' in gui
 print('STAGE 2.4 RELEASE GATE PASS — first-run guide, local-only error notice and packager')
 
 assert (ROOT/'build_public_windows.py').read_text(encoding='utf-8').find("'--contents-directory', '_internal'") >= 0
@@ -57,7 +57,7 @@ assert '_drop_feign_deaths' in (ROOT/'live/boss_mechanics/engine.py').read_text(
 assert 'def _pull_badge_text' in gui and 'def _public_auto_open_latest_session' in gui
 iss=(ROOT/'installer/NiniAnalyzer_Public.iss').read_text(encoding='utf-8-sig')
 assert 'AppId={{' in iss and 'PrivilegesRequired=lowest' in iss and 'AppUserModelID: "{#AppUserModelID}"' in iss
-assert '#define AppVersion "1.0.28"' in iss
+assert '#define AppVersion "1.0.29"' in iss
 assert 'UninstallDelete' not in iss, 'installer must never delete user raid records'
 print('RC4 GATE PASS — scroll, fonts, feign death, puller, first screen, installer')
 
@@ -328,7 +328,7 @@ print('1.0.18 GATE PASS — egg break membrane')
 
 # 1.0.19: 공대 계획 (공대별 택틱) · 울라텍 남쪽 구역
 _u19 = (ROOT/'live/ulatek_conclusion_v1.py').read_text(encoding='utf-8')
-assert 'VERSION = "ULATEK-CONCLUSION-V2.4"' in _u19 and 'def south_review(' in _u19 and 'RP.resolve(' in _u19, '1.0.19: south zone + raid plan'
+assert 'VERSION = "ULATEK-CONCLUSION-V2.' in _u19 and 'def south_review(' in _u19 and 'RP.resolve(' in _u19, '1.0.19: south zone + raid plan'
 assert (ROOT/'live/raid_plans.py').is_file() and (ROOT/'live/raid_plans_ui.py').is_file()
 assert not (ROOT/'live/raid_plans.json').exists(), '1.0.19: no personal raid plan file in BLUE'
 assert 'raid_plans_ui' in (ROOT/'nini_wcl_gui.py').read_text(encoding='utf-8')
@@ -412,3 +412,10 @@ assert 'def fill_session_coach(' in (ROOT/'live/day_board.py').read_text(encodin
 assert '("1.0.28", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
 assert (ROOT/'qa/test_public_1_0_28_session_coach.py').is_file() and (ROOT/'README_1_0_28.md').is_file()
 print('1.0.28 GATE PASS — session coach')
+# 1.0.29: 울라텍 똥물 = 마지막 피해 기준
+_u29 = (ROOT/'live/ulatek_conclusion_v1.py').read_text(encoding='utf-8')
+assert 'LAKE_TICK_PCT = 11' in _u29 and 'r["lakeKill"]' in _u29 and 'VERSION = "ULATEK-CONCLUSION-V2.5"' in _u29, '1.0.29: lake kill'
+assert '잠깐 빠져도' not in (ROOT/'live/day_summary_v1.py').read_text(encoding='utf-8'), '1.0.29: day summary lake'
+assert '("1.0.29", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
+assert (ROOT/'qa/test_public_1_0_29_lake_kill.py').is_file() and (ROOT/'README_1_0_29.md').is_file()
+print('1.0.29 GATE PASS — lake kill')

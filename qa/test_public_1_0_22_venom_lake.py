@@ -40,8 +40,8 @@ class Lake(unittest.TestCase):
         self.assertEqual([(r["name"], r["dur"], r["died"]) for r in lk], [("가짜하나", 10.0, 180.1), ("가짜둘", 2.0, None)])
         t = U.lake_line(lk)
         self.assertIn("똥물에 빠짐 (죽음의 맹독) 2명", t)
-        self.assertIn("2:50 가짜하나(10초 · 사망)", t)
-        self.assertIn("빠져서 사망 1명", t)
+        self.assertIn("2:50 가짜하나(10초 · 똥물로 사망)", t)   # 1.0.29
+        self.assertIn("똥물로 사망 1명", t)
 
     def test_pre_collapse(self):
         ds = [death("가짜하나", 150.0, "부식의 파도"), death("가짜둘", 178.0, "죽음의 맹독"), death("가짜셋", 181.0, "괴저 증기")]

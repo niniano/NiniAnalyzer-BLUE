@@ -22,13 +22,14 @@ import statistics
 from collections import Counter, defaultdict
 from pathlib import Path
 
-VERSION = "1.0.25-DAY"
+VERSION = "1.0.29-DAY"
 CACHE_NAME = "day_summary_v1.json"
 SUPPORTED = {3429, 3492}
 
 HEALER_SPECS = {65, 105, 256, 257, 264, 270, 1468}
 TANK_SPECS = {66, 73, 104, 250, 268, 581}
 EVOKER_PRES = 1468
+LAKE_TICK_PCT = 11            # 울라텍 똥물(죽음의 맹독) 틱 = 최대 생명력 약 11% (탱 약 6.5%) · 시간 지나도 같음
 GLOOMBOMB = "1310881"         # 암영폭탄
 PURPLE_ORB = "1310498"        # 돌연변이 맹독 (보라구슬 · 5초)
 REF_P1_SWITCH = (120.0, 130.0)
@@ -267,8 +268,9 @@ def try_facts(enc: int, d, use_cache: bool = True) -> dict:
         res["south"] = {"actual": sr.get("actual"), "enraged": sr.get("oozeEnraged"), "ooze": sr.get("ooze")}
         lake = plan.get("venomLake") or []
         res["lake"] = {"n": len(lake), "dead": sum(1 for x in lake if x.get("died") is not None),
+                       "lakeKill": sum(1 for x in lake if x.get("lakeKill")),
                        "short": sum(1 for x in lake if float(x.get("dur") or 0) <= 2.0),
-                       "shortDead": sum(1 for x in lake if float(x.get("dur") or 0) <= 2.0 and x.get("died") is not None)}
+                       "shortKill": sum(1 for x in lake if float(x.get("dur") or 0) <= 2.0 and x.get("lakeKill"))}
         res["heart1Short"] = bool(out.get("heart1Short"))
     try:
         cache.write_text(json.dumps(res, ensure_ascii=False, default=lambda o: dict(o) if isinstance(o, Counter) else str(o)),
@@ -479,13 +481,16 @@ def _ulatek(fs, wipes, summary, todo):
             todo.append("남쪽 유체는 광폭(산성 배출) 전에 처치 · 광폭 시전 땐 배정된 CC")
         summary.append(txt)
     lake_root = sum(1 for f in wipes if "똥물" in str((f.get("cause") or {}).get("group") or ""))
-    sh = sum((f.get("lake") or {}).get("short", 0) for f in fs)
-    shd = sum((f.get("lake") or {}).get("shortDead", 0) for f in fs)
-    if sh or lake_root:
-        summary.append("똥물(죽음의 맹독)" + (f" · 2초 이하로 잠깐 빠져도 {_pct(shd, sh)}% 사망 ({shd}/{sh})" if sh else "")
+    # 1.0.29: 똥물 틱은 생명력 약 11% · 잠깐(2틱)은 안 죽음 → 「똥물로 사망」 = 마지막 피해가 죽음의 맹독
+    n_in = sum((f.get("lake") or {}).get("n", 0) for f in fs)
+    lk = sum((f.get("lake") or {}).get("lakeKill", 0) for f in fs)
+    other = sum((f.get("lake") or {}).get("dead", 0) for f in fs) - lk
+    if n_in or lake_root:
+        summary.append(f"똥물(죽음의 맹독) 1초에 생명력 약 {LAKE_TICK_PCT}% · 빠짐 {n_in}번 · 똥물로 사망 {lk}"
+                       + (f" · 빠진 채 다른 피해로 사망 {other}" if other > 0 else "")
                        + (f" · 똥물이 들어간 원인 {lake_root}트" if lake_root else ""))
-        if lake_root or (sh >= 5 and _pct(shd, sh) >= 40):
-            todo.append("똥물은 잠깐 밟아도 죽어요 · 1심장 구간 동선 확인")
+        if lake_root:
+            todo.append("똥물 빠지면 바로 나오기 (1초에 생명력 약 11% · 잠깐은 버티지만 오래 있거나 피 낮으면 쓰러짐) · 1심장 구간 동선 확인")
     tank = [f for f in wipes if "탱 사망" in str((f.get("cause") or {}).get("group") or "")]
     if tank:
         summary.append(f"탱 사망 → 붕괴 {len(tank)} (" + ", ".join(f"#{f.get('tryNo')}" for f in tank) + ")")

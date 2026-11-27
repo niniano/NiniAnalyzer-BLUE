@@ -72,7 +72,7 @@ class DaySummaryUlatekTests(unittest.TestCase):
     def test_egg_lake_fang(self):
         base = {"dur": 300.0, "result": "wipe", "kill": False, "heart1Short": False,
                 "fang": [{"late": ["가짜하나"], "spread": 9.0, "extra": 1}], "bigEgg": {"picks": [247.0], "drops": [265.0]},
-                "south": {"actual": "big_first", "enraged": 1}, "lake": {"n": 3, "dead": 2, "short": 6, "shortDead": 4}}
+                "south": {"actual": "big_first", "enraged": 1}, "lake": {"n": 3, "dead": 2, "lakeKill": 1, "short": 2, "shortKill": 0}}
         fs = [dict(base, tryNo=1, lines={"첫 실수": "1페 1:58 알 든 가짜둘 부식의 파도 1:58 → 살무사 1:59 [확정]", "다음 풀": "x"},
                    cause={"group": "알 운반 → 살무사", "confidence": "verified"}),
               dict(base, tryNo=2, lines={"첫 실수": "2페(알방) 3:48 알 든 가짜셋 사망 3:48 → 알 깨짐 → 살무사 [확정]", "다음 풀": "x"},
@@ -84,7 +84,7 @@ class DaySummaryUlatekTests(unittest.TestCase):
         self.assertIn("부식의 파도 1 · 알 든 채 사망 1", s)
         self.assertIn("첫 끊기 → 마지막까지 평균 9.0초", s)
         self.assertIn("큰 알 들기 4:07 · 넣기 4:25 (부화 2:54 고정)", s)
-        self.assertIn("2초 이하로 잠깐 빠져도 67% 사망", s)
+        self.assertIn("똥물(죽음의 맹독) 1초에 생명력 약 11% · 빠짐 6번 · 똥물로 사망 2 · 빠진 채 다른 피해로 사망 2", s)   # 1.0.29
         self.assertTrue(any("알 운반자 힐·생존기 우선" in t for t in out["todo"]))
         self.assertFalse(any("넘기" in t for t in out["todo"]))   # 알은 넘길 수 없음
 

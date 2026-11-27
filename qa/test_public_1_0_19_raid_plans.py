@@ -204,7 +204,7 @@ class PlanWindowSave(unittest.TestCase):
                 UI.save_values("우리", "네시", "", "", path=Path(d) / "x.json")
 
     def test_version(self):
-        self.assertEqual(U.VERSION, "ULATEK-CONCLUSION-V2.4")
+        self.assertEqual(U.VERSION, "ULATEK-CONCLUSION-V2.5")   # 1.0.29
 
 
 if __name__ == "__main__":
