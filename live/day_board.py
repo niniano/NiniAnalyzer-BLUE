@@ -117,6 +117,8 @@ def _poll(app, key) -> None:
     if job["done"]:
         st["jobs"].pop(key, None)
         st["results"][key] = job["res"]
+        if key in (st.get("coach_keys") or ()):
+            _coach_redraw(app)
         # 보드 다시 그리기 (지금 보고 있는 날이 이 날이면)
         if st.get("shown") == key:
             app._b3798_board_pre_sig = None
@@ -126,6 +128,8 @@ def _poll(app, key) -> None:
             except Exception:
                 pass
         return
+    if key in (st.get("coach_keys") or ()):
+        _coach_redraw(app)
     if st.get("shown") == key:
         p = st.get("panel")
         i, n, new = job["i"], job["n"], job["new"]
@@ -194,6 +198,79 @@ def apply(app, enc, pairs, session_date, model) -> dict:
     model["voiceOrders"] = list(res.get("todo") or []) or ["이날 따로 고칠 것 없음"]   # 1.0.27: 보완사항 전부
     model["voiceOrdersFull"] = True
     return model
+
+
+# ------------------------------------------------------------------ 세션 화면 「오늘의 교정」 (1.0.28)
+_BOSS_NAME = {3429: "똬리의 제단", 3492: "울라텍"}
+
+
+def _progress_text(job) -> str:
+    i, n, new = job["i"], job["n"], job["new"]
+    left = max(0, int((min(new, n - i)) * SEC_PER_TRY))
+    return (f"계산 중 {i}/{n}트 · 원본 로그에서 위치·디버프를 다시 읽느라 오래 걸려요 (멈춘 거 아님)"
+            + (f" · 남은 약 {left // 60}분 {left % 60}초" if left >= 60 else f" · 남은 약 {left}초" if left else ""))
+
+
+def fill_session_coach(app, rows, session_date) -> None:
+    """세션 화면 「오늘의 교정」 = 그날 똬리·울라텍 보완사항 (보스별). 개인 분석(도적) 결과가 있으면 그쪽이 먼저."""
+    st = _st(app)
+    if getattr(app, "boss_data", None) or getattr(app, "coach", None) is None:
+        st["coach_keys"] = []
+        return
+    groups = {}
+    for r in rows or []:
+        try:
+            enc = int(r.get("encounterID") or 0)
+        except Exception:
+            continue
+        if enc not in ds.SUPPORTED:
+            continue
+        try:
+            if app._live_row_is_reset(r) or app._live_row_is_fake(r):
+                continue
+        except Exception:
+            pass
+        d = _row_dir(r)
+        if d:
+            groups.setdefault(enc, set()).add(d)
+    keys = [_key(enc, session_date, sorted(dirs)) for enc, dirs in sorted(groups.items())]
+    st["coach_keys"] = keys
+    st["coach_date"] = session_date
+    for k in keys:
+        if k not in st["results"]:
+            _start(app, k, k[0], list(k[2]))
+    _coach_redraw(app)
+
+
+def _coach_redraw(app) -> None:
+    st = _st(app)
+    t = getattr(app, "coach", None)
+    if t is None or getattr(app, "boss_data", None):
+        return
+    keys = st.get("coach_keys") or []
+    try:
+        t.delete("1.0", "end")
+        if not keys:
+            t.insert("end", "이 세션엔 보완사항을 만드는 보스(똬리의 제단 · 울라텍)가 없어요.\n", "note")
+            return
+        t.insert("end", "보완사항\n", "title")
+        for k in keys:
+            res = st["results"].get(k)
+            name = _BOSS_NAME.get(k[0], str(k[0]))
+            if res is None:
+                job = st["jobs"].get(k)
+                t.insert("end", f"{name}\n", "issue")
+                t.insert("end", (_progress_text(job) if job else "계산 준비 중 (멈춘 거 아님)") + "\n", "check")
+                continue
+            t.insert("end", f"{name} · {res.get('tries', 0)}트\n", "issue")
+            todo = res.get("todo") or []
+            if not todo:
+                t.insert("end", "따로 고칠 것 없음\n", "good")
+            for i, line in enumerate(todo, 1):
+                t.insert("end", f"{i}. {line}\n", "action")
+        t.insert("end", "\n자세한 수치는 보스 트라이 보드의 「최종 정리」\n", "note")
+    except Exception:
+        pass
 
 
 def signature(app) -> tuple:

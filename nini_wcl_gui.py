@@ -255,7 +255,7 @@ PIPELINE = WORKDIR / "nini_wcl_pipeline.py"
 ENGINE = WORKDIR / "engine"
 CHARACTERS = ()  # PUBLIC: private character registry disabled
 DEFAULT_PLAYER = ""  # PUBLIC: no default personal identity
-PUBLIC_APP_VERSION = "1.0.27"
+PUBLIC_APP_VERSION = "1.0.28"
 WCL_DIFFICULTY_MAP = {15: 4, 16: 5, 233: 5}
 
 STATUS_RANK = {"경고": 4, "주의": 3, "표본부족": 2, "정상": 1, "비교전용": 0}
@@ -6922,6 +6922,11 @@ class App(tk.Tk):
             self._render_b3794_session(rows)
         except Exception:
             pass
+        try:  # 1.0.28: 「오늘의 교정」 = 그날 똬리·울라텍 보완사항 (개인 분석이 없을 때)
+            from live import day_board as _day_board
+            _day_board.fill_session_coach(self, rows, date)
+        except Exception:
+            pass
         # B37.4.35: header line = session totals + raid clock span.
         summary = getattr(self, "_b3835_summary", None)
         if summary and summary.get("date") == date:
@@ -10719,7 +10724,8 @@ class App(tk.Tk):
             self.b3794_coach_box.configure(text=f"오늘의 교정 · {self.current_player}" if self.current_player else "오늘의 교정")
         self._refresh_layout_session_summary()
         if not self.boss_data:
-            self.coach.insert("end", "분석 후 이번 세션에서 먼저 고칠 항목을 보여줍니다.")
+            if not self.coach.get("1.0", "end").strip():   # 그날 보완사항(day_board)이 이미 채웠으면 그대로
+                self.coach.insert("end", "분석 후 이번 세션에서 먼저 고칠 항목을 보여줍니다.")
             return
 
         locked_map = collect_locked_issues(self.boss_data)

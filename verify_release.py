@@ -39,7 +39,7 @@ assert (ROOT/'package_public_release.py').is_file()
 entry=(ROOT/'nini_raid_gui.py').read_text(encoding='utf-8')
 assert 'start_error_notice_poll(app)' in entry
 assert 'maybe_show_first_run(app)' in entry
-assert 'PUBLIC_APP_VERSION = "1.0.27"' in gui
+assert 'PUBLIC_APP_VERSION = "1.0.28"' in gui
 print('STAGE 2.4 RELEASE GATE PASS — first-run guide, local-only error notice and packager')
 
 assert (ROOT/'build_public_windows.py').read_text(encoding='utf-8').find("'--contents-directory', '_internal'") >= 0
@@ -57,7 +57,7 @@ assert '_drop_feign_deaths' in (ROOT/'live/boss_mechanics/engine.py').read_text(
 assert 'def _pull_badge_text' in gui and 'def _public_auto_open_latest_session' in gui
 iss=(ROOT/'installer/NiniAnalyzer_Public.iss').read_text(encoding='utf-8-sig')
 assert 'AppId={{' in iss and 'PrivilegesRequired=lowest' in iss and 'AppUserModelID: "{#AppUserModelID}"' in iss
-assert '#define AppVersion "1.0.27"' in iss
+assert '#define AppVersion "1.0.28"' in iss
 assert 'UninstallDelete' not in iss, 'installer must never delete user raid records'
 print('RC4 GATE PASS — scroll, fonts, feign death, puller, first screen, installer')
 
@@ -406,3 +406,9 @@ assert (ROOT/'qa/test_public_1_0_27_title.py').is_file() and (ROOT/'README_1_0_2
 assert 'voice = RoundPanel(body, "보완사항", ""' in gui and 'model.get("voiceOrdersFull")' in gui, '1.0.27: todo panel'
 assert 'model["voiceOrdersFull"] = True' in (ROOT/'live/day_board.py').read_text(encoding='utf-8'), '1.0.27: todo full'
 print('1.0.27 GATE PASS — final summary title + todo panel')
+# 1.0.28: 오늘의 교정 = 그날 보완사항
+assert '_day_board.fill_session_coach(self, rows, date)' in gui, '1.0.28: session coach wiring'
+assert 'def fill_session_coach(' in (ROOT/'live/day_board.py').read_text(encoding='utf-8'), '1.0.28: session coach'
+assert '("1.0.28", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
+assert (ROOT/'qa/test_public_1_0_28_session_coach.py').is_file() and (ROOT/'README_1_0_28.md').is_file()
+print('1.0.28 GATE PASS — session coach')
