@@ -2713,6 +2713,11 @@ class App(tk.Tk):
         self.b3641_board_voice = tk.Text(voice.body, height=1)
         self.b3641_board_voice.configure(state="disabled")
         self._b3641_board_model = {"rows": [], "stageCounts": [0, 0, 0, 0, 0]}
+        try:  # 1.0.25: 그날 최종 정리 · 보완사항 칸 (똬리 · 울라텍)
+            from live import day_board as _day_board
+            _day_board.build_panel(self, body, row=2)
+        except Exception:
+            pass
 
     def _build_b3641_try_priority_ui(self):
         wrap = ttk.Frame(self.live_frame)
@@ -3172,6 +3177,11 @@ class App(tk.Tk):
 
         # B37.3.9.8: skip the rebuild (and flicker) when nothing shown changed.
         _pre_sig = ("board-pre", enc, session_date, tuple(self._b3798_row_signature(r) for r, _rev in pairs or []))
+        try:  # 1.0.25: 그날 정리 계산이 끝나면 다시 그림
+            from live import day_board as _day_board
+            _pre_sig = _pre_sig + (_day_board.signature(self),)
+        except Exception:
+            pass
         if _pre_sig == getattr(self, "_b3798_board_pre_sig", None) and self.b3641_board_tree.get_children():
             return
         self._b3798_board_pre_sig = _pre_sig
@@ -3185,6 +3195,11 @@ class App(tk.Tk):
         try:  # 1.0.6 (GOLD V5.2.9)
             from live.v529_board import augment_board as _v529_aug
             model = _v529_aug(model)
+        except Exception:
+            pass
+        try:  # 1.0.25: 그날 최종 정리 (첫 실수 · 반복 원인 · 보완사항) — 뒤에서 계산, 끝나면 덮어씀
+            from live import day_board as _day_board
+            model = _day_board.apply(self, enc, pairs, session_date, model)
         except Exception:
             pass
         self._b3641_board_model = model
@@ -3318,6 +3333,8 @@ class App(tk.Tk):
         issue = str(item.get("issue") or item.get("keyFailure") or "").strip()
         if result in {"킬", "Kill"}:
             return "킬 · 공대 붕괴 없음", "kill"
+        if item.get("dayTag") and issue:   # 1.0.25: 결론 모듈 첫 실수 (그날 정리)
+            return issue, str(item["dayTag"])
         unresolved = (not issue) or issue in {"확정 원인 없음", "확인 불가"} or issue.startswith("원인 확인 불가")
         if not unresolved:
             tag = "candidate" if "후보" in issue else "verified"

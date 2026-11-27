@@ -389,4 +389,8 @@ assert '("1.0.25", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='
 assert (ROOT/'qa/test_public_1_0_25_egg_advice.py').is_file()
 assert '무적·회피로 받음(인원 포함)' in (ROOT/'live/coiled_wipe_cause_v1.py').read_text(encoding='utf-8'), '1.0.25: soak count'
 assert 'def wail_root(' in (ROOT/'live/coiled_wipe_cause_v1.py').read_text(encoding='utf-8') and '"WAIL_UNKICKED"' in (ROOT/'live/coiled_wipe_cause_v1.py').read_text(encoding='utf-8'), '1.0.25: wail'
-print('1.0.25 GATE PASS — egg advice + guillotine soak count + wail')
+assert (ROOT/'live/day_summary_v1.py').is_file() and (ROOT/'live/day_board.py').is_file(), '1.0.25: day summary'
+assert '_day_board.build_panel(self, body, row=2)' in gui and '_day_board.apply(self, enc, pairs, session_date, model)' in gui, '1.0.25: day board wiring'
+assert '멈춘 거 아님' in (ROOT/'live/day_board.py').read_text(encoding='utf-8'), '1.0.25: not-frozen note'
+assert (ROOT/'qa/test_public_1_0_25_day_summary.py').is_file()
+print('1.0.25 GATE PASS — egg advice + guillotine soak count + wail + day summary')
