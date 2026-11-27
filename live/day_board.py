@@ -1,8 +1,9 @@
 """1.0.25 보드 「그날 최종 정리」 칸.
 
-- 보드 아래에 칸 하나: 왼쪽 「최종 정리」(그날 수치) · 오른쪽 「보완사항」(다음 주에 고칠 것)
+- 보드 아래에 칸 하나: 「최종 정리」(그날 수치)
+- 1.0.27: 보완사항(다음 주에 고칠 것)은 오른쪽 「보완사항」 칸(예전 「다음 풀 전에 말할 것」)에 전부 (3개 제한 없음)
 - 계산은 뒤에서 (원본 로그 좌표를 한 번 더 읽어서 트라이당 몇 초) · 도는 동안 「멈춘 거 아님」 표시
-- 끝나면 보드를 다시 그림: 트라이 한눈에 = 결론 모듈 첫 실수 · 반복 실패 = 원인 묶음 · 다음 풀 전에 말할 것 = 보완사항 위 3개
+- 끝나면 보드를 다시 그림: 트라이 한눈에 = 결론 모듈 첫 실수 · 반복 실패 = 원인 묶음 · 보완사항 칸 = 보완사항 전부
 - 지원 보스(똬리 · 울라텍)가 아니면 칸을 숨긴다. 계산 결과는 트라이 폴더 day_summary_v1.json 에 저장 (기존 파일은 안 지움)
 """
 from __future__ import annotations
@@ -47,18 +48,9 @@ def build_panel(app, body, *, row=2) -> None:
     ft = getattr(th, "TITLE_FAMILY_ACTIVE", None) or getattr(th, "TITLE_FAMILY", "Segoe UI")
     panel = th.RoundPanel(body, "최종 정리", "", title_font=(ft, 12), body_font=(fb, 9))
     panel.grid(row=row, column=0, columnspan=2, sticky="nsew", pady=(th.px(8), 0))
-    inner = tk.Frame(panel.body, bg=th.PANEL_BG)
-    inner.pack(fill="both", expand=True)
-    inner.columnconfigure(0, weight=3)
-    inner.columnconfigure(1, weight=2)
-    tk.Label(inner, text="최종 정리", bg=th.PANEL_BG, fg=th.MUTED, font=(fb, 9), anchor="w").grid(row=0, column=0, sticky="w")
-    tk.Label(inner, text="보완사항 (다음 주)", bg=th.PANEL_BG, fg=th.MUTED, font=(fb, 9), anchor="w").grid(
-        row=0, column=1, sticky="w", padx=(th.px(12), 0))
-    left = tk.Frame(inner, bg=th.PANEL_BG)
-    left.grid(row=1, column=0, sticky="nsew")
-    right = tk.Frame(inner, bg=th.PANEL_BG)
-    right.grid(row=1, column=1, sticky="nsew", padx=(th.px(12), 0))
-    st["panel"] = {"box": panel, "left": left, "right": right, "sub": panel.subtitle_var, "fb": fb, "ft": ft, "th": th}
+    left = tk.Frame(panel.body, bg=th.PANEL_BG)   # 1.0.27: 수치만 (보완사항은 오른쪽 「보완사항」 칸)
+    left.pack(fill="both", expand=True)
+    st["panel"] = {"box": panel, "left": left, "sub": panel.subtitle_var, "fb": fb, "ft": ft, "th": th}
     panel.grid_remove()
 
 
@@ -66,24 +58,12 @@ def _fill(app, res) -> None:
     p = _st(app).get("panel")
     if not p:
         return
-    th, fb, ft = p["th"], p["fb"], p["ft"]
-    for side in ("left", "right"):
-        for w in p[side].winfo_children():
-            w.destroy()
-    wrap_l = th.px(620)
-    wrap_r = th.px(420)
+    th, fb = p["th"], p["fb"]
+    for w in p["left"].winfo_children():
+        w.destroy()
     for line in res.get("summary") or []:
         tk.Label(p["left"], text="· " + line, bg=th.PANEL_BG, fg=th.TEXT, font=(fb, 10), anchor="w", justify="left",
-                 wraplength=wrap_l).pack(fill="x", anchor="w", pady=(0, th.px(3)))
-    todo = res.get("todo") or []
-    for i, line in enumerate(todo, 1):
-        r = tk.Frame(p["right"], bg=th.PANEL_BG)
-        r.pack(fill="x", pady=(0, th.px(4)))
-        tk.Label(r, text=str(i), bg=th.PANEL_BG, fg=th.ORANGE, font=(ft, 10), width=2, anchor="n").pack(side="left", anchor="n")
-        tk.Label(r, text=line, bg=th.PANEL_BG, fg=th.TEXT, font=(fb, 10), anchor="w", justify="left",
-                 wraplength=wrap_r).pack(side="left", fill="x", expand=True)
-    if not todo:
-        tk.Label(p["right"], text="이날 따로 고칠 것 없음", bg=th.PANEL_BG, fg=th.MUTED, font=(fb, 9), anchor="w").pack(fill="x")
+                 wraplength=th.px(1000)).pack(fill="x", anchor="w", pady=(0, th.px(3)))
 
 
 def _waiting(app, text) -> None:
@@ -91,9 +71,8 @@ def _waiting(app, text) -> None:
     if not p:
         return
     th, fb = p["th"], p["fb"]
-    for side in ("left", "right"):
-        for w in p[side].winfo_children():
-            w.destroy()
+    for w in p["left"].winfo_children():
+        w.destroy()
     tk.Label(p["left"], text=text, bg=th.PANEL_BG, fg=th.ORANGE, font=(fb, 10), anchor="w", justify="left",
              wraplength=th.px(620)).pack(fill="x", anchor="w")
 
@@ -212,8 +191,8 @@ def apply(app, enc, pairs, session_date, model) -> dict:
     if res.get("repeats"):
         model["repeats"] = [{"label": r["label"], "count": r["count"], "tries": r.get("tries") or []}
                             for r in res["repeats"] if int(r.get("count") or 0) >= 2] or model.get("repeats")
-    if res.get("todo"):
-        model["voiceOrders"] = list(res["todo"][:3])
+    model["voiceOrders"] = list(res.get("todo") or []) or ["이날 따로 고칠 것 없음"]   # 1.0.27: 보완사항 전부
+    model["voiceOrdersFull"] = True
     return model
 
 

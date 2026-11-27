@@ -403,4 +403,6 @@ print('1.0.26 GATE PASS — day summary windows path')
 assert '"그날 최종 정리' not in (ROOT/'live/day_board.py').read_text(encoding='utf-8'), '1.0.27: title'
 assert '("1.0.27", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
 assert (ROOT/'qa/test_public_1_0_27_title.py').is_file() and (ROOT/'README_1_0_27.md').is_file()
-print('1.0.27 GATE PASS — final summary title')
+assert 'voice = RoundPanel(body, "보완사항", ""' in gui and 'model.get("voiceOrdersFull")' in gui, '1.0.27: todo panel'
+assert 'model["voiceOrdersFull"] = True' in (ROOT/'live/day_board.py').read_text(encoding='utf-8'), '1.0.27: todo full'
+print('1.0.27 GATE PASS — final summary title + todo panel')

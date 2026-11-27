@@ -138,12 +138,16 @@ class DayBoardPanelTests(unittest.TestCase):
                                   "rows": {str(Path("/d/t1")): {"tryNo": 1, "issue": "6:36 공포의 통곡 못 끊음", "tag": "verified"}},
                                   "repeats": [{"label": "막페 공포의 통곡 못 끊음", "count": 2, "tries": [1, 2]}]}
             out = db.apply(app, 3429, pairs, "2026-01-05", model)
-            self.assertEqual(out["voiceOrders"], ["가", "나", "다"])
+            self.assertEqual(out["voiceOrders"], ["가", "나", "다", "라"])   # 보완사항 전부 (3개 제한 없음)
+            self.assertTrue(out["voiceOrdersFull"])
             self.assertEqual(out["rows"][0]["issue"], "6:36 공포의 통곡 못 끊음")
             self.assertEqual(app._b3793_issue(out["rows"][0], None), ("6:36 공포의 통곡 못 끊음", "verified"))
             self.assertNotIn("dayTag", out["rows"][1])
             self.assertEqual(out["repeats"][0]["count"], 2)
-            self.assertEqual(len(st["panel"]["right"].winfo_children()), 4)
+            self.assertNotIn("right", st["panel"])          # 아래 칸엔 수치만
+            app._b3798_board_sig = None
+            app._render_b3793_board(out, pairs, "x")
+            self.assertEqual(len(app.b3793_voice_list.winfo_children()), 4)
             # 다른 보스는 칸을 숨기고 모델을 안 건드림
             out2 = db.apply(app, 3513, pairs, "2026-01-05", model)
             self.assertIs(out2, model)

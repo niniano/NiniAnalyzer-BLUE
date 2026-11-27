@@ -2654,7 +2654,7 @@ class App(tk.Tk):
         # B37.4.1: board 6 shows chips instead of a scope line (var kept for export).
 
         # B37.3.9.3: layout board 6 — header chips, then two columns:
-        # left = 트라이 진척 + 트라이 한눈에, right = 반복 실패 + 다음 풀 전에 말할 것.
+        # left = 트라이 진척 + 트라이 한눈에, right = 반복 실패 + 보완사항 (1.0.27: 예전 「다음 풀 전에 말할 것」).
         self.b3793_chip_frame = tk.Frame(bhead, bg=_ui_theme.PAGE_BG)
         self.b3793_chip_frame.pack(anchor="w", pady=_px((6, 0)))
         body = tk.Frame(board, bg=_ui_theme.PAGE_BG)
@@ -2668,7 +2668,7 @@ class App(tk.Tk):
         right_top.grid(row=0, column=1, sticky="nsew", pady=_px((0, 8)))
         table_box = RoundPanel(body, "트라이 한눈에", "누르면 트라이 복기", title_font=(FONT_TITLE, 12), body_font=(FONT_BODY, 9))
         table_box.grid(row=1, column=0, sticky="nsew", padx=_px((0, 8)))
-        voice = RoundPanel(body, "다음 풀 전에 말할 것", "보이스 오더", title_font=(FONT_TITLE, 12), body_font=(FONT_BODY, 9))
+        voice = RoundPanel(body, "보완사항", "", title_font=(FONT_TITLE, 12), body_font=(FONT_BODY, 9))
         voice.grid(row=1, column=1, sticky="new")
 
         self.b3793_progress_note_var = left_top.subtitle_var
@@ -3424,7 +3424,8 @@ class App(tk.Tk):
 
         # Right column: numbered voice orders (max 3)
         self._b3793_clear(self.b3793_voice_list)
-        orders = [str(x) for x in (model.get("voiceOrders") or []) if str(x).strip()][:3] or ["다음 구간 진행 확인"]
+        # 1.0.27: 그날 정리(똬리 · 울라텍)가 있으면 보완사항 전부, 없으면 예전처럼 3개
+        orders = [str(x) for x in (model.get("voiceOrders") or []) if str(x).strip()][: (None if model.get("voiceOrdersFull") else 3)] or ["다음 구간 진행 확인"]
         for i, line in enumerate(orders, 1):
             r = tk.Frame(self.b3793_voice_list, bg=_ui_theme.PANEL_BG)
             r.pack(fill="x", pady=_px((0, 8)))
