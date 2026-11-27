@@ -118,6 +118,9 @@ if errorlevel 1 goto FAIL
 echo [CHECK] 1.0.24 1126 review...
 py -3 -m unittest discover -s qa -p "test_public_1_0_24*.py" -v
 if errorlevel 1 goto FAIL
+echo [CHECK] 1.0.25 egg advice...
+py -3 -m unittest discover -s qa -p "test_public_1_0_25*.py" -v
+if errorlevel 1 goto FAIL
 echo [CHECK] Try mouse-wheel GUI regressions...
 py -3 -m unittest discover -s qa -p test_nini_stage2_2_1_gui_regression.py -v
 if errorlevel 1 goto FAIL
@@ -133,8 +136,8 @@ if errorlevel 1 goto FAIL
 call "%~dp0Build_Installer_Only.cmd" nopause
 if errorlevel 1 goto FAIL
 echo.
-echo [DONE] dist\NiniAnalyzer_Public_1.0.24_Setup_Windows_x64.exe   (give this to guild members)
-echo [DONE] dist\NiniAnalyzer_Public_1.0.24_Windows_x64_SAFE_FOLDER.zip   (portable, optional)
+echo [DONE] dist\NiniAnalyzer_Public_1.0.25_Setup_Windows_x64.exe   (give this to guild members)
+echo [DONE] dist\NiniAnalyzer_Public_1.0.25_Windows_x64_SAFE_FOLDER.zip   (portable, optional)
 pause
 exit /b 0
 :FAIL
