@@ -37,10 +37,10 @@ class DaySummaryCoiledTests(unittest.TestCase):
         out = self._run(fs)
         self.assertTrue(any("공포의 통곡" in s and "가짜하나 혼자" in s for s in out["summary"]))
         self.assertTrue(any(t.startswith("통곡 차단 2~3명 순번 (가짜하나") for t in out["todo"]))
-        row = out["rows"]["/x/try_0"]
+        row = out["rows"][str(Path("/x/try_0"))]
         self.assertEqual(row["tag"], "verified")
         self.assertNotIn("[확정]", row["issue"])
-        self.assertEqual(out["rows"]["/x/try_1"]["tag"], "kill")
+        self.assertEqual(out["rows"][str(Path("/x/try_1"))]["tag"], "kill")
 
     def test_second_guillotine_zero_soak_is_failure_not_pass(self):
         fs = [_coiled(1, g2={"mark": 430, "afterMk": 84, "soak": 0, "exec": 0, "target": "가짜셋", "why": "공포"}),
@@ -133,9 +133,9 @@ class DayBoardPanelTests(unittest.TestCase):
                 out = db.apply(app, 3429, pairs, "2026-01-05", model)
                 start.assert_called_once()
             self.assertEqual(out["voiceOrders"], ["예전"])      # 계산 전엔 그대로
-            key = db._key(3429, "2026-01-05", ["/d/t1", "/d/t2"])
+            key = db._key(3429, "2026-01-05", [db._row_dir({"storageDir": "/d/t1"}), db._row_dir({"storageDir": "/d/t2"})])
             st["results"][key] = {"tries": 2, "summary": ["2트"], "todo": ["가", "나", "다", "라"],
-                                  "rows": {"/d/t1": {"tryNo": 1, "issue": "6:36 공포의 통곡 못 끊음", "tag": "verified"}},
+                                  "rows": {str(Path("/d/t1")): {"tryNo": 1, "issue": "6:36 공포의 통곡 못 끊음", "tag": "verified"}},
                                   "repeats": [{"label": "막페 공포의 통곡 못 끊음", "count": 2, "tries": [1, 2]}]}
             out = db.apply(app, 3429, pairs, "2026-01-05", model)
             self.assertEqual(out["voiceOrders"], ["가", "나", "다"])

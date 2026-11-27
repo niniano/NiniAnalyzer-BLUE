@@ -31,7 +31,7 @@ def _row_dir(row) -> str:
     if not d:
         mj = str((row or {}).get("metaJson") or "")
         d = str(Path(mj).parent) if mj else ""
-    return d
+    return str(Path(d)) if d else ""   # 윈도우 \ · / 섞여도 같은 키 (day_summary 는 str(Path) 로 저장)
 
 
 def _key(enc, session_date, dirs) -> tuple:
