@@ -45,7 +45,7 @@ def build_panel(app, body, *, row=2) -> None:
     st = _st(app)
     fb = getattr(th, "BODY_FAMILY_ACTIVE", None) or getattr(th, "BODY_FAMILY", "Segoe UI")
     ft = getattr(th, "TITLE_FAMILY_ACTIVE", None) or getattr(th, "TITLE_FAMILY", "Segoe UI")
-    panel = th.RoundPanel(body, "그날 최종 정리", "", title_font=(ft, 12), body_font=(fb, 9))
+    panel = th.RoundPanel(body, "최종 정리", "", title_font=(ft, 12), body_font=(fb, 9))
     panel.grid(row=row, column=0, columnspan=2, sticky="nsew", pady=(th.px(8), 0))
     inner = tk.Frame(panel.body, bg=th.PANEL_BG)
     inner.pack(fill="both", expand=True)
@@ -186,7 +186,7 @@ def apply(app, enc, pairs, session_date, model) -> dict:
     st["shown"] = key
     if p:
         p["box"].grid()
-        p["box"].title_var.set(f"그날 최종 정리 · {session_date}")
+        p["box"].title_var.set(f"최종 정리 · {session_date}")   # 1.0.27: 제목에서 「그날」 뺌
     res = st["results"].get(key)
     if res is None:
         _start(app, key, enc, dirs)
