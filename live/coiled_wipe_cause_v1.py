@@ -312,6 +312,12 @@ KNOWN_GUILLOTINE_IDS = {1283485, 1283489, 1283594, 1283606, 1307425, 1306604, 13
 WAIL = 1286399
 LATE_KICK_SEC = 8.0      # 통곡 시전 약 10초. 8초 넘어 끊으면 「끝짤」(공포 위험)
 WAIL_TOKEN = b",1286399,"
+# 1.0.25 공포의 통곡을 못 끊음 → 공대 전체 공포 → 붕괴
+#  · 통곡 = 원한에 찬 영혼살무사 10초 시전 · 끝나면 공대 19명 공포 (1286399 디버프)
+#  · 실측: 공대가 멀쩡할 때 끝까지 시전되면 그 뒤 15초 안 10~18명 사망 (막페 2단두대 직전 공포 → 막을 사람 0)
+#  · 이미 무너진 뒤 끝까지 시전된 건 결과로 봄
+WAIL_ROOT_DEAD_BEFORE_MAX = 6     # 통곡이 끝난 순간까지 이보다 많이 죽어 있으면 결과로 봄
+WAIL_ROOT_COLLAPSE_SEC = 12.0     # 통곡이 끝나고 이 안에 붕괴가 시작하면 뿌리 (붕괴 기록이 없으면 15초 안 8명 이상 사망)
 
 
 def _flags_marked(v) -> bool:
@@ -365,6 +371,34 @@ def resolve_kickers(raw: dict, guid_names: dict | None) -> list[dict]:
                 e["by"] = owner
         out.append(e)
     return out
+
+
+def wail_root(events: list[dict], deaths: list[dict], col_start) -> dict | None:
+    """1.0.25 공대가 멀쩡할 때 끝까지 시전된 통곡(공대 공포) 중 붕괴로 이어진 첫 번째.
+    events = resolve_kickers 결과. 돌려줌: {sec, startSec, kicks(그 쫄 앞선 차단), last(마지막 차단자), share(이번 풀 차단 몫), dead}"""
+    ev = sorted(events or [], key=lambda e: e["sec"])
+    kicks_all = [e for e in ev if e["kind"] == "kick"]
+    by = {}
+    for e in kicks_all:
+        by[e.get("by") or "?"] = by.get(e.get("by") or "?", 0) + 1
+    for e in ev:
+        if e["kind"] != "done":
+            continue
+        t = float(e["sec"])
+        before = [d for d in deaths or [] if float(d.get("sec") or 0) < t]
+        if len(before) > WAIL_ROOT_DEAD_BEFORE_MAX:
+            continue
+        after = [d for d in deaths or [] if t <= float(d.get("sec") or 0) <= t + 15.0]
+        col_ok = col_start is not None and t - 1.0 <= float(col_start) <= t + WAIL_ROOT_COLLAPSE_SEC
+        if not (col_ok or (col_start is None and len(after) >= 8)):
+            continue
+        st = max((float(x["sec"]) for x in ev if x["kind"] == "start" and x.get("add") == e.get("add") and float(x["sec"]) < t),
+                 default=None)
+        mine = [x for x in kicks_all if x.get("add") == e.get("add") and float(x["sec"]) < t]
+        return {"sec": t, "startSec": st, "kicks": len(mine), "last": (mine[-1].get("by") if mine else None),
+                "lastSec": (float(mine[-1]["sec"]) if mine else None), "share": sorted(by.items(), key=lambda kv: -kv[1])[:3],
+                "dead": len(after), "deadBefore": len(before)}
+    return None
 
 
 def infer_kick_lines(tries: list[dict], min_obs: int = 3, min_share: float = 0.5) -> dict:
@@ -1064,6 +1098,25 @@ def build(meta: dict, mech: dict, raid: dict, facts: dict, raw: dict | None = No
         rc = (raid or {}).get("verdict") or {}
         cause.update({"label": rc.get("title") or cause["label"], "confidence": "unknown",
                       "category": "heal" if "누적" in str(rc.get("title")) else "none"})
+
+    # 1.0.25 공포의 통곡 못 끊음 → 공대 공포 → 붕괴 (단두대·구슬 판정보다 먼저: 공포 때문에 못 막음)
+    _wr = None
+    if result != "kill" and raw.get("available") and cause.get("code") != "SOUL_LINK_ORDER":   # 영혼결속 순서 실패는 따로 확정
+        _wr = wail_root(resolve_kickers(raw, {r.get("guid"): short(r.get("name")) for r in ((facts or {}).get("roster") or [])}),
+                        deaths, col_start)
+    if _wr:
+        _stg = "막페" if (p2_end is not None and _wr["sec"] >= float(p2_end)) else ("P2" if in_p2 else "P1")
+        _why = (f"{_wr['last']} {mmss(_wr['lastSec'])}에 끊은 뒤 다시 시전 · 다음 차단자 없음" if _wr["last"]
+                else "아무도 안 끊음")
+        _share = " · ".join(f"{n} {c}" for n, c in _wr["share"])
+        first = (f"{mmss(_wr['startSec']) if _wr['startSec'] is not None else '?'} 공포의 통곡 못 끊음 → {mmss(_wr['sec'])} 공대 공포"
+                 f" ({_why}) [확정]")
+        cause.update({"group": f"{_stg} 공포의 통곡 못 끊음", "code": "WAIL_UNKICKED", "confidence": "verified", "category": "mechanic",
+                      "label": (f"{_stg} · 공포의 통곡 못 끊음 → {mmss(_wr['sec'])} 공대 공포 → 15초 안 {_wr['dead']}명 사망"
+                                + (f" ({mmss(col_start)} 붕괴)" if col_start is not None else "")),
+                      "detail": f"이번 풀 통곡 차단 {_share}" if _share else "",
+                      "next": "영혼살무사 통곡 차단 2~3명 순번 (1차 차단 직후 다음 차단자 콜) · 차단 담당이 죽으면 바로 대신 · "
+                              "막페 2단두대 전후엔 두 번째 차단자 대기."})
 
     # ---- 4. 딜·힐
     if result == "kill":
