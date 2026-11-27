@@ -63,7 +63,7 @@ class AbsorbAndImmune(unittest.TestCase):
                                {"sec": 512.0, "event": "SPELL_AURA_REMOVED", "target": "A", "set": "p3"}],
                "guillotineHits": [h("A"), h("B", True, "ABSORB"), h("C", True, "MISS")]}
         line = W.guillotine_lines(raw)[0]
-        self.assertIn("단두대 맞은 인원 2 (보호막 흡수 1 포함) · 무적기로 받음(인원 제외) C(MISS)", line)
+        self.assertIn("단두대 맞은 인원 3 (보호막 흡수 1 포함) · 무적·회피로 받음(인원 포함) C(MISS)", line)   # 1.0.25
 
 
 class RaidScanSpeed(unittest.TestCase):

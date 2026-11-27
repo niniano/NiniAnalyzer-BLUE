@@ -387,4 +387,5 @@ _u25 = (ROOT/'live/ulatek_conclusion_v1.py').read_text(encoding='utf-8')
 assert '알 운반자 힐·생존기 우선."' in _u25 and '알 넘기기' not in _u25 and '알 들지 않기' not in _u25, '1.0.25: egg advice'
 assert '("1.0.25", [' in (ROOT/'live/public_onboarding.py').read_text(encoding='utf-8')
 assert (ROOT/'qa/test_public_1_0_25_egg_advice.py').is_file()
-print('1.0.25 GATE PASS — egg advice')
+assert '무적·회피로 받음(인원 포함)' in (ROOT/'live/coiled_wipe_cause_v1.py').read_text(encoding='utf-8'), '1.0.25: soak count'
+print('1.0.25 GATE PASS — egg advice + guillotine soak count')

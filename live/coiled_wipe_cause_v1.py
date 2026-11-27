@@ -1226,8 +1226,9 @@ def guillotine_detail(raw: dict, which: str = "p1") -> list[dict]:
             end = min((h["sec"] for h in window), default=ap["sec"] + 5.0)
             window = [h for h in window if h["sec"] <= end + 2.0]
         # V3.7: 보호막이 다 흡수한 피격(ABSORB)도 단두대를 같이 맞은 것 → 맞은 인원에 넣는다 (absorbed 로 따로도 적음)
-        soak = sorted({h["target"] for h in window if h["spellID"] == soak_id
-                       and (not h["missed"] or h.get("missType") == "ABSORB")})
+        # 1.0.25: 무적·회피(IMMUNE · MISS)로 받은 사람도 줄에 들어온 사람 → 인원에 넣는다
+        #   · 근거: 막페 냉혹한 단두대 뒤 디버프(1307652)가 IMMUNE · MISS 로 받은 사람에게도 똑같이 걸림 (예: 맞음 2 + 무적·회피 3 = 디버프 5명 · 처형 0)
+        soak = sorted({h["target"] for h in window if h["spellID"] == soak_id})
         absorbed = sorted({h["target"] for h in window if h["spellID"] == soak_id and h["missed"]
                            and h.get("missType") == "ABSORB"} - {h["target"] for h in window
                                                                  if h["spellID"] == soak_id and not h["missed"]})
@@ -1275,8 +1276,8 @@ def guillotine_lines(raw: dict) -> list[str]:
     for g in guillotine_detail(raw) + guillotine_detail(raw, "p3"):
         imm = ", ".join(f"{x['spell']}({x['by']}) {mmss(x['on'])}~{mmss(x['off']) if x['off'] is not None else '?'}"
                         for x in g["targetImmunity"]) or "면역기 없음"
-        # MISS/IMMUNE = 그림자 망토·거북의 상·보호막(무적) 같은 무적기로 받은 것 (공대 확인 10/27). 나눠 맞은 인원으로 치는지는 아직 몰라서 따로 적는다.
-        miss = f" · 무적기로 받음(인원 제외) {', '.join(g['soakMissed'])}" if g["soakMissed"] else ""
+        # MISS/IMMUNE = 그림자 망토·거북의 상·보호막(무적) 같은 무적기로 받은 것 (공대 확인 10/27). 1.0.25: 인원에 넣고 따로도 적는다.
+        miss = f" · 무적·회피로 받음(인원 포함) {', '.join(g['soakMissed'])}" if g["soakMissed"] else ""
         tag = f"막페{g['index']}" if g["phase"] == "p3" else f"{g['index']}"
         lines.append(f"{tag}단두대 {mmss(g['markSec'])}→{mmss(g['resolveSec'])} · 대상 {g['target']} · {imm}"
                      f" · 단두대 맞은 인원 {len(g['soakers'])}"
